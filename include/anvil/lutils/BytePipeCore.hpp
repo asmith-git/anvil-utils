@@ -17,8 +17,10 @@
 
 #include <cstdint>
 
-namespace anvil { namespace lutils {
-
-}}
+namespace anvil { namespace lutils { namespace BytePipe {
+	enum Version : uint8_t {
+		VESRSION_1 = 1
+	};
+}}}
 
 #endif
