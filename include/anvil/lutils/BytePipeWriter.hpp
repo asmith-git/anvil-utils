@@ -15,8 +15,51 @@
 #ifndef ANVIL_LUTILS_BYTEPIPE_WRITER_HPP
 #define ANVIL_LUTILS_BYTEPIPE_WRITER_HPP
 
-namespace anvil { namespace lutils {
+#include "BytePipeReader.hpp"
 
-}}
+namespace anvil { namespace lutils { namespace BytePipe {
+
+	class OutputPipe {
+	public:
+		virtual ~OutputPipe() {}
+		virtual uint32_t WriteBytes(const void* src, const uint32_t bytes) = 0;
+		virtual void Flush() = 0;
+	};
+
+	class Writer final : public ParserV1 {
+	private:
+		Writer(Writer&&) = delete;
+		Writer(const Writer&) = delete;
+		Writer& operator=(Writer&&) = delete;
+		Writer& operator=(const Writer&) = delete;
+	protected:
+		OutputPipe& _pipe;
+	public:
+		Writer(OutputPipe& pipe);
+		virtual ~Writer();
+
+		// Inherited from ParserV1
+
+		void OnPipeOpen() final;
+		void OnPipeClose() final;
+		void OnArrayBegin(const uint32_t size)  final;
+		void OnArrayEnd() final;
+		void OnObjectBegin(const uint32_t component_count) final;
+		void OnObjectEnd() final;
+		void OnComponentID(const uint16_t id) final;
+		void OnPrimativeF64(const double value) final;
+		void OnPrimativeString(const char* value, const uint32_t length) final;
+		void OnPrimativeU64(const uint64_t value) final;
+		void OnPrimativeS64(const int64_t value) final;
+		void OnPrimativeF32(const float value) final;
+		void OnPrimativeU8(const uint8_t value) final;
+		void OnPrimativeU16(const uint16_t value) final;
+		void OnPrimativeU32(const uint32_t value) final;
+		void OnPrimativeS8(const int8_t value) final;
+		void OnPrimativeS16(const int16_t value) final;
+		void OnPrimativeS32(const int32_t value) final;
+	};
+
+}}}
 
 #endif

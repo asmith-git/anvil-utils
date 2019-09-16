@@ -18,6 +18,12 @@
 #include "BytePipeCore.hpp"
 
 namespace anvil { namespace lutils { namespace BytePipe {
+	class InputPipe {
+	public:
+		virtual ~InputPipe() {}
+		virtual uint32_t ReadBytes(void* dst, const uint32_t bytes) = 0;
+	};
+
 	class Parser {
 	public:
 		virtual ~Parser() {}
@@ -54,6 +60,21 @@ namespace anvil { namespace lutils { namespace BytePipe {
 		// Inherited from Parser
 
 		virtual Version GetSupportedVersion() const override { return VESRSION_1; }
+	};
+
+	class Reader {
+	private:
+		Reader(Reader&&) = delete;
+		Reader(const Reader&) = delete;
+		Reader& operator=(Reader&&) = delete;
+		Reader& operator=(const Reader&) = delete;
+
+		InputPipe& _pipe;
+	public:
+		Reader(InputPipe& pipe);
+		~Reader();
+
+		void Read(Parser& dst);
 	};
 
 }}}
