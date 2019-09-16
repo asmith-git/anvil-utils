@@ -18,5 +18,6 @@
 #include "anvil/lutils/BytePipeCore.hpp"
 #include "anvil/lutils/BytePipeReader.hpp"
 #include "anvil/lutils/BytePipeWriter.hpp"
+#include "anvil/lutils/BytePipeSTL.hpp"
 
 #endif
