@@ -59,7 +59,27 @@ namespace anvil { namespace lutils { namespace BytePipe {
 
 		// Inherited from Parser
 
-		virtual Version GetSupportedVersion() const override { return VESRSION_1; }
+		virtual Version GetSupportedVersion() const override { return VERSION_1; }
+	};
+
+	class ParserV2 : public ParserV1 {
+	public:
+		virtual ~ParserV2() {}
+
+		virtual void OnPrimativeArrayU8(const uint8_t* src, const uint32_t size) = 0;
+		virtual void OnPrimativeArrayU16(const uint16_t* src, const uint32_t size) = 0;
+		virtual void OnPrimativeArrayU32(const uint32_t* src, const uint32_t size) = 0;
+		virtual void OnPrimativeArrayU64(const uint64_t* src, const uint32_t size) = 0;
+		virtual void OnPrimativeArrayS8(const int8_t* src, const uint32_t size) = 0;
+		virtual void OnPrimativeArrayS16(const int16_t* src, const uint32_t size) = 0;
+		virtual void OnPrimativeArrayS32(const int32_t* src, const uint32_t size) = 0;
+		virtual void OnPrimativeArrayS64(const int64_t* src, const uint32_t size) = 0;
+		virtual void OnPrimativeArrayF32(const float* src, const uint32_t size) = 0;
+		virtual void OnPrimativeArrayF64(const double* src, const uint32_t size) = 0;
+
+		// Inherited from Parser
+
+		virtual Version GetSupportedVersion() const override { return VERSION_2; }
 	};
 
 	class Reader {

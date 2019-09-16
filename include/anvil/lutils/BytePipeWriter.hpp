@@ -27,7 +27,7 @@ namespace anvil { namespace lutils { namespace BytePipe {
 		virtual void Flush() = 0;
 	};
 
-	class Writer final : public ParserV1 {
+	class Writer final : public ParserV2 {
 	private:
 		Writer(Writer&&) = delete;
 		Writer(const Writer&) = delete;
@@ -44,11 +44,14 @@ namespace anvil { namespace lutils { namespace BytePipe {
 		OutputPipe& _pipe;
 		std::vector<State> _state_stack;
 		State _default_state;
+		Version _version;
 
 		State GetCurrentState() const;
 		void Write(const void* src, const uint32_t bytes);
+		void _OnPrimativeArray(const void* ptr, const uint32_t size, const uint8_t id, const uint32_t element_bytes);
 	public:
 		Writer(OutputPipe& pipe);
+		Writer(OutputPipe& pipe, Version version);
 		virtual ~Writer();
 
 		// Inherited from ParserV1
@@ -71,6 +74,19 @@ namespace anvil { namespace lutils { namespace BytePipe {
 		void OnPrimativeS8(const int8_t value) final;
 		void OnPrimativeS16(const int16_t value) final;
 		void OnPrimativeS32(const int32_t value) final;
+
+		// Inherited from ParserV2
+
+		void OnPrimativeArrayU8(const uint8_t* src, const uint32_t size) final;
+		void OnPrimativeArrayU16(const uint16_t* src, const uint32_t size) final;
+		void OnPrimativeArrayU32(const uint32_t* src, const uint32_t size) final;
+		void OnPrimativeArrayU64(const uint64_t* src, const uint32_t size) final;
+		void OnPrimativeArrayS8(const int8_t* src, const uint32_t size) final;
+		void OnPrimativeArrayS16(const int16_t* src, const uint32_t size) final;
+		void OnPrimativeArrayS32(const int32_t* src, const uint32_t size) final;
+		void OnPrimativeArrayS64(const int64_t* src, const uint32_t size) final;
+		void OnPrimativeArrayF32(const float* src, const uint32_t size) final;
+		void OnPrimativeArrayF64(const double* src, const uint32_t size) final;
 	};
 
 }}}

@@ -19,7 +19,8 @@
 
 namespace anvil { namespace lutils { namespace BytePipe {
 	enum Version : uint8_t {
-		VESRSION_1 = 1
+		VERSION_1 = 1,
+		VERSION_2 = 2
 	};
 }}}
 
