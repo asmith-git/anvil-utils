@@ -462,9 +462,14 @@ namespace anvil { namespace lutils { namespace BytePipe {
 
 	// Writer
 
-	Writer::Writer(OutputPipe& pipe) :
+	Writer::Writer(OutputPipe& pipe, Version version) :
 		_pipe(pipe),
-		_default_state(STATE_CLOSED)
+		_default_state(STATE_CLOSED),
+		_version(version)
+	{}
+
+	Writer::Writer(OutputPipe& pipe) :
+		Writer(_pipe, VERSION_3)
 	{}
 
 	Writer::~Writer() {
