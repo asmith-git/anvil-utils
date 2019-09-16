@@ -469,7 +469,7 @@ namespace anvil { namespace lutils { namespace BytePipe {
 	{}
 
 	Writer::Writer(OutputPipe& pipe) :
-		Writer(_pipe, VERSION_3)
+		Writer(pipe, VERSION_3)
 	{}
 
 	Writer::~Writer() {
@@ -542,11 +542,9 @@ namespace anvil { namespace lutils { namespace BytePipe {
 
 	void Writer::_OnPrimative(const uint64_t value, uint32_t bytes, const uint8_t id) {
 		ValueHeader header;
-		header.primative_v1.u64 = value;
-		const void* ptr = &header;
 		header.id = id;
-		bytes += 1u;
-		Write(ptr, bytes);
+		header.primative_v1.u64 = value;
+		Write(&header, bytes + 1u);
 	}
 
 	void Writer::OnPrimativeU8(const uint8_t value) {
@@ -797,6 +795,7 @@ namespace anvil { namespace lutils { namespace BytePipe {
 		for (uint32_t i = 0u; i < size; ++i) {
 			Read(pipe, reinterpret_cast<char*>(&component_id), sizeof(component_id));
 			parser.OnComponentID(component_id);
+			Read(pipe, &header, 1u);
 			ReadGeneric(header, pipe, parser, version);
 		}
 		parser.OnObjectEnd();
@@ -809,6 +808,7 @@ namespace anvil { namespace lutils { namespace BytePipe {
 	VERSION_1_ARRAY:
 			parser.OnArrayBegin(size);
 			for (uint32_t i = 0u; i < size; ++i) {
+				Read(pipe, &header, 1u);
 				ReadGeneric(header, pipe, parser, version);
 			}
 			parser.OnArrayEnd();
@@ -1020,7 +1020,7 @@ namespace anvil { namespace lutils { namespace BytePipe {
 			}
 			break;
 		case ID_ARRAY:
-			Read(pipe, reinterpret_cast<char*>(&header.array_v1), sizeof(header.array_v1));
+			Read(pipe, reinterpret_cast<char*>(&header.array_v2), version == VERSION_1 ? sizeof(header.array_v1) : sizeof(header.array_v2));
 			ReadArray(header, pipe, parser, version);
 			break;
 		case ID_OBJECT:
