@@ -82,6 +82,23 @@ namespace anvil { namespace lutils { namespace BytePipe {
 		virtual Version GetSupportedVersion() const override { return VERSION_2; }
 	};
 
+	enum half : uint16_t {};
+
+	class ParserV3 : public ParserV2 {
+	public:
+		virtual ~ParserV3() {}
+
+		virtual void OnPrimativeC8(const char value) = 0;
+		virtual void OnPrimativeF16(const half value) = 0;
+
+		virtual void OnPrimativeArrayC8(const char* src, const uint32_t size) = 0;
+		virtual void OnPrimativeArrayF16(const half* src, const uint32_t size) = 0;
+
+		// Inherited from Parser
+
+		virtual Version GetSupportedVersion() const override { return VERSION_3; }
+	};
+
 	class Reader {
 	private:
 		Reader(Reader&&) = delete;
