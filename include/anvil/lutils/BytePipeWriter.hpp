@@ -15,6 +15,7 @@
 #ifndef ANVIL_LUTILS_BYTEPIPE_WRITER_HPP
 #define ANVIL_LUTILS_BYTEPIPE_WRITER_HPP
 
+#include <vector>
 #include "BytePipeReader.hpp"
 
 namespace anvil { namespace lutils { namespace BytePipe {
@@ -32,8 +33,20 @@ namespace anvil { namespace lutils { namespace BytePipe {
 		Writer(const Writer&) = delete;
 		Writer& operator=(Writer&&) = delete;
 		Writer& operator=(const Writer&) = delete;
-	protected:
+
+		enum State : uint8_t {
+			STATE_CLOSED,
+			STATE_NORMAL,
+			STATE_ARRAY,
+			STATE_OBJECT
+		};
+
 		OutputPipe& _pipe;
+		std::vector<State> _state_stack;
+		State _default_state;
+
+		State GetCurrentState() const;
+		void Write(const void* src, const uint32_t bytes);
 	public:
 		Writer(OutputPipe& pipe);
 		virtual ~Writer();
