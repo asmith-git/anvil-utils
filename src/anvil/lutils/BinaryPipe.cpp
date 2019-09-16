@@ -320,4 +320,126 @@ namespace anvil { namespace lutils { namespace BytePipe {
 		Write(&header, sizeof(ValueHeader::string_v1) + 1u);
 		Write(value, length);
 	}
+
+	// Reader
+
+	static void Read(InputPipe& pipe, void* dst, const uint32_t bytes) {
+		const uint32_t bytesRead = pipe.ReadBytes(dst, bytes);
+		if (bytesRead != bytes) throw std::runtime_error("Failed to read from pipe");
+	}
+
+	static void ReadGeneric(ValueHeader& header, InputPipe& pipe, Parser& parser);
+	static void ReadArray(ValueHeader& header, InputPipe& pipe, Parser& parser);
+
+	static void ReadObject(ValueHeader& header, InputPipe& pipe, Parser& parser) {
+		ParserV1& parser_v1 = static_cast<ParserV1&>(parser);
+
+		const uint32_t size = header.object_v1.components;
+		parser_v1.OnObjectBegin(size);
+		uint16_t component_id;
+		for (uint32_t i = 0u; i < size; ++i) {
+			Read(pipe, reinterpret_cast<char*>(&component_id), sizeof(component_id));
+			parser_v1.OnComponentID(component_id);
+			ReadGeneric(header, pipe, parser);
+		}
+		parser_v1.OnObjectEnd();
+	}
+
+	void ReadArray(ValueHeader& header, InputPipe& pipe, Parser& parser) {
+		ParserV1& parser_v1 = static_cast<ParserV1&>(parser);
+
+		const uint32_t size = header.array_v1.size;
+		
+		parser_v1.OnArrayBegin(size);
+		for (uint32_t i = 0u; i < size; ++i) {
+			ReadGeneric(header, pipe, parser);
+		}
+		parser_v1.OnArrayEnd();
+
+	}
+
+	void ReadGeneric(ValueHeader& header, InputPipe& pipe, Parser& parser) {
+		ParserV1& parser_v1 = static_cast<ParserV1&>(parser);
+
+		switch (header.id) {
+		case ID_NULL:
+			break;
+		case ID_U8:
+			Read(pipe, reinterpret_cast<char*>(&header.primative_v1), sizeof(uint8_t));
+			parser_v1.OnPrimativeU8(header.primative_v1.u8);
+			break;
+		case ID_U16:
+			Read(pipe, reinterpret_cast<char*>(&header.primative_v1), sizeof(uint16_t));
+			parser_v1.OnPrimativeU16(header.primative_v1.u16);
+			break;
+		case ID_U32:
+			Read(pipe, reinterpret_cast<char*>(&header.primative_v1), sizeof(uint32_t));
+			parser_v1.OnPrimativeU32(header.primative_v1.u16);
+			break;
+		case ID_U64:
+			Read(pipe, reinterpret_cast<char*>(&header.primative_v1), sizeof(uint64_t));
+			parser_v1.OnPrimativeU64(header.primative_v1.u64);
+			break;
+		case ID_S8:
+			Read(pipe, reinterpret_cast<char*>(&header.primative_v1), sizeof(int8_t));
+			parser_v1.OnPrimativeS8(header.primative_v1.s8);
+			break;
+		case ID_S16:
+			Read(pipe, reinterpret_cast<char*>(&header.primative_v1), sizeof(int32_t));
+			parser_v1.OnPrimativeS16(header.primative_v1.s16);
+			break;
+		case ID_S32:
+			Read(pipe, reinterpret_cast<char*>(&header.primative_v1), sizeof(int32_t));
+			parser_v1.OnPrimativeS32(header.primative_v1.s16);
+			break;
+		case ID_S64:
+			Read(pipe, reinterpret_cast<char*>(&header.primative_v1), sizeof(int64_t));
+			parser_v1.OnPrimativeS64(header.primative_v1.s64);
+			break;
+		case ID_F32:
+			Read(pipe, reinterpret_cast<char*>(&header.primative_v1), sizeof(float));
+			parser_v1.OnPrimativeF32(header.primative_v1.f32);
+			break;
+		case ID_F64:
+			Read(pipe, reinterpret_cast<char*>(&header.primative_v1), sizeof(double));
+			parser_v1.OnPrimativeF64(header.primative_v1.f64);
+			break;
+		case ID_STRING:
+			Read(pipe, reinterpret_cast<char*>(&header.string_v1), sizeof(header.string_v1));
+			{
+				const uint32_t len = header.string_v1.length;
+				char* const buffer = static_cast<char*>(operator new(len + 1u));
+				try {
+					Read(pipe, buffer, len);
+					buffer[len] = '\0';
+					parser_v1.OnPrimativeString(buffer, len);
+				} catch (...) {
+					operator delete(buffer);
+					throw;
+				}
+				operator delete(buffer);
+			}
+			break;
+		case ID_ARRAY:
+			Read(pipe, reinterpret_cast<char*>(&header.array_v1), sizeof(header.array_v1));
+			ReadArray(header, pipe, parser);
+			break;
+		case ID_OBJECT:
+			Read(pipe, reinterpret_cast<char*>(&header.object_v1), sizeof(header.object_v1));
+			ReadObject(header, pipe, parser);
+			break;
+		}
+	}
+
+	Reader::Reader(InputPipe& pipe) :
+		_pipe(pipe)
+	{}
+
+	Reader::~Reader() {
+
+	}
+
+	void Reader::Read(Parser& dst) {
+
+	}
 }}}
