@@ -48,6 +48,7 @@ namespace anvil { namespace lutils { namespace BytePipe {
 
 		State GetCurrentState() const;
 		void Write(const void* src, const uint32_t bytes);
+		void _OnPrimative(const uint64_t value, const uint32_t bytes, const uint8_t id);
 		void _OnPrimativeArray(const void* ptr, const uint32_t size, const uint8_t id, const uint32_t element_bytes);
 	public:
 		Writer(OutputPipe& pipe);

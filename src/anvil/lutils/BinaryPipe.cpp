@@ -12,7 +12,7 @@
 //See the License for the specific language governing permissions and
 //limitations under the License.
 
-#include "anvil/lutils/BytePipe.hpp"
+#include "anvil/lutils/BytePipeWriter.hpp"
 #include <cstddef>
 
 namespace anvil { namespace lutils { namespace BytePipe {
@@ -540,164 +540,78 @@ namespace anvil { namespace lutils { namespace BytePipe {
 		Write(&id, 2u);
 	}
 
-	void Writer::OnPrimativeU8(const uint8_t value) {
+	void Writer::_OnPrimative(const uint64_t value, uint32_t bytes, const uint8_t id) {
 		ValueHeader header;
-		header.primative_v1.u8 = value;
-
-		uint32_t bytes = sizeof(value);
+		header.primative_v1.u64 = value;
 		const void* ptr = &header;
-		if (GetCurrentState() == STATE_ARRAY) {
-			ptr = static_cast<const uint8_t*>(ptr) + offsetof(ValueHeader, primative_v1.u8);
-		} else {
-			header.id = ID_U8;
-			bytes += ID_ID_BYTES;
-		}
-
+		header.id = id;
+		bytes += 1u;
 		Write(ptr, bytes);
+	}
+
+	void Writer::OnPrimativeU8(const uint8_t value) {
+		union { uint64_t u64; uint8_t val; };
+		u64 = 0u;
+		val = value;
+		_OnPrimative(u64, 1u, ID_U8);
 	}
 
 	void Writer::OnPrimativeU16(const uint16_t value) {
-		ValueHeader header;
-		header.primative_v1.u16 = value;
-
-		uint32_t bytes = sizeof(value);
-		const void* ptr = &header;
-		if (GetCurrentState() == STATE_ARRAY) {
-			ptr = static_cast<const uint8_t*>(ptr) + offsetof(ValueHeader, primative_v1.u16);
-		} else {
-			header.id = ID_U16;
-			bytes += ID_ID_BYTES;
-		}
-
-		Write(ptr, bytes);
+		union { uint64_t u64; uint16_t val; };
+		u64 = 0u;
+		val = value;
+		_OnPrimative(u64, 2u, ID_U16);
 	}
 
 	void Writer::OnPrimativeU32(const uint32_t value) {
-		ValueHeader header;
-		header.primative_v1.u32 = value;
-
-		uint32_t bytes = sizeof(value);
-		const void* ptr = &header;
-		if (GetCurrentState() == STATE_ARRAY) {
-			ptr = static_cast<const uint8_t*>(ptr) + offsetof(ValueHeader, primative_v1.u32);
-		} else {
-			header.id = ID_U32;
-			bytes += ID_ID_BYTES;
-		}
-
-		Write(ptr, bytes);
+		union { uint64_t u64; uint32_t val; };
+		u64 = 0u;
+		val = value;
+		_OnPrimative(u64, 4u, ID_U32);
 	}
 
 	void Writer::OnPrimativeU64(const uint64_t value) {
-		ValueHeader header;
-		header.primative_v1.u64 = value;
-
-		uint32_t bytes = sizeof(value);
-		const void* ptr = &header;
-		if (GetCurrentState() == STATE_ARRAY) {
-			ptr = static_cast<const uint8_t*>(ptr) + offsetof(ValueHeader, primative_v1.u64);
-		} else {
-			header.id = ID_U64;
-			bytes += ID_ID_BYTES;
-		}
-
-		Write(ptr, bytes);
+		_OnPrimative(value, 8u, ID_U64);
 	}
 
 	void Writer::OnPrimativeS8(const int8_t value) {
-		ValueHeader header;
-		header.primative_v1.s8 = value;
-
-		uint32_t bytes = sizeof(value);
-		const void* ptr = &header;
-		if (GetCurrentState() == STATE_ARRAY) {
-			ptr = static_cast<const uint8_t*>(ptr) + offsetof(ValueHeader, primative_v1.s8);
-		} else {
-			header.id = ID_S8;
-			bytes += ID_ID_BYTES;
-		}
-
-		Write(ptr, bytes);
+		union { uint64_t u64; int8_t val; };
+		u64 = 0u;
+		val = value;
+		_OnPrimative(u64, 1u, ID_S8);
 	}
 
 	void Writer::OnPrimativeS16(const int16_t value) {
-		ValueHeader header;
-		header.primative_v1.s16 = value;
-
-		uint32_t bytes = sizeof(value);
-		const void* ptr = &header;
-		if (GetCurrentState() == STATE_ARRAY) {
-			ptr = static_cast<const uint8_t*>(ptr) + offsetof(ValueHeader, primative_v1.s16);
-		} else {
-			header.id = ID_S16;
-			bytes += ID_ID_BYTES;
-		}
-
-		Write(ptr, bytes);
+		union { uint64_t u64; int16_t val; };
+		u64 = 0u;
+		val = value;
+		_OnPrimative(u64, 2u, ID_S16);
 	}
 
 	void Writer::OnPrimativeS32(const int32_t value) {
-		ValueHeader header;
-		header.primative_v1.s32 = value;
-
-		uint32_t bytes = sizeof(value);
-		const void* ptr = &header;
-		if (GetCurrentState() == STATE_ARRAY) {
-			ptr = static_cast<const uint8_t*>(ptr) + offsetof(ValueHeader, primative_v1.s32);
-		} else {
-			header.id = ID_S32;
-			bytes += ID_ID_BYTES;
-		}
-
-		Write(ptr, bytes);
+		union { uint64_t u64; int32_t val; };
+		u64 = 0u;
+		val = value;
+		_OnPrimative(u64, 4u, ID_S32);
 	}
 
 	void Writer::OnPrimativeS64(const int64_t value) {
-		ValueHeader header;
-		header.primative_v1.s64 = value;
-
-		uint32_t bytes = sizeof(value);
-		const void* ptr = &header;
-		if (GetCurrentState() == STATE_ARRAY) {
-			ptr = static_cast<const uint8_t*>(ptr) + offsetof(ValueHeader, primative_v1.s64);
-		} else {
-			header.id = ID_S64;
-			bytes += ID_ID_BYTES;
-		}
-
-		Write(ptr, bytes);
+		union { uint64_t u64; int64_t val; };
+		val = value;
+		_OnPrimative(u64, 8u, ID_S64);
 	}
 
 	void Writer::OnPrimativeF32(const float value) {
-		ValueHeader header;
-		header.primative_v1.f32 = value;
-
-		uint32_t bytes = sizeof(value);
-		const void* ptr = &header;
-		if (GetCurrentState() == STATE_ARRAY) {
-			ptr = static_cast<const uint8_t*>(ptr) + offsetof(ValueHeader, primative_v1.f32);
-		} else {
-			header.id = ID_F32;
-			bytes += ID_ID_BYTES;
-		}
-
-		Write(ptr, bytes);
+		union { uint64_t u64; float val; };
+		u64 = 0u;
+		val = value;
+		_OnPrimative(u64, 4u, ID_F32);
 	}
 
 	void Writer::OnPrimativeF64(const double value) {
-		ValueHeader header;
-		header.primative_v1.f64 = value;
-
-		uint32_t bytes = sizeof(value);
-		const void* ptr = &header;
-		if (GetCurrentState() == STATE_ARRAY) {
-			ptr = static_cast<const uint8_t*>(ptr) + offsetof(ValueHeader, primative_v1.f64);
-		} else {
-			header.id = ID_F64;
-			bytes += ID_ID_BYTES;
-		}
-
-		Write(ptr, bytes);
+		union { uint64_t u64; double val; };
+		val = value;
+		_OnPrimative(u64, 8u, ID_F64);
 	}
 
 	void Writer::OnPrimativeString(const char* value, const uint32_t length) {
@@ -805,6 +719,64 @@ namespace anvil { namespace lutils { namespace BytePipe {
 			parser.OnPrimativeArrayF64(ptr, size);
 		} else {
 			_OnPrimativeArray(ptr, size, ID_F64, sizeof(double));
+		}
+	}
+
+	void Writer::OnPrimativeArrayC8(const char* ptr, const uint32_t size) {
+		if (_version == VERSION_2) {
+			ParserV3ToV2Converter parser(*this);
+			parser.OnPrimativeArrayC8(ptr, size);
+		} else if (_version == VERSION_1) {
+			ParserV2ToV1Converter parser(*this);
+			ParserV3ToV2Converter parser2(parser);
+			parser2.OnPrimativeArrayC8(ptr, size);
+		} else {
+			_OnPrimativeArray(ptr, size, ID_C8, sizeof(char));
+		}
+	}
+
+	void Writer::OnPrimativeArrayF16(const half* ptr, const uint32_t size) {
+		if (_version == VERSION_2) {
+			ParserV3ToV2Converter parser(*this);
+			parser.OnPrimativeArrayF16(ptr, size);
+		} else if (_version == VERSION_1) {
+			ParserV2ToV1Converter parser(*this);
+			ParserV3ToV2Converter parser2(parser);
+			parser2.OnPrimativeArrayF16(ptr, size);
+		} else {
+			_OnPrimativeArray(ptr, size, ID_F16, sizeof(half));
+		}
+	}
+
+	void Writer::OnPrimativeC8(const char value) {
+		if (_version == VERSION_2) {
+			ParserV3ToV2Converter parser(*this);
+			parser.OnPrimativeC8(value);
+		} else if (_version == VERSION_1) {
+			ParserV2ToV1Converter parser(*this);
+			ParserV3ToV2Converter parser2(parser);
+			parser2.OnPrimativeC8(value);
+		} else {
+			union { uint64_t u64; char val; };
+			u64 = 0u;
+			val = value;
+			_OnPrimative(u64, 1u, ID_C8);
+		}
+	}
+
+	void Writer::OnPrimativeF16(const half value) {
+		if (_version == VERSION_2) {
+			ParserV3ToV2Converter parser(*this);
+			parser.OnPrimativeF16(value);
+		} else if (_version == VERSION_1) {
+			ParserV2ToV1Converter parser(*this);
+			ParserV3ToV2Converter parser2(parser);
+			parser2.OnPrimativeF16(value);
+		} else {
+			union { uint64_t u64; half val; };
+			u64 = 0u;
+			val = value;
+			_OnPrimative(u64, 2u, ID_F16);
 		}
 	}
 
