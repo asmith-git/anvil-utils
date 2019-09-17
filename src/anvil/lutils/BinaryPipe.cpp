@@ -941,130 +941,72 @@ namespace anvil { namespace lutils { namespace BytePipe {
 		void ReadArrayV2() {
 			ParserV2& parser = static_cast<ParserV2&>(_parser);
 
-			const uint32_t size = header.array_v2.size;
-			uint32_t bytes = 0u;
-			void* buffer = nullptr;
+			const uint32_t id = header.array_v2.secondary_id;
+			if (id >= ID_U8 && id <= ID_F64) {
+				const uint32_t size = header.array_v2.size;
+				uint32_t bytes = 0u;
+				void* buffer = nullptr;
+				typedef void(ParserV2::*ParserCallback)(const void* ptr, const uint32_t size);
+				ParserCallback callback = nullptr;
 
-			switch (header.array_v2.secondary_id) {
-			case ID_NULL:
+				switch (id) {
+				case ID_U8:
+					bytes = sizeof(uint8_t);
+					callback = reinterpret_cast<ParserCallback>(&ParserV2::OnPrimativeArrayU8);
+					break;
+				case ID_U16:
+					bytes = sizeof(uint16_t);
+					callback = reinterpret_cast<ParserCallback>(&ParserV2::OnPrimativeArrayU16);
+					break;
+				case ID_U32:
+					bytes = sizeof(uint32_t);
+					callback = reinterpret_cast<ParserCallback>(&ParserV2::OnPrimativeArrayU32);
+					break;
+				case ID_U64:
+					bytes = sizeof(uint64_t);
+					callback = reinterpret_cast<ParserCallback>(&ParserV2::OnPrimativeArrayU64);
+					break;
+				case ID_S8:
+					bytes = sizeof(int8_t);
+					callback = reinterpret_cast<ParserCallback>(&ParserV2::OnPrimativeArrayS8);
+					break;
+				case ID_S16:
+					bytes = sizeof(int16_t);
+					callback = reinterpret_cast<ParserCallback>(&ParserV2::OnPrimativeArrayS16);
+					break;
+				case ID_S32:
+					bytes = sizeof(int32_t);
+					callback = reinterpret_cast<ParserCallback>(&ParserV2::OnPrimativeArrayS32);
+					break;
+				case ID_S64:
+					bytes = sizeof(int64_t);
+					callback = reinterpret_cast<ParserCallback>(&ParserV2::OnPrimativeArrayS64);
+					break;
+				case ID_F32:
+					bytes = sizeof(float);
+					callback = reinterpret_cast<ParserCallback>(&ParserV2::OnPrimativeArrayF32);
+					break;
+				case ID_F64:
+					bytes = sizeof(double);
+					callback = reinterpret_cast<ParserCallback>(&ParserV2::OnPrimativeArrayF64);
+					break;
+				}
+
+				bytes *= size;
+				buffer = operator new(bytes);
+				try {
+					ReadFromPipe(_pipe, buffer, bytes);
+					(parser.*callback)(buffer, size);
+				} catch (...) {
+					operator delete(buffer);
+					throw;
+				}
+				operator delete(buffer);
+			} else if(id == ID_NULL) {
 				ReadArrayV1();
-				return;
-			case ID_U8:
-				bytes = size * sizeof(uint8_t);
-				buffer = operator new(bytes);
-				try {
-					ReadFromPipe(_pipe, buffer, bytes);
-					parser.OnPrimativeArrayU8(static_cast<uint8_t*>(buffer), size);
-				} catch (...) {
-					operator delete(buffer);
-					throw;
-				}
-				break;
-			case ID_U16:
-				bytes = size * sizeof(uint16_t);
-				buffer = operator new(bytes);
-				try {
-					ReadFromPipe(_pipe, buffer, bytes);
-					parser.OnPrimativeArrayU16(static_cast<uint16_t*>(buffer), size);
-				} catch (...) {
-					operator delete(buffer);
-					throw;
-				}
-				break;
-			case ID_U32:
-				bytes = size * sizeof(uint32_t);
-				buffer = operator new(bytes);
-				try {
-					ReadFromPipe(_pipe, buffer, bytes);
-					parser.OnPrimativeArrayU32(static_cast<uint32_t*>(buffer), size);
-				} catch (...) {
-					operator delete(buffer);
-					throw;
-				}
-				break;
-			case ID_U64:
-				bytes = size * sizeof(uint64_t);
-				buffer = operator new(bytes);
-				try {
-					ReadFromPipe(_pipe, buffer, bytes);
-					parser.OnPrimativeArrayU64(static_cast<uint64_t*>(buffer), size);
-				} catch (...) {
-					operator delete(buffer);
-					throw;
-				}
-				break;
-			case ID_S8:
-				bytes = size * sizeof(int8_t);
-				buffer = operator new(bytes);
-				try {
-					ReadFromPipe(_pipe, buffer, bytes);
-					parser.OnPrimativeArrayS8(static_cast<int8_t*>(buffer), size);
-				} catch (...) {
-					operator delete(buffer);
-					throw;
-				}
-				break;
-			case ID_S16:
-				bytes = size * sizeof(int16_t);
-				buffer = operator new(bytes);
-				try {
-					ReadFromPipe(_pipe, buffer, bytes);
-					parser.OnPrimativeArrayS16(static_cast<int16_t*>(buffer), size);
-				} catch (...) {
-					operator delete(buffer);
-					throw;
-				}
-				break;
-			case ID_S32:
-				bytes = size * sizeof(int32_t);
-				buffer = operator new(bytes);
-				try {
-					ReadFromPipe(_pipe, buffer, bytes);
-					parser.OnPrimativeArrayS32(static_cast<int32_t*>(buffer), size);
-				} catch (...) {
-					operator delete(buffer);
-					throw;
-				}
-				break;
-			case ID_S64:
-				bytes = size * sizeof(int64_t);
-				buffer = operator new(bytes);
-				try {
-					ReadFromPipe(_pipe, buffer, bytes);
-					parser.OnPrimativeArrayS64(static_cast<int64_t*>(buffer), size);
-				} catch (...) {
-					operator delete(buffer);
-					throw;
-				}
-				break;
-			case ID_F32:
-				bytes = size * sizeof(float);
-				buffer = operator new(bytes);
-				try {
-					ReadFromPipe(_pipe, buffer, bytes);
-					parser.OnPrimativeArrayF32(static_cast<float*>(buffer), size);
-				} catch (...) {
-					operator delete(buffer);
-					throw;
-				}
-				break;
-			case ID_F64:
-				bytes = size * sizeof(double);
-				buffer = operator new(bytes);
-				try {
-					ReadFromPipe(_pipe, buffer, bytes);
-					parser.OnPrimativeArrayF64(static_cast<double*>(buffer), size);
-				} catch (...) {
-					operator delete(buffer);
-					throw;
-				}
-				break;
-			default:
+			} else {
 				ANVIL_CONTRACT(false, "Invalid value ID");
-				return;
 			}
-
-			operator delete(buffer);
 		}
 
 		void ReadPrimativeV3() {
@@ -1086,39 +1028,38 @@ namespace anvil { namespace lutils { namespace BytePipe {
 
 		void ReadArrayV3() {
 			ParserV3& parser = static_cast<ParserV3&>(_parser);
-			const uint32_t size = header.array_v2.size;
-			uint32_t bytes = 0u;
-			void* buffer = nullptr;
+			const uint32_t id = header.array_v2.secondary_id;
+			if (id >= ID_C8 && id <= ID_F16) {
+				const uint32_t size = header.array_v2.size;
+				uint32_t bytes = 0u;
+				void* buffer = nullptr;
+				typedef void(ParserV3::*ParserCallback)(const void* ptr, const uint32_t size);
+				ParserCallback callback = nullptr;
 
-			switch (header.array_v2.secondary_id) {
-			case ID_C8:
-				bytes = size * sizeof(char);
+				switch (id) {
+				case ID_C8:
+					bytes = sizeof(char);
+					callback = reinterpret_cast<ParserCallback>(&ParserV3::OnPrimativeArrayC8);
+					break;
+				case ID_F16:
+					bytes = sizeof(half);
+					callback = reinterpret_cast<ParserCallback>(&ParserV3::OnPrimativeArrayF16);
+					break;
+				}
+
+				bytes *= size;
 				buffer = operator new(bytes);
 				try {
 					ReadFromPipe(_pipe, buffer, bytes);
-					parser.OnPrimativeArrayC8(static_cast<char*>(buffer), size);
+					(parser.*callback)(buffer, size);
 				} catch (...) {
 					operator delete(buffer);
 					throw;
 				}
-				break;
-			case ID_F16:
-				bytes = size * sizeof(half);
-				buffer = operator new(bytes);
-				try {
-					ReadFromPipe(_pipe, buffer, bytes);
-					parser.OnPrimativeArrayF16(static_cast<half*>(buffer), size);
-				} catch (...) {
-					operator delete(buffer);
-					throw;
-				}
-				break;
-			default:
+				operator delete(buffer);
+			} else {
 				ReadArrayV2();
-				return;
 			}
-
-			operator delete(buffer);
 		}
 	public:
 		ValueHeader header;
