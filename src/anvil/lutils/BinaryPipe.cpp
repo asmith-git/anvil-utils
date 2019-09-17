@@ -12,8 +12,9 @@
 //See the License for the specific language governing permissions and
 //limitations under the License.
 
-#include "anvil/lutils/BytePipeWriter.hpp"
 #include <cstddef>
+#include "anvil/lutils/BytePipeWriter.hpp"
+#include "anvil/lutils/Assert.hpp"
 
 namespace anvil { namespace lutils { namespace BytePipe {
 
@@ -478,7 +479,7 @@ namespace anvil { namespace lutils { namespace BytePipe {
 
 	void Writer::Write(const void* src, const uint32_t bytes) {
 		const uint32_t bytesWritten = _pipe.WriteBytes(src, bytes);
-		if (bytesWritten != bytes) throw std::runtime_error("Failed to write to pipe");
+		ANVIL_CONTRACT(bytesWritten == bytes, "Failed to write to pipe");
 	}
 
 	Writer::State Writer::GetCurrentState() const {
@@ -486,7 +487,7 @@ namespace anvil { namespace lutils { namespace BytePipe {
 	}
 
 	void Writer::OnPipeOpen() {
-		if (_default_state != STATE_CLOSED) throw std::runtime_error("BytePipe was already open");
+		ANVIL_CONTRACT(_default_state == STATE_CLOSED, "BytePipe was already open");
 		_default_state = STATE_NORMAL;
 
 		PipeHeader header;
@@ -495,7 +496,7 @@ namespace anvil { namespace lutils { namespace BytePipe {
 	}
 
 	void Writer::OnPipeClose() {
-		if (_default_state != STATE_NORMAL) throw std::runtime_error("BytePipe was already closed");
+		ANVIL_CONTRACT(_default_state == STATE_NORMAL, "BytePipe was already closed");
 		_default_state = STATE_CLOSED;
 
 		uint8_t terminator = 0u;
@@ -517,7 +518,7 @@ namespace anvil { namespace lutils { namespace BytePipe {
 	}
 
 	void Writer::OnArrayEnd() {
-		if (GetCurrentState() != STATE_ARRAY) throw std::runtime_error("BytePipe was not in array mode");
+		ANVIL_CONTRACT(GetCurrentState() == STATE_ARRAY, "BytePipe was not in array mode");
 		_state_stack.pop_back();
 	}
 
@@ -531,12 +532,12 @@ namespace anvil { namespace lutils { namespace BytePipe {
 	}
 
 	void Writer::OnObjectEnd() {
-		if (GetCurrentState() != ID_OBJECT) throw std::runtime_error("BytePipe was not in object mode");
+		ANVIL_CONTRACT(GetCurrentState() == ID_OBJECT, "BytePipe was not in object mode");
 		_state_stack.pop_back();
 	}
 
 	void Writer::OnComponentID(const uint16_t id) {
-		if (GetCurrentState() != ID_OBJECT) throw std::runtime_error("BytePipe was not in object mode");
+		ANVIL_CONTRACT(GetCurrentState() == ID_OBJECT, "BytePipe was not in object mode");
 		Write(&id, 2u);
 	}
 
@@ -626,7 +627,7 @@ namespace anvil { namespace lutils { namespace BytePipe {
 		header.array_v2.size = size;
 		header.array_v2.secondary_id = id;
 		Write(&header, sizeof(ValueHeader::array_v2) + 1u);
-		__assume(element_bytes <= 8u);
+		ANVIL_ASSUME(element_bytes <= 8u);
 		Write(ptr, size * element_bytes);
 	}
 
@@ -782,7 +783,7 @@ namespace anvil { namespace lutils { namespace BytePipe {
 
 	static void Read(InputPipe& pipe, void* dst, const uint32_t bytes) {
 		const uint32_t bytesRead = pipe.ReadBytes(dst, bytes);
-		if (bytesRead != bytes) throw std::runtime_error("Failed to read from pipe");
+		ANVIL_CONTRACT(bytesRead == bytes, "Failed to read from pipe");
 	}
 
 	static void ReadGeneric(ValueHeader& header, InputPipe& pipe, ParserV3& parser, const Version version);
@@ -1057,7 +1058,7 @@ namespace anvil { namespace lutils { namespace BytePipe {
 			PipeHeader pipeHeader;
 			BytePipe::Read(_pipe, &pipeHeader, sizeof(PipeHeader));
 
-			if (pipeHeader.version > VERSION_3) throw std::runtime_error("BytePipe version not supported");
+			ANVIL_CONTRACT(pipeHeader.version <= VERSION_3, "BytePipe version not supported");
 			const Version version = static_cast<Version>(pipeHeader.version);
 
 			ValueHeader valueHeader;
