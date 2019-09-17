@@ -786,381 +786,323 @@ namespace anvil { namespace lutils { namespace BytePipe {
 		ANVIL_CONTRACT(bytesRead == bytes, "Failed to read from pipe");
 	}
 
-	class ReaderImplementation {
-	protected:
-		InputPipe& _pipe;
-		union {
-			ParserV1* v1;
-			ParserV2* v2;
-			ParserV3* v3;
-		} _parser;
-
-		inline void Read(void* dst, const uint32_t bytes) {
-			ReadFromPipe(_pipe, dst, bytes);
-		}
-	public:
-		ReaderImplementation(InputPipe& pipe, Parser& parser) :
-			_pipe(pipe),
-			_parser{ &static_cast<ParserV1&>(parser) }
-		{}
-
-		virtual ~ReaderImplementation() {
-
-		}
-
-		virtual void ReadPrimative(ValueHeader& header) = 0;
-		virtual void ReadGeneric(ValueHeader& header) = 0;
-		virtual void ReadArray(ValueHeader& header) = 0;
-		virtual void ReadObject(ValueHeader& header) = 0;
+	struct FunctionTable {
+		void (*ReadPrimative)(ValueHeader& header, InputPipe& pipe, Parser& a_parser);
+		void (*ReadGeneric)(ValueHeader& header, InputPipe& pipe, Parser& a_parser);
+		void (*ReadArray)(ValueHeader& header, InputPipe& pipe, Parser& a_parser);
+		void (*ReadObject)(ValueHeader& header, InputPipe& pipe, Parser& a_parser);
 	};
 
-	class ReaderImplementationV1 : public ReaderImplementation {
-	public:
-		ReaderImplementationV1(InputPipe& pipe, Parser& parser) :
-			ReaderImplementation(pipe, parser)
-		{}
+	static thread_local FunctionTable g_function_table;
 
-		virtual ~ReaderImplementationV1() {
+	void ReadPrimativeV1(ValueHeader& header, InputPipe& pipe, Parser& a_parser) {
+		ParserV1& parser = static_cast<ParserV1&>(a_parser);
 
+		switch (header.id) {
+		case ID_NULL:
+			break;
+		case ID_U8:
+			ReadFromPipe(pipe, &header.primative_v1, sizeof(uint8_t));
+			parser.OnPrimativeU8(header.primative_v1.u8);
+			break;
+		case ID_U16:
+			ReadFromPipe(pipe, &header.primative_v1, sizeof(uint16_t));
+			parser.OnPrimativeU16(header.primative_v1.u16);
+			break;
+		case ID_U32:
+			ReadFromPipe(pipe, &header.primative_v1, sizeof(uint32_t));
+			parser.OnPrimativeU32(header.primative_v1.u16);
+			break;
+		case ID_U64:
+			ReadFromPipe(pipe, &header.primative_v1, sizeof(uint64_t));
+			parser.OnPrimativeU64(header.primative_v1.u64);
+			break;
+		case ID_S8:
+			ReadFromPipe(pipe, &header.primative_v1, sizeof(int8_t));
+			parser.OnPrimativeS8(header.primative_v1.s8);
+			break;
+		case ID_S16:
+			ReadFromPipe(pipe, &header.primative_v1, sizeof(int32_t));
+			parser.OnPrimativeS16(header.primative_v1.s16);
+			break;
+		case ID_S32:
+			ReadFromPipe(pipe, &header.primative_v1, sizeof(int32_t));
+			parser.OnPrimativeS32(header.primative_v1.s16);
+			break;
+		case ID_S64:
+			ReadFromPipe(pipe, &header.primative_v1, sizeof(int64_t));
+			parser.OnPrimativeS64(header.primative_v1.s64);
+			break;
+		case ID_F32:
+			ReadFromPipe(pipe, &header.primative_v1, sizeof(float));
+			parser.OnPrimativeF32(header.primative_v1.f32);
+			break;
+		case ID_F64:
+			ReadFromPipe(pipe, &header.primative_v1, sizeof(double));
+			parser.OnPrimativeF64(header.primative_v1.f64);
+			break;
+		default:
+			ANVIL_CONTRACT(false, "Invalid value ID");
+			break;
 		}
+	}
 
-		// Inherited from ReaderImplementation
+	void ReadGenericV1(ValueHeader& header, InputPipe& pipe, Parser& a_parser) {
+		ParserV1& parser = static_cast<ParserV1&>(a_parser);
 
-		virtual void ReadPrimative(ValueHeader& header) override {
-			switch (header.id) {
-			case ID_NULL:
-				break;
-			case ID_U8:
-				Read(&header.primative_v1, sizeof(uint8_t));
-				_parser.v1->OnPrimativeU8(header.primative_v1.u8);
-				break;
-			case ID_U16:
-				Read(&header.primative_v1, sizeof(uint16_t));
-				_parser.v1->OnPrimativeU16(header.primative_v1.u16);
-				break;
-			case ID_U32:
-				Read(&header.primative_v1, sizeof(uint32_t));
-				_parser.v1->OnPrimativeU32(header.primative_v1.u16);
-				break;
-			case ID_U64:
-				Read(&header.primative_v1, sizeof(uint64_t));
-				_parser.v1->OnPrimativeU64(header.primative_v1.u64);
-				break;
-			case ID_S8:
-				Read(&header.primative_v1, sizeof(int8_t));
-				_parser.v1->OnPrimativeS8(header.primative_v1.s8);
-				break;
-			case ID_S16:
-				Read(&header.primative_v1, sizeof(int32_t));
-				_parser.v1->OnPrimativeS16(header.primative_v1.s16);
-				break;
-			case ID_S32:
-				Read(&header.primative_v1, sizeof(int32_t));
-				_parser.v1->OnPrimativeS32(header.primative_v1.s16);
-				break;
-			case ID_S64:
-				Read(&header.primative_v1, sizeof(int64_t));
-				_parser.v1->OnPrimativeS64(header.primative_v1.s64);
-				break;
-			case ID_F32:
-				Read(&header.primative_v1, sizeof(float));
-				_parser.v1->OnPrimativeF32(header.primative_v1.f32);
-				break;
-			case ID_F64:
-				Read(&header.primative_v1, sizeof(double));
-				_parser.v1->OnPrimativeF64(header.primative_v1.f64);
-				break;
-			default:
-				ANVIL_CONTRACT(false, "Invalid value ID");
-				break;
+		switch (header.id) {
+		case ID_NULL:
+			break;
+		case ID_STRING:
+			ReadFromPipe(pipe, &header.string_v1, sizeof(header.string_v1));
+			{
+				const uint32_t len = header.string_v1.length;
+				char* const buffer = static_cast<char*>(operator new(len + 1u));
+				try {
+					ReadFromPipe(pipe, buffer, len);
+					buffer[len] = '\0';
+					parser.OnPrimativeString(buffer, len);
+				}
+				catch (...) {
+					operator delete(buffer);
+					throw;
+				}
+				operator delete(buffer);
 			}
+			break;
+		case ID_ARRAY:
+			ReadFromPipe(pipe, &header.array_v1, sizeof(header.array_v1));
+			g_function_table.ReadArray(header, pipe, a_parser);
+			break;
+		case ID_OBJECT:
+			ReadFromPipe(pipe, &header.object_v1, sizeof(header.object_v1));
+			g_function_table.ReadObject(header, pipe, a_parser);
+			break;
+		default:
+			g_function_table.ReadPrimative(header, pipe, a_parser);
+			break;
 		}
+	}
 
-		virtual void ReadGeneric(ValueHeader& header) override {
-			ANVIL_ASSUME(_parser.v1 != nullptr);
+	void ReadArrayV1(ValueHeader& header, InputPipe& pipe, Parser& a_parser) {
+		ParserV1& parser = static_cast<ParserV1&>(a_parser);
 
-			switch (header.id) {
-			case ID_NULL:
-				break;
-			case ID_STRING:
-				Read(&header.string_v1, sizeof(header.string_v1));
-				{
-					const uint32_t len = header.string_v1.length;
-					char* const buffer = static_cast<char*>(operator new(len + 1u));
-					try {
-						Read(buffer, len);
-						buffer[len] = '\0';
-						_parser.v1->OnPrimativeString(buffer, len);
-					}
-					catch (...) {
-						operator delete(buffer);
-						throw;
-					}
-					operator delete(buffer);
-				}
-				break;
-			case ID_ARRAY:
-				Read(&header.array_v1, sizeof(header.array_v1));
-				ReadArray(header);
-				break;
-			case ID_OBJECT:
-				Read(&header.object_v1, sizeof(header.object_v1));
-				ReadObject(header);
-				break;
-			default:
-				ReadPrimative(header);
-				break;
+		const uint32_t size = header.array_v1.size;
+		parser.OnArrayBegin(size);
+		for (uint32_t i = 0u; i < size; ++i) {
+			ReadFromPipe(pipe, &header, 1u);
+			g_function_table.ReadGeneric(header, pipe, a_parser);
+		}
+		parser.OnArrayEnd();
+	}
+
+	void ReadObjectV1(ValueHeader& header, InputPipe& pipe, Parser& a_parser) {
+		ParserV1& parser = static_cast<ParserV1&>(a_parser);
+
+		const uint32_t size = header.object_v1.components;
+		parser.OnObjectBegin(size);
+		uint16_t component_id;
+		for (uint32_t i = 0u; i < size; ++i) {
+			ReadFromPipe(pipe, &component_id, sizeof(component_id));
+			parser.OnComponentID(component_id);
+			ReadFromPipe(pipe, &header, 1u);
+			g_function_table.ReadGeneric(header, pipe, a_parser);
+		}
+		parser.OnObjectEnd();
+	}
+
+	void ReadGenericV2(ValueHeader& header, InputPipe& pipe, Parser& a_parser) {
+		ParserV2& parser = static_cast<ParserV2&>(a_parser);
+
+		if (header.id == ID_ARRAY) {
+			ReadFromPipe(pipe, &header.array_v2, sizeof(header.array_v2));
+			g_function_table.ReadArray(header, pipe, a_parser);
+		} else {
+			ReadGenericV1(header, pipe, a_parser);
+		}
+	}
+
+	void ReadArrayV2(ValueHeader& header, InputPipe& pipe, Parser& a_parser) {
+		ParserV2& parser = static_cast<ParserV2&>(a_parser);
+		const uint32_t size = header.array_v2.size;
+		uint32_t bytes = 0u;
+		void* buffer = nullptr;
+
+		switch (header.array_v2.secondary_id) {
+		case ID_NULL:
+			ReadArrayV1(header, pipe, a_parser);
+			return;
+		case ID_U8:
+			bytes = size * sizeof(uint8_t);
+			buffer = operator new(bytes);
+			try {
+				ReadFromPipe(pipe, buffer, bytes);
+				parser.OnPrimativeArrayU8(static_cast<uint8_t*>(buffer), size);
+			} catch (...) {
+				operator delete(buffer);
+				throw;
 			}
-		}
-
-		virtual void ReadArray(ValueHeader& header) override {
-			ANVIL_ASSUME(_parser.v1 != nullptr);
-
-			const uint32_t size = header.array_v1.size;
-			_parser.v1->OnArrayBegin(size);
-			for (uint32_t i = 0u; i < size; ++i) {
-				Read(&header, 1u);
-				ReadGeneric(header);
+			break;
+		case ID_U16:
+			bytes = size * sizeof(uint16_t);
+			buffer = operator new(bytes);
+			try {
+				ReadFromPipe(pipe, buffer, bytes);
+				parser.OnPrimativeArrayU16(static_cast<uint16_t*>(buffer), size);
+			} catch (...) {
+				operator delete(buffer);
+				throw;
 			}
-			_parser.v1->OnArrayEnd();
-		}
-
-		virtual void ReadObject(ValueHeader& header) override {
-			ANVIL_ASSUME(_parser.v1 != nullptr);
-
-			const uint32_t size = header.object_v1.components;
-			_parser.v1->OnObjectBegin(size);
-			uint16_t component_id;
-			for (uint32_t i = 0u; i < size; ++i) {
-				Read(&component_id, sizeof(component_id));
-				_parser.v1->OnComponentID(component_id);
-				Read(&header, 1u);
-				ReadGeneric(header);
+			break;
+		case ID_U32:
+			bytes = size * sizeof(uint32_t);
+			buffer = operator new(bytes);
+			try {
+				ReadFromPipe(pipe, buffer, bytes);
+				parser.OnPrimativeArrayU32(static_cast<uint32_t*>(buffer), size);
+			} catch (...) {
+				operator delete(buffer);
+				throw;
 			}
-			_parser.v1->OnObjectEnd();
-		}
-
-	};
-
-	class ReaderImplementationV2 : public ReaderImplementationV1 {
-	public:
-		ReaderImplementationV2(InputPipe& pipe, Parser& parser) :
-			ReaderImplementationV1(pipe, parser)
-		{}
-
-		virtual ~ReaderImplementationV2() {
-
-		}
-
-		// Inherited from ReaderImplementation
-
-		virtual void ReadGeneric(ValueHeader& header) override {
-			ANVIL_ASSUME(_parser.v2 != nullptr);
-
-			if (header.id == ID_ARRAY) {
-				Read(&header.array_v2, sizeof(header.array_v2));
-				ReadArray(header);
-			} else {
-				ReaderImplementationV1::ReadGeneric(header);
+			break;
+		case ID_U64:
+			bytes = size * sizeof(uint64_t);
+			buffer = operator new(bytes);
+			try {
+				ReadFromPipe(pipe, buffer, bytes);
+				parser.OnPrimativeArrayU64(static_cast<uint64_t*>(buffer), size);
+			} catch (...) {
+				operator delete(buffer);
+				throw;
 			}
-		}
-
-		virtual void ReadArray(ValueHeader& header) override {
-			const uint32_t size = header.array_v2.size;
-			uint32_t bytes = 0u;
-			void* buffer = nullptr;
-			ANVIL_ASSUME(_parser.v2 != nullptr);
-
-			switch (header.array_v2.secondary_id) {
-			case ID_NULL:
-				ReaderImplementationV1::ReadArray(header);
-				return;
-			case ID_U8:
-				bytes = size * sizeof(uint8_t);
-				buffer = operator new(bytes);
-				try {
-					Read(buffer, bytes);
-					_parser.v2->OnPrimativeArrayU8(static_cast<uint8_t*>(buffer), size);
-				} catch (...) {
-					operator delete(buffer);
-					throw;
-				}
-				break;
-			case ID_U16:
-				bytes = size * sizeof(uint16_t);
-				buffer = operator new(bytes);
-				try {
-					Read(buffer, bytes);
-					_parser.v2->OnPrimativeArrayU16(static_cast<uint16_t*>(buffer), size);
-				} catch (...) {
-					operator delete(buffer);
-					throw;
-				}
-				break;
-			case ID_U32:
-				bytes = size * sizeof(uint32_t);
-				buffer = operator new(bytes);
-				try {
-					Read(buffer, bytes);
-					_parser.v2->OnPrimativeArrayU32(static_cast<uint32_t*>(buffer), size);
-				} catch (...) {
-					operator delete(buffer);
-					throw;
-				}
-				break;
-			case ID_U64:
-				bytes = size * sizeof(uint64_t);
-				buffer = operator new(bytes);
-				try {
-					Read(buffer, bytes);
-					_parser.v2->OnPrimativeArrayU64(static_cast<uint64_t*>(buffer), size);
-				} catch (...) {
-					operator delete(buffer);
-					throw;
-				}
-				break;
-			case ID_S8:
-				bytes = size * sizeof(int8_t);
-				buffer = operator new(bytes);
-				try {
-					Read(buffer, bytes);
-					_parser.v2->OnPrimativeArrayS8(static_cast<int8_t*>(buffer), size);
-				} catch (...) {
-					operator delete(buffer);
-					throw;
-				}
-				break;
-			case ID_S16:
-				bytes = size * sizeof(int16_t);
-				buffer = operator new(bytes);
-				try {
-					Read(buffer, bytes);
-					_parser.v2->OnPrimativeArrayS16(static_cast<int16_t*>(buffer), size);
-				} catch (...) {
-					operator delete(buffer);
-					throw;
-				}
-				break;
-			case ID_S32:
-				bytes = size * sizeof(int32_t);
-				buffer = operator new(bytes);
-				try {
-					Read(buffer, bytes);
-					_parser.v2->OnPrimativeArrayS32(static_cast<int32_t*>(buffer), size);
-				} catch (...) {
-					operator delete(buffer);
-					throw;
-				}
-				break;
-			case ID_S64:
-				bytes = size * sizeof(int64_t);
-				buffer = operator new(bytes);
-				try {
-					Read(buffer, bytes);
-					_parser.v2->OnPrimativeArrayS64(static_cast<int64_t*>(buffer), size);
-				} catch (...) {
-					operator delete(buffer);
-					throw;
-				}
-				break;
-			case ID_F32:
-				bytes = size * sizeof(float);
-				buffer = operator new(bytes);
-				try {
-					Read(buffer, bytes);
-					_parser.v2->OnPrimativeArrayF32(static_cast<float*>(buffer), size);
-				} catch (...) {
-					operator delete(buffer);
-					throw;
-				}
-				break;
-			case ID_F64:
-				bytes = size * sizeof(double);
-				buffer = operator new(bytes);
-				try {
-					Read(buffer, bytes);
-					_parser.v2->OnPrimativeArrayF64(static_cast<double*>(buffer), size);
-				} catch (...) {
-					operator delete(buffer);
-					throw;
-				}
-				break;
-			default:
-				ANVIL_CONTRACT(false, "Invalid value ID");
-				return;
+			break;
+		case ID_S8:
+			bytes = size * sizeof(int8_t);
+			buffer = operator new(bytes);
+			try {
+				ReadFromPipe(pipe, buffer, bytes);
+				parser.OnPrimativeArrayS8(static_cast<int8_t*>(buffer), size);
+			} catch (...) {
+				operator delete(buffer);
+				throw;
 			}
-
-			operator delete(buffer);
-		}
-
-	};
-
-	class ReaderImplementationV3: public ReaderImplementationV2 {
-	public:
-		ReaderImplementationV3(InputPipe& pipe, Parser& parser) :
-			ReaderImplementationV2(pipe, parser)
-		{}
-
-		virtual ~ReaderImplementationV3() {
-
-		}
-
-		// Inherited from ReaderImplementationV2
-
-		virtual void ReadPrimative(ValueHeader& header) override {
-			switch (header.id) {
-			case ID_C8:
-				Read(&header.primative_v3, sizeof(char));
-				_parser.v3->OnPrimativeC8(header.primative_v3.c8);
-				break;
-			case ID_F16:
-				Read(&header.primative_v3, sizeof(half));
-				_parser.v3->OnPrimativeF16(header.primative_v3.f16);
-				break;
-			default:
-				ReaderImplementationV2::ReadPrimative(header);
-				break;
+			break;
+		case ID_S16:
+			bytes = size * sizeof(int16_t);
+			buffer = operator new(bytes);
+			try {
+				ReadFromPipe(pipe, buffer, bytes);
+				parser.OnPrimativeArrayS16(static_cast<int16_t*>(buffer), size);
+			} catch (...) {
+				operator delete(buffer);
+				throw;
 			}
-		}
-
-		virtual void ReadArray(ValueHeader& header) {
-			const uint32_t size = header.array_v2.size;
-			uint32_t bytes = 0u;
-			void* buffer = nullptr;
-			ANVIL_ASSUME(_parser.v3 != nullptr);
-
-			switch (header.array_v2.secondary_id) {
-			case ID_C8:
-				bytes = size * sizeof(char);
-				buffer = operator new(bytes);
-				try {
-					Read(buffer, bytes);
-					_parser.v3->OnPrimativeArrayC8(static_cast<char*>(buffer), size);
-				} catch (...) {
-					operator delete(buffer);
-					throw;
-				}
-				break;
-			case ID_F16:
-				bytes = size * sizeof(half);
-				buffer = operator new(bytes);
-				try {
-					Read(buffer, bytes);
-					_parser.v3->OnPrimativeArrayF16(static_cast<half*>(buffer), size);
-				} catch (...) {
-					operator delete(buffer);
-					throw;
-				}
-				break;
-			default:
-				ReaderImplementationV2::ReadArray(header);
-				return;
+			break;
+		case ID_S32:
+			bytes = size * sizeof(int32_t);
+			buffer = operator new(bytes);
+			try {
+				ReadFromPipe(pipe, buffer, bytes);
+				parser.OnPrimativeArrayS32(static_cast<int32_t*>(buffer), size);
+			} catch (...) {
+				operator delete(buffer);
+				throw;
 			}
-
-			operator delete(buffer);
+			break;
+		case ID_S64:
+			bytes = size * sizeof(int64_t);
+			buffer = operator new(bytes);
+			try {
+				ReadFromPipe(pipe, buffer, bytes);
+				parser.OnPrimativeArrayS64(static_cast<int64_t*>(buffer), size);
+			} catch (...) {
+				operator delete(buffer);
+				throw;
+			}
+			break;
+		case ID_F32:
+			bytes = size * sizeof(float);
+			buffer = operator new(bytes);
+			try {
+				ReadFromPipe(pipe, buffer, bytes);
+				parser.OnPrimativeArrayF32(static_cast<float*>(buffer), size);
+			} catch (...) {
+				operator delete(buffer);
+				throw;
+			}
+			break;
+		case ID_F64:
+			bytes = size * sizeof(double);
+			buffer = operator new(bytes);
+			try {
+				ReadFromPipe(pipe, buffer, bytes);
+				parser.OnPrimativeArrayF64(static_cast<double*>(buffer), size);
+			} catch (...) {
+				operator delete(buffer);
+				throw;
+			}
+			break;
+		default:
+			ANVIL_CONTRACT(false, "Invalid value ID");
+			return;
 		}
 
-	};
+		operator delete(buffer);
+	}
+
+	void ReadPrimativeV3(ValueHeader& header, InputPipe& pipe, Parser& a_parser) {
+		ParserV3& parser = static_cast<ParserV3&>(a_parser);
+		switch (header.id) {
+		case ID_C8:
+			ReadFromPipe(pipe, &header.primative_v3, sizeof(char));
+			parser.OnPrimativeC8(header.primative_v3.c8);
+			break;
+		case ID_F16:
+			ReadFromPipe(pipe, &header.primative_v3, sizeof(half));
+			parser.OnPrimativeF16(header.primative_v3.f16);
+			break;
+		default:
+			ReadPrimativeV1(header, pipe, a_parser);
+			break;
+		}
+	}
+
+	void ReadArrayV3(ValueHeader& header, InputPipe& pipe, Parser& a_parser) {
+		ParserV3& parser = static_cast<ParserV3&>(a_parser);
+		const uint32_t size = header.array_v2.size;
+		uint32_t bytes = 0u;
+		void* buffer = nullptr;
+
+		switch (header.array_v2.secondary_id) {
+		case ID_C8:
+			bytes = size * sizeof(char);
+			buffer = operator new(bytes);
+			try {
+				ReadFromPipe(pipe, buffer, bytes);
+				parser.OnPrimativeArrayC8(static_cast<char*>(buffer), size);
+			} catch (...) {
+				operator delete(buffer);
+				throw;
+			}
+			break;
+		case ID_F16:
+			bytes = size * sizeof(half);
+			buffer = operator new(bytes);
+			try {
+				ReadFromPipe(pipe, buffer, bytes);
+				parser.OnPrimativeArrayF16(static_cast<half*>(buffer), size);
+			} catch (...) {
+				operator delete(buffer);
+				throw;
+			}
+			break;
+		default:
+			ReadArrayV2(header, pipe, a_parser);
+			return;
+		}
+
+		operator delete(buffer);
+	}
 
 	Reader::Reader(InputPipe& pipe) :
 		_pipe(pipe)
@@ -1170,16 +1112,6 @@ namespace anvil { namespace lutils { namespace BytePipe {
 
 	}
 
-	static void Read3(ReaderImplementation& dst, InputPipe& pipe) {
-		ValueHeader valueHeader;
-		ReadFromPipe(pipe, &valueHeader.id, 1u);
-		while (valueHeader.id != ID_NULL) {
-			dst.ReadGeneric(valueHeader);
-			ReadFromPipe(pipe, &valueHeader.id, 1u);
-		}
-	}
-
-	template<class T>
 	static void Read2(Parser& dst, InputPipe& pipe, const Version pipe_version) {
 		const Version parser_version = dst.GetSupportedVersion();
 		if (parser_version < parser_version) {
@@ -1187,11 +1119,11 @@ namespace anvil { namespace lutils { namespace BytePipe {
 			switch (parser_version) {
 			case VERSION_1:{
 					ParserV2ToV1Converter converter(static_cast<ParserV1&>(dst));
-					Read2<T>(converter, pipe, pipe_version);
+					Read2(converter, pipe, pipe_version);
 				} break;
 			case VERSION_2: {
 				ParserV3ToV2Converter converter(static_cast<ParserV2&>(dst));
-				Read2<T>(converter, pipe, pipe_version);
+				Read2(converter, pipe, pipe_version);
 			} break;
 			case VERSION_3:
 				ANVIL_ASSUME_IMPOSSIBLE;
@@ -1199,8 +1131,13 @@ namespace anvil { namespace lutils { namespace BytePipe {
 			}
 		} else {
 			// Continue with read
-			T reader(pipe, dst);
-			Read3(reader, pipe);
+			ValueHeader valueHeader;
+			ReadFromPipe(pipe, &valueHeader.id, 1u);
+			const auto ReadGeneric = g_function_table.ReadGeneric;
+			while (valueHeader.id != ID_NULL) {
+				ReadGeneric(valueHeader, pipe, dst);
+				ReadFromPipe(pipe, &valueHeader.id, 1u);
+			}
 		}
 	}
 
@@ -1212,16 +1149,21 @@ namespace anvil { namespace lutils { namespace BytePipe {
 		const Version version = static_cast<Version>(pipeHeader.version);
 
 		// Select correct reader for pipe version
-		switch (version) {
-		case VERSION_1:
-			Read2<ReaderImplementationV1>(dst, _pipe, version);
-			break;
-		case VERSION_2:
-			Read2<ReaderImplementationV2>(dst, _pipe, version);
-			break;
-		case VERSION_3:
-			Read2<ReaderImplementationV3>(dst, _pipe, version);
-			break;
+		FunctionTable& fnTable = g_function_table;
+		fnTable.ReadGeneric = ReadGenericV1;
+		fnTable.ReadArray = ReadArrayV1;
+		fnTable.ReadObject = ReadObjectV1;
+		fnTable.ReadPrimative = ReadPrimativeV1;
+
+		if (version >= VERSION_2) {
+			fnTable.ReadGeneric = ReadGenericV2;
+			fnTable.ReadArray = ReadArrayV2;
+			if (version >= VERSION_3) {
+				fnTable.ReadArray = ReadArrayV3;
+				fnTable.ReadPrimative = ReadPrimativeV3;
+			}
 		}
+
+		Read2(dst, _pipe, version);
 	}
 }}}
