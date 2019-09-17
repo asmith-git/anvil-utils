@@ -1177,6 +1177,7 @@ namespace anvil { namespace lutils { namespace BytePipe {
 	static void Read2(Parser& dst, InputPipe& pipe, const Version pipe_version) {
 		const Version parser_version = dst.GetSupportedVersion();
 		if (parser_version < parser_version) {
+			// Upgrade the parser by one version and recursively call this function again
 			switch (parser_version) {
 			case VERSION_1:{
 					ParserV2ToV1Converter converter(static_cast<ParserV1&>(dst));
@@ -1191,6 +1192,7 @@ namespace anvil { namespace lutils { namespace BytePipe {
 				break;
 			}
 		} else {
+			// Continue with read
 			T reader(pipe, dst);
 			Read3(reader, pipe);
 		}
@@ -1203,6 +1205,7 @@ namespace anvil { namespace lutils { namespace BytePipe {
 		ANVIL_CONTRACT(pipeHeader.version <= VERSION_3, "BytePipe version not supported");
 		const Version version = static_cast<Version>(pipeHeader.version);
 
+		// Select correct reader for pipe version
 		switch (version) {
 		case VERSION_1:
 			Read2<ReaderImplementationV1>(dst, _pipe, version);
