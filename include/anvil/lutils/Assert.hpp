@@ -35,4 +35,7 @@
 #define ANVIL_CONTRACT(CONDITION,MESSAGE)
 #endif
 
+#define ANVIL_ASSUME(CONDITION) __assume(CONDITION)
+#define ANVIL_ASSUME_IMPOSSIBLE __assume(0)
+
 #endif
