@@ -795,6 +795,22 @@ namespace anvil { namespace lutils { namespace BytePipe {
 		void (ReadHelper::*_read_array)();
 		void (ReadHelper::*_read_object)();
 
+		inline void ReadGeneric() {
+			(this->*_read_generic)();
+		}
+
+		inline void ReadPrimative() {
+			(this->*_read_primative)();
+		}
+
+		inline void ReadArray() {
+			(this->*_read_array)();
+		}
+
+		inline void ReadObject() {
+			(this->*_read_object)();
+		}
+
 		void ReadPrimativeV1() {
 			ParserV1& parser = static_cast<ParserV1&>(_parser);
 
@@ -872,14 +888,14 @@ namespace anvil { namespace lutils { namespace BytePipe {
 				break;
 			case ID_ARRAY:
 				ReadFromPipe(_pipe, &header.array_v1, sizeof(header.array_v1));
-				(this->*_read_array)();
+				ReadArray();
 				break;
 			case ID_OBJECT:
 				ReadFromPipe(_pipe, &header.object_v1, sizeof(header.object_v1));
-				(this->*_read_object)();
+				ReadObject();
 				break;
 			default:
-				(this->*_read_primative)();
+				ReadPrimative();
 				break;
 			}
 		}
@@ -891,7 +907,7 @@ namespace anvil { namespace lutils { namespace BytePipe {
 			parser.OnArrayBegin(size);
 			for (uint32_t i = 0u; i < size; ++i) {
 				ReadFromPipe(_pipe, &header, 1u);
-				(this->*_read_generic)();
+				ReadGeneric();
 			}
 			parser.OnArrayEnd();
 		}
@@ -906,7 +922,7 @@ namespace anvil { namespace lutils { namespace BytePipe {
 				ReadFromPipe(_pipe, &component_id, sizeof(component_id));
 				parser.OnComponentID(component_id);
 				ReadFromPipe(_pipe, &header, 1u);
-				(this->*_read_generic)();
+				ReadGeneric();
 			}
 			parser.OnObjectEnd();
 		}
@@ -916,7 +932,7 @@ namespace anvil { namespace lutils { namespace BytePipe {
 
 			if (header.id == ID_ARRAY) {
 				ReadFromPipe(_pipe, &header.array_v2, sizeof(header.array_v2));
-				(this->*_read_array)();
+				ReadArray();
 			} else {
 				ReadGenericV1();
 			}
@@ -1130,7 +1146,7 @@ namespace anvil { namespace lutils { namespace BytePipe {
 			// Continue with read
 			ReadFromPipe(_pipe, &header.id, 1u);;
 			while (header.id != ID_NULL) {
-				(this->*_read_generic)();
+				ReadGeneric();
 				ReadFromPipe(_pipe, &header.id, 1u);
 			}
 		}
