@@ -808,6 +808,7 @@ namespace anvil { namespace lutils { namespace BytePipe {
 
 		}
 
+		virtual void ReadPrimative(ValueHeader& header) = 0;
 		virtual void ReadGeneric(ValueHeader& header) = 0;
 		virtual void ReadArray(ValueHeader& header) = 0;
 		virtual void ReadObject(ValueHeader& header) = 0;
@@ -825,9 +826,7 @@ namespace anvil { namespace lutils { namespace BytePipe {
 
 		// Inherited from ReaderImplementation
 
-		virtual void ReadGeneric(ValueHeader& header) override {
-			ANVIL_ASSUME(_parser.v1 != nullptr);
-
+		virtual void ReadPrimative(ValueHeader& header) override {
 			switch (header.id) {
 			case ID_NULL:
 				break;
@@ -871,6 +870,18 @@ namespace anvil { namespace lutils { namespace BytePipe {
 				Read(&header.primative_v1, sizeof(double));
 				_parser.v1->OnPrimativeF64(header.primative_v1.f64);
 				break;
+			default:
+				ANVIL_CONTRACT(false, "Invalid value ID");
+				break;
+			}
+		}
+
+		virtual void ReadGeneric(ValueHeader& header) override {
+			ANVIL_ASSUME(_parser.v1 != nullptr);
+
+			switch (header.id) {
+			case ID_NULL:
+				break;
 			case ID_STRING:
 				Read(&header.string_v1, sizeof(header.string_v1));
 				{
@@ -897,7 +908,7 @@ namespace anvil { namespace lutils { namespace BytePipe {
 				ReadObject(header);
 				break;
 			default:
-				ANVIL_CONTRACT(false, "Invalid value ID");
+				ReadPrimative(header);
 				break;
 			}
 		}
@@ -939,10 +950,6 @@ namespace anvil { namespace lutils { namespace BytePipe {
 
 		virtual ~ReaderImplementationV2() {
 
-		}
-
-		virtual void UnknownArrayV2ID(ValueHeader& header) {
-			ANVIL_CONTRACT(false, "Invalid value ID");
 		}
 
 		// Inherited from ReaderImplementation
@@ -1079,7 +1086,7 @@ namespace anvil { namespace lutils { namespace BytePipe {
 				}
 				break;
 			default:
-				UnknownArrayV2ID(header);
+				ANVIL_CONTRACT(false, "Invalid value ID");
 				return;
 			}
 
@@ -1100,7 +1107,23 @@ namespace anvil { namespace lutils { namespace BytePipe {
 
 		// Inherited from ReaderImplementationV2
 
-		virtual void UnknownArrayV2ID(ValueHeader& header) {
+		virtual void ReadPrimative(ValueHeader& header) override {
+			switch (header.id) {
+			case ID_C8:
+				Read(&header.primative_v3, sizeof(char));
+				_parser.v3->OnPrimativeC8(header.primative_v3.c8);
+				break;
+			case ID_F16:
+				Read(&header.primative_v3, sizeof(half));
+				_parser.v3->OnPrimativeF16(header.primative_v3.f16);
+				break;
+			default:
+				ReaderImplementationV2::ReadPrimative(header);
+				break;
+			}
+		}
+
+		virtual void ReadArray(ValueHeader& header) {
 			const uint32_t size = header.array_v2.size;
 			uint32_t bytes = 0u;
 			void* buffer = nullptr;
@@ -1130,28 +1153,11 @@ namespace anvil { namespace lutils { namespace BytePipe {
 				}
 				break;
 			default:
-				ReaderImplementationV2::UnknownArrayV2ID(header);
+				ReaderImplementationV2::ReadArray(header);
 				return;
 			}
 
 			operator delete(buffer);
-		}
-
-		virtual void ReadGeneric(ValueHeader& header) override {
-			ANVIL_ASSUME(_parser.v3 != nullptr);
-
-			switch (header.id) {
-			case ID_C8:
-				Read(&header.primative_v3, sizeof(char));
-				_parser.v3->OnPrimativeC8(header.primative_v3.c8);
-				break;
-			case ID_F16:
-				Read(&header.primative_v3, sizeof(half));
-				_parser.v3->OnPrimativeF16(header.primative_v3.f16);
-				break;
-			default:
-				ReaderImplementationV2::ReadGeneric(header);
-			}
 		}
 
 	};
