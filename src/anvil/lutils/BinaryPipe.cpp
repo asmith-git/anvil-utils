@@ -1050,6 +1050,9 @@ namespace anvil { namespace lutils { namespace BytePipe {
 					bytes = sizeof(half);
 					callback = reinterpret_cast<ParserCallback>(&ParserV3::OnPrimativeArrayF16);
 					break;
+				default:
+					ANVIL_ASSUME_IMPOSSIBLE;
+					break;
 				}
 
 				bytes *= size;
