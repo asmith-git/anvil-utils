@@ -949,46 +949,50 @@ namespace anvil { namespace lutils { namespace BytePipe {
 				typedef void(ParserV2::*ParserCallback)(const void* ptr, const uint32_t size);
 				ParserCallback callback = nullptr;
 
-				switch (id) {
-				case ID_U8:
+				// 0 indexed jump table
+				switch (id - ID_U8) {
+				case ID_U8 - ID_U8:
 					bytes = sizeof(uint8_t);
 					callback = reinterpret_cast<ParserCallback>(&ParserV2::OnPrimativeArrayU8);
 					break;
-				case ID_U16:
+				case ID_U16 - ID_U8:
 					bytes = sizeof(uint16_t);
 					callback = reinterpret_cast<ParserCallback>(&ParserV2::OnPrimativeArrayU16);
 					break;
-				case ID_U32:
+				case ID_U32 - ID_U8:
 					bytes = sizeof(uint32_t);
 					callback = reinterpret_cast<ParserCallback>(&ParserV2::OnPrimativeArrayU32);
 					break;
-				case ID_U64:
+				case ID_U64 - ID_U8:
 					bytes = sizeof(uint64_t);
 					callback = reinterpret_cast<ParserCallback>(&ParserV2::OnPrimativeArrayU64);
 					break;
-				case ID_S8:
+				case ID_S8 - ID_U8:
 					bytes = sizeof(int8_t);
 					callback = reinterpret_cast<ParserCallback>(&ParserV2::OnPrimativeArrayS8);
 					break;
-				case ID_S16:
+				case ID_S16 - ID_U8:
 					bytes = sizeof(int16_t);
 					callback = reinterpret_cast<ParserCallback>(&ParserV2::OnPrimativeArrayS16);
 					break;
-				case ID_S32:
+				case ID_S32 - ID_U8:
 					bytes = sizeof(int32_t);
 					callback = reinterpret_cast<ParserCallback>(&ParserV2::OnPrimativeArrayS32);
 					break;
-				case ID_S64:
+				case ID_S64 - ID_U8:
 					bytes = sizeof(int64_t);
 					callback = reinterpret_cast<ParserCallback>(&ParserV2::OnPrimativeArrayS64);
 					break;
-				case ID_F32:
+				case ID_F32 - ID_U8:
 					bytes = sizeof(float);
 					callback = reinterpret_cast<ParserCallback>(&ParserV2::OnPrimativeArrayF32);
 					break;
-				case ID_F64:
+				case ID_F64 - ID_U8:
 					bytes = sizeof(double);
 					callback = reinterpret_cast<ParserCallback>(&ParserV2::OnPrimativeArrayF64);
+					break;
+				default:
+					ANVIL_ASSUME_IMPOSSIBLE;
 					break;
 				}
 
@@ -1036,12 +1040,13 @@ namespace anvil { namespace lutils { namespace BytePipe {
 				typedef void(ParserV3::*ParserCallback)(const void* ptr, const uint32_t size);
 				ParserCallback callback = nullptr;
 
-				switch (id) {
-				case ID_C8:
+				// 0 indexed jump table
+				switch (id - ID_C8) {
+				case ID_C8 - ID_C8:
 					bytes = sizeof(char);
 					callback = reinterpret_cast<ParserCallback>(&ParserV3::OnPrimativeArrayC8);
 					break;
-				case ID_F16:
+				case ID_F16 - ID_C8:
 					bytes = sizeof(half);
 					callback = reinterpret_cast<ParserCallback>(&ParserV3::OnPrimativeArrayF16);
 					break;
