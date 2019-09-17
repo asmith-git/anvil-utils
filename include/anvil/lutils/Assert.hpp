@@ -36,10 +36,10 @@
 #elif ANVIL_CONTRACT_MODE == ANVIL_CONTRACT_ASSUME
 	#define ANVIL_CONTRACT(CONDITION,MESSAGE) ANVIL_ASSUME(CONDITION)
 #elif ANVIL_CONTRACT_MODE == ANVIL_CONTRACT_EXCEPTION
-	#define ANVIL_CONTRACT(CONDITION,MESSAGE) if(condition) throw std::runtime_error(MESSAGE);
+	#define ANVIL_CONTRACT(CONDITION,MESSAGE) if(! (condition)) throw std::runtime_error(MESSAGE);
 #elif ANVIL_CONTRACT_MODE == ANVIL_CONTRACT_STD_ERR
 	#include <iostream>
-	#define ANVIL_CONTRACT(CONDITION,MESSAGE) if(condition) std::cerr << MESSAGE << std::endl;
+	#define ANVIL_CONTRACT(CONDITION,MESSAGE) if(! (condition)) std::cerr << MESSAGE << std::endl;
 #endif
 
 #if _DEBUG
