@@ -30,6 +30,8 @@ namespace anvil { namespace lutils { namespace BytePipe {
 		virtual Version GetSupportedVersion() const = 0;
 	};
 
+	enum half : uint16_t {};
+
 	class ParserV1 : public Parser {
 	public:
 		virtual ~ParserV1() {}
@@ -46,6 +48,7 @@ namespace anvil { namespace lutils { namespace BytePipe {
 
 		virtual void OnPrimativeF64(const double value) = 0;
 		virtual void OnPrimativeString(const char* value, const uint32_t length) = 0;
+		virtual void OnPrimativeC8(const char value) = 0;
 
 		virtual void OnPrimativeU64(const uint64_t value) { OnPrimativeF64(static_cast<double>(value)); }
 		virtual void OnPrimativeS64(const int64_t value) { OnPrimativeF64(static_cast<double>(value)); }
@@ -56,6 +59,7 @@ namespace anvil { namespace lutils { namespace BytePipe {
 		virtual void OnPrimativeS8(const int8_t value) { OnPrimativeS64(value); }
 		virtual void OnPrimativeS16(const int16_t value) { OnPrimativeS64(value); }
 		virtual void OnPrimativeS32(const int32_t value) { OnPrimativeS64(value); }
+		virtual void OnPrimativeF16(const half value) { OnPrimativeF32(static_cast<float>(value)); } //! \bug half to float conversion not implemented
 
 		// Inherited from Parser
 
@@ -76,27 +80,12 @@ namespace anvil { namespace lutils { namespace BytePipe {
 		virtual void OnPrimativeArrayS64(const int64_t* src, const uint32_t size) = 0;
 		virtual void OnPrimativeArrayF32(const float* src, const uint32_t size) = 0;
 		virtual void OnPrimativeArrayF64(const double* src, const uint32_t size) = 0;
-
-		// Inherited from Parser
-
-		virtual Version GetSupportedVersion() const override { return VERSION_2; }
-	};
-
-	enum half : uint16_t {};
-
-	class ParserV3 : public ParserV2 {
-	public:
-		virtual ~ParserV3() {}
-
-		virtual void OnPrimativeC8(const char value) = 0;
-		virtual void OnPrimativeF16(const half value) = 0;
-
 		virtual void OnPrimativeArrayC8(const char* src, const uint32_t size) = 0;
 		virtual void OnPrimativeArrayF16(const half* src, const uint32_t size) = 0;
 
 		// Inherited from Parser
 
-		virtual Version GetSupportedVersion() const override { return VERSION_3; }
+		virtual Version GetSupportedVersion() const override { return VERSION_2; }
 	};
 
 	class Reader {
