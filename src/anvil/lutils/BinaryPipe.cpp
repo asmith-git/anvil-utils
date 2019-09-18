@@ -23,7 +23,8 @@ namespace anvil { namespace lutils { namespace BytePipe {
 		ID1_PRIMATIVE,
 		ID1_STRING,
 		ID1_ARRAY,
-		ID1_OBJECT
+		ID1_OBJECT,
+		ID1_USER_POD
 	};
 
 	enum SecondaryID : uint8_t {
@@ -83,6 +84,11 @@ namespace anvil { namespace lutils { namespace BytePipe {
 				char c8;
 				half f16;
 			} primative_v1;
+
+			struct {
+				uint16_t extended_secondary_id;
+				uint32_t bytes;
+			} user_pod;
 		};
 	};
 #pragma pack(pop)
@@ -91,6 +97,7 @@ namespace anvil { namespace lutils { namespace BytePipe {
 
 	static_assert(sizeof(PipeHeader) == 1u, "PipeHeader was not packed correctly by compiler");
 	static_assert(sizeof(ValueHeader) == 9u, "ValueHeader was not packed correctly by compiler");
+	static_assert(sizeof(ValueHeader::user_pod) == 6u, "ValueHeader was not packed correctly by compiler");
 	static_assert(offsetof(ValueHeader, primative_v1.u8) == 1u, "ValueHeader was not packed correctly by compiler");
 
 	// Misc
@@ -328,6 +335,164 @@ namespace anvil { namespace lutils { namespace BytePipe {
 		}
 	};
 
+
+
+	class ParserV3ToV2Converter final : public ParserV3 {
+	private:
+		ParserV2& _parser;
+	public:
+		ParserV3ToV2Converter(ParserV2& parser) :
+			_parser(parser)
+		{}
+
+		virtual ~ParserV3ToV2Converter() {
+
+		}
+
+		// Inherited from ParserV1
+
+		void OnPipeOpen() final {
+			_parser.OnPipeOpen();
+		}
+
+		void OnPipeClose() final {
+			_parser.OnPipeClose();
+		}
+
+		void OnArrayBegin(const uint32_t size) final {
+			_parser.OnArrayBegin(size);
+		}
+
+		void OnArrayEnd() final {
+			_parser.OnArrayEnd();
+		}
+
+		void OnObjectBegin(const uint32_t component_count) final {
+			_parser.OnObjectBegin(component_count);
+		}
+
+		void OnObjectEnd() final {
+			_parser.OnObjectEnd();
+		}
+
+		void OnComponentID(const uint16_t id) final {
+			_parser.OnComponentID(id);
+		}
+
+		void OnNull() final {
+			_parser.OnNull();
+		}
+
+		void OnPrimativeF64(const double value) final {
+			_parser.OnPrimativeF64(value);
+		}
+
+		void OnPrimativeString(const char* value, const uint32_t length) final {
+			_parser.OnPrimativeString(value, length);
+		}
+
+		void OnPrimativeU64(const uint64_t value) final {
+			_parser.OnPrimativeU64(value);
+		}
+
+		void OnPrimativeS64(const int64_t value) final {
+			_parser.OnPrimativeS64(value);
+		}
+
+		void OnPrimativeF32(const float value) final {
+			_parser.OnPrimativeF32(value);
+		}
+
+		void OnPrimativeU8(const uint8_t value) final {
+			_parser.OnPrimativeU8(value);
+		}
+
+		void OnPrimativeU16(const uint16_t value) final {
+			_parser.OnPrimativeU16(value);
+		}
+
+		void OnPrimativeU32(const uint32_t value) final {
+			_parser.OnPrimativeU32(value);
+		}
+
+		void OnPrimativeS8(const int8_t value) final {
+			_parser.OnPrimativeS8(value);
+		}
+
+		void OnPrimativeS16(const int16_t value) final {
+			_parser.OnPrimativeS16(value);
+		}
+
+		void OnPrimativeS32(const int32_t value) final {
+			_parser.OnPrimativeS32(value);
+		}
+
+		void OnPrimativeC8(const char value) final {
+			_parser.OnPrimativeC8(value);
+		}
+
+		void OnPrimativeF16(const half value) final {
+			_parser.OnPrimativeF16(value);
+		}
+
+		// Inherited from ParserV2
+
+		void OnPrimativeArrayU8(const uint8_t* src, const uint32_t size) final {
+			_parser.OnPrimativeArrayU8(src, size);
+		}
+
+		void OnPrimativeArrayU16(const uint16_t* src, const uint32_t size) final {
+			_parser.OnPrimativeArrayU16(src, size);
+		}
+
+		void OnPrimativeArrayU32(const uint32_t* src, const uint32_t size) final {
+			_parser.OnPrimativeArrayU32(src, size);
+		}
+
+		void OnPrimativeArrayU64(const uint64_t* src, const uint32_t size) final {
+			_parser.OnPrimativeArrayU64(src, size);
+		}
+
+		void OnPrimativeArrayS8(const int8_t* src, const uint32_t size) final {
+			_parser.OnPrimativeArrayS8(src, size);
+		}
+
+		void OnPrimativeArrayS16(const int16_t* src, const uint32_t size) final {
+			_parser.OnPrimativeArrayS16(src, size);
+		}
+
+		void OnPrimativeArrayS32(const int32_t* src, const uint32_t size) final {
+			_parser.OnPrimativeArrayS32(src, size);
+		}
+
+		void OnPrimativeArrayS64(const int64_t* src, const uint32_t size) final {
+			_parser.OnPrimativeArrayS64(src, size);
+		}
+
+		void OnPrimativeArrayF32(const float* src, const uint32_t size) final {
+			_parser.OnPrimativeArrayF32(src, size);
+		}
+
+		void OnPrimativeArrayF64(const double* src, const uint32_t size) final {
+			_parser.OnPrimativeArrayF64(src, size);
+		}
+
+		void OnPrimativeArrayC8(const char* src, const uint32_t size) final {
+			_parser.OnPrimativeArrayC8(src, size);
+		}
+
+		void OnPrimativeArrayF16(const half *src, const uint32_t size) final {
+			_parser.OnPrimativeArrayF16(src, size);
+		}
+
+		// Inherited from ParserV3
+		
+		void OnUserPOD(const uint32_t type, const uint32_t bytes, const void* data) final {
+			// Decompose to version 2 calls
+			_parser.OnPrimativeArrayU8(static_cast<const uint8_t*>(data), bytes);
+		}
+	};
+
 	// Writer
 
 	Writer::Writer(OutputPipe& pipe, Version version) :
@@ -337,7 +502,7 @@ namespace anvil { namespace lutils { namespace BytePipe {
 	{}
 
 	Writer::Writer(OutputPipe& pipe) :
-		Writer(pipe, VERSION_2)
+		Writer(pipe, VERSION_3)
 	{}
 
 	Writer::~Writer() {
@@ -624,6 +789,17 @@ namespace anvil { namespace lutils { namespace BytePipe {
 		}
 	}
 
+	void Writer::OnUserPOD(const uint32_t type, const uint32_t bytes, const void* data) {
+		ANVIL_CONTRACT(type <= 1048575u, "Type must be <= 1048575u");
+		ValueHeader header;
+		header.primary_id = ID1_USER_POD;
+		header.secondary_id = type & 15u;
+		header.user_pod.extended_secondary_id = static_cast<uint16_t>(type >> 4u);
+		header.user_pod.bytes = bytes;
+		Write(&header, sizeof(ValueHeader::user_pod) + 1u);
+		Write(data, bytes);
+	}
+
 	// Reader
 
 	static inline void ReadFromPipe(InputPipe& pipe, void* dst, const uint32_t bytes) {
@@ -862,6 +1038,20 @@ namespace anvil { namespace lutils { namespace BytePipe {
 				(parser.*callback)(buffer, size);
 			}
 		}
+
+		void ReadGenericV3() {
+			ParserV3& parser = static_cast<ParserV3&>(_parser);
+			if (header.primary_id == ID1_USER_POD) {
+				uint32_t id = header.user_pod.extended_secondary_id;
+				id <<= 4u;
+				id |= header.secondary_id;
+				void* mem = AllocateMemory(header.user_pod.bytes);
+				ReadFromPipe(_pipe, mem, header.user_pod.bytes);
+				parser.OnUserPOD(id, header.user_pod.bytes, mem);
+			} else {
+				ReadGenericV1();
+			}
+		}
 	public:
 		ValueHeader header;
 
@@ -878,6 +1068,9 @@ namespace anvil { namespace lutils { namespace BytePipe {
 
 			if (version >= VERSION_2) {
 				_read_array = &ReadHelper::ReadArrayV2;
+				if (version >= VERSION_3) {
+					_read_generic = &ReadHelper::ReadGenericV3;
+				}
 			}
 		}
 
@@ -908,15 +1101,20 @@ namespace anvil { namespace lutils { namespace BytePipe {
 		if (parser_version < parser_version) {
 			// Upgrade the parser by one version and recursively call this function again
 			switch (parser_version) {
-			case VERSION_1:{
-					ParserV2ToV1Converter converter(static_cast<ParserV1&>(dst));
-					Read2(converter, pipe, pipe_version);
+			case VERSION_1: {
+				ParserV2ToV1Converter converter(static_cast<ParserV1&>(dst));
+				Read2(converter, pipe, pipe_version);
 				} break;
-			case VERSION_2:
+			case VERSION_2: {
+				ParserV3ToV2Converter converter(static_cast<ParserV2&>(dst));
+				Read2(converter, pipe, pipe_version);
+				} break;
+			case VERSION_3:
 				ANVIL_ASSUME_IMPOSSIBLE;
 				break;
 			}
 		} else {
+	READ_WITHOUT_UPGRADE:
 			ReadHelper helper(pipe, dst, pipe_version);
 			helper.Read();
 		}
@@ -926,7 +1124,7 @@ namespace anvil { namespace lutils { namespace BytePipe {
 		PipeHeader pipeHeader;
 		ReadFromPipe(_pipe, &pipeHeader, sizeof(PipeHeader));
 
-		ANVIL_CONTRACT(pipeHeader.version <= VERSION_2, "BytePipe version not supported");
+		ANVIL_CONTRACT(pipeHeader.version <= VERSION_3, "BytePipe version not supported");
 		const Version version = static_cast<Version>(pipeHeader.version);
 
 		// Select correct reader for pipe version

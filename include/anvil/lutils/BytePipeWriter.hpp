@@ -27,7 +27,7 @@ namespace anvil { namespace lutils { namespace BytePipe {
 		virtual void Flush() = 0;
 	};
 
-	class Writer final : public ParserV2 {
+	class Writer final : public ParserV3 {
 	private:
 		Writer(Writer&&) = delete;
 		Writer(const Writer&) = delete;
@@ -93,6 +93,10 @@ namespace anvil { namespace lutils { namespace BytePipe {
 		void OnPrimativeArrayF64(const double* src, const uint32_t size) final;
 		void OnPrimativeArrayC8(const char* src, const uint32_t size) final;
 		void OnPrimativeArrayF16(const half* src, const uint32_t size) final;
+
+		// Inherited from ParserV3
+
+		void OnUserPOD(const uint32_t type, const uint32_t bytes, const void* data) final;
 	};
 
 }}}

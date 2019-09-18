@@ -90,6 +90,17 @@ namespace anvil { namespace lutils { namespace BytePipe {
 		virtual Version GetSupportedVersion() const override { return VERSION_2; }
 	};
 
+	class ParserV3 : public ParserV2 {
+	public:
+		virtual ~ParserV3() {}
+
+		virtual void OnUserPOD(const uint32_t type, const uint32_t bytes, const void* data) = 0;
+
+		// Inherited from Parser
+
+		virtual Version GetSupportedVersion() const override { return VERSION_2; }
+	};
+
 	class Reader {
 	private:
 		Reader(Reader&&) = delete;
