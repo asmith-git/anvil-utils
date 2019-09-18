@@ -623,6 +623,17 @@ namespace anvil { namespace lutils { namespace BytePipe {
 		void (ReadHelper::*_read_primative)();
 		void (ReadHelper::*_read_array)();
 		void (ReadHelper::*_read_object)();
+		void* _mem;
+		uint32_t _mem_bytes;
+
+		void* AllocateMemory(const uint32_t bytes) {
+			if (_mem_bytes < bytes) {
+				if (_mem) operator delete(_mem);
+				_mem = operator new(bytes);
+				ANVIL_CONTRACT(_mem != nullptr, "Failed to allocate memory");
+			}
+			return _mem;
+		}
 
 		inline void ReadGeneric() {
 			(this->*_read_generic)();
@@ -710,17 +721,10 @@ namespace anvil { namespace lutils { namespace BytePipe {
 				ReadFromPipe(_pipe, &header.string_v1, sizeof(header.string_v1));
 				{
 					const uint32_t len = header.string_v1.length;
-					char* const buffer = static_cast<char*>(operator new(len + 1u));
-					try {
-						ReadFromPipe(_pipe, buffer, len);
-						buffer[len] = '\0';
-						parser.OnPrimativeString(buffer, len);
-					}
-					catch (...) {
-						operator delete(buffer);
-						throw;
-					}
-					operator delete(buffer);
+					char* const buffer = static_cast<char*>(AllocateMemory(len + 1u));
+					ReadFromPipe(_pipe, buffer, len);
+					buffer[len] = '\0';
+					parser.OnPrimativeString(buffer, len);
 				}
 				break;
 			case ID_ARRAY:
@@ -831,15 +835,9 @@ namespace anvil { namespace lutils { namespace BytePipe {
 				}
 
 				bytes *= size;
-				buffer = operator new(bytes);
-				try {
-					ReadFromPipe(_pipe, buffer, bytes);
-					(parser.*callback)(buffer, size);
-				} catch (...) {
-					operator delete(buffer);
-					throw;
-				}
-				operator delete(buffer);
+				buffer = AllocateMemory(bytes);
+				ReadFromPipe(_pipe, buffer, bytes);
+				(parser.*callback)(buffer, size);
 			} else if(id == ID_NULL) {
 				ReadArrayV1();
 			} else {
@@ -851,7 +849,9 @@ namespace anvil { namespace lutils { namespace BytePipe {
 
 		ReadHelper(InputPipe& pipe, Parser& parser, Version version) :
 			_pipe(pipe),
-			_parser(parser)
+			_parser(parser),
+			_mem(nullptr),
+			_mem_bytes(0u)
 		{
 			_read_generic = &ReadHelper::ReadGenericV1;
 			_read_primative = &ReadHelper::ReadPrimativeV1;
@@ -861,6 +861,10 @@ namespace anvil { namespace lutils { namespace BytePipe {
 			if (version >= VERSION_2) {
 				_read_array = &ReadHelper::ReadArrayV2;
 			}
+		}
+
+		~ReadHelper() {
+			if (_mem) operator delete(_mem);
 		}
 
 		void Read() {
