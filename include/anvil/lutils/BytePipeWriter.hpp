@@ -64,6 +64,7 @@ namespace anvil { namespace lutils { namespace BytePipe {
 		void OnObjectBegin(const uint32_t component_count) final;
 		void OnObjectEnd() final;
 		void OnComponentID(const uint16_t id) final;
+		void OnNull() final;
 		void OnPrimativeF64(const double value) final;
 		void OnPrimativeString(const char* value, const uint32_t length) final;
 		void OnPrimativeU64(const uint64_t value) final;

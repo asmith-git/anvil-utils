@@ -18,6 +18,30 @@
 
 namespace anvil { namespace lutils { namespace BytePipe {
 
+	enum PrimaryID : uint8_t {
+		ID1_NULL,
+		ID1_PRIMATIVE,
+		ID1_STRING,
+		ID1_ARRAY,
+		ID1_OBJECT
+	};
+
+	enum SecondaryID : uint8_t {
+		ID2_NULL,
+		ID2_U8,
+		ID2_U16,
+		ID2_U32,
+		ID2_U64,
+		ID2_S8,
+		ID2_S16,
+		ID2_S32,
+		ID2_S64,
+		ID2_F32,
+		ID2_F64,
+		ID2_C8,
+		ID2_F16
+	};
+
 	// Header definitions
 #pragma pack(push, 1)
 	struct PipeHeader {
@@ -71,25 +95,6 @@ namespace anvil { namespace lutils { namespace BytePipe {
 
 	// Misc
 
-	enum : uint8_t {
-		ID_NULL,
-		ID_U8,
-		ID_U16,
-		ID_U32,
-		ID_U64,
-		ID_S8,
-		ID_S16,
-		ID_S32,
-		ID_S64,
-		ID_F32,
-		ID_F64,
-		ID_C8,
-		ID_F16,
-		ID_STRING,
-		ID_ARRAY,
-		ID_OBJECT
-	};
-
 	class ParserV2ToV1Converter final : public ParserV2 {
 	private:
 		ParserV1& _parser;
@@ -130,6 +135,10 @@ namespace anvil { namespace lutils { namespace BytePipe {
 
 		void OnComponentID(const uint16_t id) final {
 			_parser.OnComponentID(id);
+		}
+
+		void OnNull() final {
+			_parser.OnNull();
 		}
 
 		void OnPrimativeF64(const double value) final {
@@ -365,8 +374,8 @@ namespace anvil { namespace lutils { namespace BytePipe {
 		_state_stack.push_back(STATE_ARRAY);
 
 		ValueHeader header;
-		header.primary_id = ID_ARRAY;
-		header.secondary_id = ID_NULL;
+		header.primary_id = ID1_ARRAY;
+		header.secondary_id = ID2_NULL;
 		header.array_v1.size = size;
 		Write(&header, sizeof(ValueHeader::array_v1) + 1u);
 	}
@@ -380,26 +389,33 @@ namespace anvil { namespace lutils { namespace BytePipe {
 		_state_stack.push_back(STATE_OBJECT);
 
 		ValueHeader header;
-		header.primary_id = ID_OBJECT;
-		header.secondary_id = ID_NULL;
+		header.primary_id = ID1_OBJECT;
+		header.secondary_id = ID2_NULL;
 		header.object_v1.components = components;
 		Write(&header, sizeof(ValueHeader::object_v1) + 1u);
 	}
 
 	void Writer::OnObjectEnd() {
-		ANVIL_CONTRACT(GetCurrentState() == ID_OBJECT, "BytePipe was not in object mode");
+		ANVIL_CONTRACT(GetCurrentState() == ID1_OBJECT, "BytePipe was not in object mode");
 		_state_stack.pop_back();
 	}
 
 	void Writer::OnComponentID(const uint16_t id) {
-		ANVIL_CONTRACT(GetCurrentState() == ID_OBJECT, "BytePipe was not in object mode");
+		ANVIL_CONTRACT(GetCurrentState() == ID1_OBJECT, "BytePipe was not in object mode");
 		Write(&id, 2u);
+	}
+
+	void Writer::OnNull() {
+		ValueHeader header;
+		header.primary_id = ID1_PRIMATIVE;
+		header.secondary_id = ID2_NULL;
+		Write(&header, 1u);
 	}
 
 	void Writer::_OnPrimative(const uint64_t value, uint32_t bytes, const uint8_t id) {
 		ValueHeader header;
-		header.primary_id = id;
-		header.secondary_id = ID_NULL;
+		header.primary_id = ID1_PRIMATIVE;
+		header.secondary_id = id;
 		header.primative_v1.u64 = value;
 		Write(&header, bytes + 1u);
 	}
@@ -408,83 +424,83 @@ namespace anvil { namespace lutils { namespace BytePipe {
 		union { uint64_t u64; uint8_t val; };
 		u64 = 0u;
 		val = value;
-		_OnPrimative(u64, 1u, ID_U8);
+		_OnPrimative(u64, 1u, ID2_U8);
 	}
 
 	void Writer::OnPrimativeU16(const uint16_t value) {
 		union { uint64_t u64; uint16_t val; };
 		u64 = 0u;
 		val = value;
-		_OnPrimative(u64, 2u, ID_U16);
+		_OnPrimative(u64, 2u, ID2_U16);
 	}
 
 	void Writer::OnPrimativeU32(const uint32_t value) {
 		union { uint64_t u64; uint32_t val; };
 		u64 = 0u;
 		val = value;
-		_OnPrimative(u64, 4u, ID_U32);
+		_OnPrimative(u64, 4u, ID2_U32);
 	}
 
 	void Writer::OnPrimativeU64(const uint64_t value) {
-		_OnPrimative(value, 8u, ID_U64);
+		_OnPrimative(value, 8u, ID2_U64);
 	}
 
 	void Writer::OnPrimativeS8(const int8_t value) {
 		union { uint64_t u64; int8_t val; };
 		u64 = 0u;
 		val = value;
-		_OnPrimative(u64, 1u, ID_S8);
+		_OnPrimative(u64, 1u, ID2_S8);
 	}
 
 	void Writer::OnPrimativeS16(const int16_t value) {
 		union { uint64_t u64; int16_t val; };
 		u64 = 0u;
 		val = value;
-		_OnPrimative(u64, 2u, ID_S16);
+		_OnPrimative(u64, 2u, ID2_S16);
 	}
 
 	void Writer::OnPrimativeS32(const int32_t value) {
 		union { uint64_t u64; int32_t val; };
 		u64 = 0u;
 		val = value;
-		_OnPrimative(u64, 4u, ID_S32);
+		_OnPrimative(u64, 4u, ID2_S32);
 	}
 
 	void Writer::OnPrimativeS64(const int64_t value) {
 		union { uint64_t u64; int64_t val; };
 		val = value;
-		_OnPrimative(u64, 8u, ID_S64);
+		_OnPrimative(u64, 8u, ID2_S64);
 	}
 
 	void Writer::OnPrimativeF32(const float value) {
 		union { uint64_t u64; float val; };
 		u64 = 0u;
 		val = value;
-		_OnPrimative(u64, 4u, ID_F32);
+		_OnPrimative(u64, 4u, ID2_F32);
 	}
 
 	void Writer::OnPrimativeF64(const double value) {
 		union { uint64_t u64; double val; };
 		val = value;
-		_OnPrimative(u64, 8u, ID_F64);
+		_OnPrimative(u64, 8u, ID2_F64);
 	}
 
 	void Writer::OnPrimativeC8(const char value) {
 		union { uint64_t u64; char val; };
 		val = value;
-		_OnPrimative(u64, 1u, ID_C8);
+		_OnPrimative(u64, 1u, ID2_C8);
 	}
 
 	void Writer::OnPrimativeF16(const half value) {
 		union { uint64_t u64; half val; };
 		val = value;
-		_OnPrimative(u64, 2u, ID_F16);
+		_OnPrimative(u64, 2u, ID2_F16);
 	}
 
 	void Writer::OnPrimativeString(const char* value, const uint32_t length) {
 		ValueHeader header;
-		header.primary_id = ID_STRING;
-		header.secondary_id = ID_NULL;
+		header.primary_id = ID1_STRING;
+		header.secondary_id = ID2_C8;
 		header.string_v1.length = length;
 		Write(&header, sizeof(ValueHeader::string_v1) + 1u);
 		Write(value, length);
@@ -492,7 +508,7 @@ namespace anvil { namespace lutils { namespace BytePipe {
 
 	void Writer::_OnPrimativeArray(const void* ptr, const uint32_t size, const uint8_t id, const uint32_t element_bytes) {
 		ValueHeader header;
-		header.primary_id = ID_ARRAY;
+		header.primary_id = ID1_ARRAY;
 		header.secondary_id = id;
 		header.array_v1.size = size;
 		Write(&header, sizeof(ValueHeader::array_v1) + 1u);
@@ -505,7 +521,7 @@ namespace anvil { namespace lutils { namespace BytePipe {
 			ParserV2ToV1Converter parser(*this);
 			parser.OnPrimativeArrayU8(ptr, size);
 		} else {
-			_OnPrimativeArray(ptr, size, ID_U8, sizeof(uint8_t));
+			_OnPrimativeArray(ptr, size, ID2_U8, sizeof(uint8_t));
 		}
 	}
 
@@ -514,7 +530,7 @@ namespace anvil { namespace lutils { namespace BytePipe {
 			ParserV2ToV1Converter parser(*this);
 			parser.OnPrimativeArrayU16(ptr, size);
 		} else {
-			_OnPrimativeArray(ptr, size, ID_U16, sizeof(uint16_t));
+			_OnPrimativeArray(ptr, size, ID2_U16, sizeof(uint16_t));
 		}
 	}
 
@@ -523,7 +539,7 @@ namespace anvil { namespace lutils { namespace BytePipe {
 			ParserV2ToV1Converter parser(*this);
 			parser.OnPrimativeArrayU32(ptr, size);
 		} else {
-			_OnPrimativeArray(ptr, size, ID_U32, sizeof(uint32_t));
+			_OnPrimativeArray(ptr, size, ID2_U32, sizeof(uint32_t));
 		}
 	}
 
@@ -532,7 +548,7 @@ namespace anvil { namespace lutils { namespace BytePipe {
 			ParserV2ToV1Converter parser(*this);
 			parser.OnPrimativeArrayU64(ptr, size);
 		} else {
-			_OnPrimativeArray(ptr, size, ID_U64, sizeof(uint32_t));
+			_OnPrimativeArray(ptr, size, ID2_U64, sizeof(uint32_t));
 		}
 	}
 
@@ -541,7 +557,7 @@ namespace anvil { namespace lutils { namespace BytePipe {
 			ParserV2ToV1Converter parser(*this);
 			parser.OnPrimativeArrayS8(ptr, size);
 		} else {
-			_OnPrimativeArray(ptr, size, ID_S8, sizeof(int8_t));
+			_OnPrimativeArray(ptr, size, ID2_S8, sizeof(int8_t));
 		}
 	}
 
@@ -550,7 +566,7 @@ namespace anvil { namespace lutils { namespace BytePipe {
 			ParserV2ToV1Converter parser(*this);
 			parser.OnPrimativeArrayS16(ptr, size);
 		} else {
-			_OnPrimativeArray(ptr, size, ID_S16, sizeof(int16_t));
+			_OnPrimativeArray(ptr, size, ID2_S16, sizeof(int16_t));
 		}
 	}
 
@@ -559,7 +575,7 @@ namespace anvil { namespace lutils { namespace BytePipe {
 			ParserV2ToV1Converter parser(*this);
 			parser.OnPrimativeArrayS32(ptr, size);
 		} else {
-			_OnPrimativeArray(ptr, size, ID_S32, sizeof(int32_t));
+			_OnPrimativeArray(ptr, size, ID2_S32, sizeof(int32_t));
 		}
 	}
 
@@ -568,7 +584,7 @@ namespace anvil { namespace lutils { namespace BytePipe {
 			ParserV2ToV1Converter parser(*this);
 			parser.OnPrimativeArrayS64(ptr, size);
 		} else {
-			_OnPrimativeArray(ptr, size, ID_S64, sizeof(int64_t));
+			_OnPrimativeArray(ptr, size, ID2_S64, sizeof(int64_t));
 		}
 	}
 
@@ -577,7 +593,7 @@ namespace anvil { namespace lutils { namespace BytePipe {
 			ParserV2ToV1Converter parser(*this);
 			parser.OnPrimativeArrayF32(ptr, size);
 		} else {
-			_OnPrimativeArray(ptr, size, ID_F32, sizeof(float));
+			_OnPrimativeArray(ptr, size, ID2_F32, sizeof(float));
 		}
 	}
 
@@ -586,7 +602,7 @@ namespace anvil { namespace lutils { namespace BytePipe {
 			ParserV2ToV1Converter parser(*this);
 			parser.OnPrimativeArrayF64(ptr, size);
 		} else {
-			_OnPrimativeArray(ptr, size, ID_F64, sizeof(double));
+			_OnPrimativeArray(ptr, size, ID2_F64, sizeof(double));
 		}
 	}
 
@@ -595,7 +611,7 @@ namespace anvil { namespace lutils { namespace BytePipe {
 			ParserV2ToV1Converter parser(*this);
 			parser.OnPrimativeArrayC8(ptr, size);
 		} else {
-			_OnPrimativeArray(ptr, size, ID_C8, sizeof(char));
+			_OnPrimativeArray(ptr, size, ID2_C8, sizeof(char));
 		}
 	}
 
@@ -604,7 +620,7 @@ namespace anvil { namespace lutils { namespace BytePipe {
 			ParserV2ToV1Converter parser(*this);
 			parser.OnPrimativeArrayF16(ptr, size);
 		} else {
-			_OnPrimativeArray(ptr, size, ID_F16, sizeof(half));
+			_OnPrimativeArray(ptr, size, ID2_F16, sizeof(half));
 		}
 	}
 
@@ -655,53 +671,54 @@ namespace anvil { namespace lutils { namespace BytePipe {
 			ParserV1& parser = static_cast<ParserV1&>(_parser);
 
 			switch (header.primary_id) {
-			case ID_NULL:
+			case ID2_NULL:
+				parser.OnNull();
 				break;
-			case ID_U8:
+			case ID2_U8:
 				ReadFromPipe(_pipe, &header.primative_v1, sizeof(uint8_t));
 				parser.OnPrimativeU8(header.primative_v1.u8);
 				break;
-			case ID_U16:
+			case ID2_U16:
 				ReadFromPipe(_pipe, &header.primative_v1, sizeof(uint16_t));
 				parser.OnPrimativeU16(header.primative_v1.u16);
 				break;
-			case ID_U32:
+			case ID2_U32:
 				ReadFromPipe(_pipe, &header.primative_v1, sizeof(uint32_t));
 				parser.OnPrimativeU32(header.primative_v1.u16);
 				break;
-			case ID_U64:
+			case ID2_U64:
 				ReadFromPipe(_pipe, &header.primative_v1, sizeof(uint64_t));
 				parser.OnPrimativeU64(header.primative_v1.u64);
 				break;
-			case ID_S8:
+			case ID2_S8:
 				ReadFromPipe(_pipe, &header.primative_v1, sizeof(int8_t));
 				parser.OnPrimativeS8(header.primative_v1.s8);
 				break;
-			case ID_S16:
+			case ID2_S16:
 				ReadFromPipe(_pipe, &header.primative_v1, sizeof(int32_t));
 				parser.OnPrimativeS16(header.primative_v1.s16);
 				break;
-			case ID_S32:
+			case ID2_S32:
 				ReadFromPipe(_pipe, &header.primative_v1, sizeof(int32_t));
 				parser.OnPrimativeS32(header.primative_v1.s16);
 				break;
-			case ID_S64:
+			case ID2_S64:
 				ReadFromPipe(_pipe, &header.primative_v1, sizeof(int64_t));
 				parser.OnPrimativeS64(header.primative_v1.s64);
 				break;
-			case ID_F32:
+			case ID2_F32:
 				ReadFromPipe(_pipe, &header.primative_v1, sizeof(float));
 				parser.OnPrimativeF32(header.primative_v1.f32);
 				break;
-			case ID_F64:
+			case ID2_F64:
 				ReadFromPipe(_pipe, &header.primative_v1, sizeof(double));
 				parser.OnPrimativeF64(header.primative_v1.f64);
 				break;
-			case ID_C8:
+			case ID2_C8:
 				ReadFromPipe(_pipe, &header.primative_v1, sizeof(char));
 				parser.OnPrimativeC8(header.primative_v1.c8);
 				break;
-			case ID_F16:
+			case ID2_F16:
 				ReadFromPipe(_pipe, &header.primative_v1, sizeof(half));
 				parser.OnPrimativeF16(header.primative_v1.f16);
 				break;
@@ -715,9 +732,10 @@ namespace anvil { namespace lutils { namespace BytePipe {
 			ParserV1& parser = static_cast<ParserV1&>(_parser);
 
 			switch (header.primary_id) {
-			case ID_NULL:
+			case ID1_NULL:
 				break;
-			case ID_STRING:
+			case ID1_STRING:
+				ANVIL_CONTRACT(header.secondary_id == ID2_C8, "String subtype was not char");
 				ReadFromPipe(_pipe, &header.string_v1, sizeof(header.string_v1));
 				{
 					const uint32_t len = header.string_v1.length;
@@ -727,11 +745,11 @@ namespace anvil { namespace lutils { namespace BytePipe {
 					parser.OnPrimativeString(buffer, len);
 				}
 				break;
-			case ID_ARRAY:
+			case ID1_ARRAY:
 				ReadFromPipe(_pipe, &header.array_v1, sizeof(header.array_v1));
 				ReadArray();
 				break;
-			case ID_OBJECT:
+			case ID1_OBJECT:
 				ReadFromPipe(_pipe, &header.object_v1, sizeof(header.object_v1));
 				ReadObject();
 				break;
@@ -772,7 +790,11 @@ namespace anvil { namespace lutils { namespace BytePipe {
 			ParserV2& parser = static_cast<ParserV2&>(_parser);
 
 			const uint32_t id = header.secondary_id;
-			if (id >= ID_U8 && id <= ID_F16) {
+			if (id == ID2_NULL) {
+				ReadArrayV1();
+			} else {
+				ANVIL_CONTRACT(id <= ID2_F16, "Unknown secondary type ID");
+
 				const uint32_t size = header.array_v1.size;
 				uint32_t bytes = 0u;
 				void* buffer = nullptr;
@@ -780,52 +802,52 @@ namespace anvil { namespace lutils { namespace BytePipe {
 				ParserCallback callback = nullptr;
 
 				// 0 indexed jump table
-				switch (id - ID_U8) {
-				case ID_U8 - ID_U8:
+				switch (id - 1u) {
+				case ID2_U8 - 1u:
 					bytes = sizeof(uint8_t);
 					callback = reinterpret_cast<ParserCallback>(&ParserV2::OnPrimativeArrayU8);
 					break;
-				case ID_U16 - ID_U8:
+				case ID2_U16 - 1u:
 					bytes = sizeof(uint16_t);
 					callback = reinterpret_cast<ParserCallback>(&ParserV2::OnPrimativeArrayU16);
 					break;
-				case ID_U32 - ID_U8:
+				case ID2_U32 - 1u:
 					bytes = sizeof(uint32_t);
 					callback = reinterpret_cast<ParserCallback>(&ParserV2::OnPrimativeArrayU32);
 					break;
-				case ID_U64 - ID_U8:
+				case ID2_U64 - 1u:
 					bytes = sizeof(uint64_t);
 					callback = reinterpret_cast<ParserCallback>(&ParserV2::OnPrimativeArrayU64);
 					break;
-				case ID_S8 - ID_U8:
+				case ID2_S8 - 1u:
 					bytes = sizeof(int8_t);
 					callback = reinterpret_cast<ParserCallback>(&ParserV2::OnPrimativeArrayS8);
 					break;
-				case ID_S16 - ID_U8:
+				case ID2_S16 - 1u:
 					bytes = sizeof(int16_t);
 					callback = reinterpret_cast<ParserCallback>(&ParserV2::OnPrimativeArrayS16);
 					break;
-				case ID_S32 - ID_U8:
+				case ID2_S32 - 1u:
 					bytes = sizeof(int32_t);
 					callback = reinterpret_cast<ParserCallback>(&ParserV2::OnPrimativeArrayS32);
 					break;
-				case ID_S64 - ID_U8:
+				case ID2_S64 - 1u:
 					bytes = sizeof(int64_t);
 					callback = reinterpret_cast<ParserCallback>(&ParserV2::OnPrimativeArrayS64);
 					break;
-				case ID_F32 - ID_U8:
+				case ID2_F32 - 1u:
 					bytes = sizeof(float);
 					callback = reinterpret_cast<ParserCallback>(&ParserV2::OnPrimativeArrayF32);
 					break;
-				case ID_F64 - ID_U8:
+				case ID2_F64 - 1u:
 					bytes = sizeof(double);
 					callback = reinterpret_cast<ParserCallback>(&ParserV2::OnPrimativeArrayF64);
 					break;
-				case ID_C8 - ID_U8:
+				case ID2_C8 - 1u:
 					bytes = sizeof(char);
 					callback = reinterpret_cast<ParserCallback>(&ParserV2::OnPrimativeArrayC8);
 					break;
-				case ID_F16 - ID_U8:
+				case ID2_F16 - 1u:
 					bytes = sizeof(half);
 					callback = reinterpret_cast<ParserCallback>(&ParserV2::OnPrimativeArrayF16);
 					break;
@@ -838,10 +860,6 @@ namespace anvil { namespace lutils { namespace BytePipe {
 				buffer = AllocateMemory(bytes);
 				ReadFromPipe(_pipe, buffer, bytes);
 				(parser.*callback)(buffer, size);
-			} else if(id == ID_NULL) {
-				ReadArrayV1();
-			} else {
-				ANVIL_CONTRACT(false, "Invalid value ID");
 			}
 		}
 	public:
@@ -870,7 +888,7 @@ namespace anvil { namespace lutils { namespace BytePipe {
 		void Read() {
 			// Continue with read
 			ReadFromPipe(_pipe, &header.id_union, 1u);
-			while (header.id_union != ID_NULL) {
+			while (header.id_union != ID1_NULL) {
 				ReadGeneric();
 				ReadFromPipe(_pipe, &header.id_union, 1u);
 			}
