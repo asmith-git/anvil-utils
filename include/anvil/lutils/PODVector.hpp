@@ -23,7 +23,7 @@ namespace anvil { namespace lutils {
 	namespace detail {
 
 		template<uint32_t BYTES>
-		class PODVector_ {
+		class PODVectorHeap_ {
 		private:
 			void* _data;
 			uint32_t _size;
@@ -31,21 +31,21 @@ namespace anvil { namespace lutils {
 		public:
 			enum { pod_bytes = BYTES };
 
-			PODVector_() throw() :
+			PODVectorHeap_() throw() :
 				_data(nullptr),
 				_size(0u),
 				_capacity(0u)
 			{}
 
-			PODVector_(PODVector_<BYTES>&& other) throw() :
+			PODVectorHeap_(PODVectorHeap_<BYTES>&& other) throw() :
 				_data(other._data),
 				_size(other._size),
 				_capacity(other._capacity)
 			{
-				memset(&other, 0, sizeof(PODVector_<BYTES>));
+				memset(&other, 0, sizeof(PODVectorHeap_<BYTES>));
 			}
 
-			PODVector_(const PODVector_<BYTES>& other) throw() :
+			PODVectorHeap_(const PODVectorHeap_<BYTES>& other) throw() :
 				_data(operator new(other._size * BYTES)),
 				_size(other._size),
 				_capacity(other._capacity)
@@ -53,19 +53,19 @@ namespace anvil { namespace lutils {
 				memcpy(_data, other._data, _size * BYTES);
 			}
 
-			~PODVector_() throw() {
+			~PODVectorHeap_() throw() {
 				if (_data) operator delete(_data);
 			}
 
-			PODVector_<BYTES>& operator=(PODVector_<BYTES>&& other) throw() {
-				uint8_t buffer[sizeof(PODVector_<BYTES>)];
-				memcpy(buffer, this, sizeof(PODVector_<BYTES>));
-				memcpy(this, &other, sizeof(PODVector_<BYTES>));
-				memcpy(&other, buffer, sizeof(PODVector_<BYTES>));
+			PODVectorHeap_<BYTES>& operator=(PODVectorHeap_<BYTES>&& other) throw() {
+				uint8_t buffer[sizeof(PODVectorHeap_<BYTES>)];
+				memcpy(buffer, this, sizeof(PODVectorHeap_<BYTES>));
+				memcpy(this, &other, sizeof(PODVectorHeap_<BYTES>));
+				memcpy(&other, buffer, sizeof(PODVectorHeap_<BYTES>));
 				return *this;
 			}
 
-			PODVector_<BYTES>& operator=(const PODVector_<BYTES>& other) throw()  {
+			PODVectorHeap_<BYTES>& operator=(const PODVectorHeap_<BYTES>& other) throw()  {
 				clear();
 				reserve(other._size);
 				_size = other._size;
@@ -148,38 +148,38 @@ namespace anvil { namespace lutils {
 		};
 
 		template<uint32_t BYTES, const uint32_t CAPACITY>
-		class PODVectorStatic_ {
+		class PODVectorStack_ {
 		private:
 			uint8_t _data[BYTES * CAPACITY];
 			uint32_t _size;
 		public:
 			enum { pod_bytes = BYTES };
 
-			PODVectorStatic_() throw() :
+			PODVectorStack_() throw() :
 				_size(0u)
 			{}
 
-			PODVectorStatic_(PODVectorStatic_<BYTES, CAPACITY>&& other) throw() :
+			PODVectorStack_(PODVectorStack_<BYTES, CAPACITY>&& other) throw() :
 				_size(other._size)
 			{
 				other._size = 0u;
 			}
 
-			PODVectorStatic_(const PODVectorStatic_<BYTES, CAPACITY>& other) throw() :
+			PODVectorStack_(const PODVectorStack_<BYTES, CAPACITY>& other) throw() :
 				_size(other._size)
 			{
 				memcpy(_data, other._data, _size * BYTES);
 			}
 
-			PODVectorStatic_<BYTES, CAPACITY>& operator=(PODVectorStatic_<BYTES, CAPACITY>&& other) throw() {
-				uint8_t buffer[sizeof(PODVectorStatic_<BYTES, CAPACITY>)];
-				memcpy(buffer, this, sizeof(PODVectorStatic_<BYTES, CAPACITY>));
-				memcpy(this, &other, sizeof(PODVectorStatic_<BYTES, CAPACITY>));
-				memcpy(&other, buffer, sizeof(PODVectorStatic_<BYTES, CAPACITY>));
+			PODVectorStack_<BYTES, CAPACITY>& operator=(PODVectorStack_<BYTES, CAPACITY>&& other) throw() {
+				uint8_t buffer[sizeof(PODVectorStack_<BYTES, CAPACITY>)];
+				memcpy(buffer, this, sizeof(PODVectorStack_<BYTES, CAPACITY>));
+				memcpy(this, &other, sizeof(PODVectorStack_<BYTES, CAPACITY>));
+				memcpy(&other, buffer, sizeof(PODVectorStack_<BYTES, CAPACITY>));
 				return *this;
 			}
 
-			PODVectorStatic_<BYTES, CAPACITY>& operator=(const PODVectorStatic_<BYTES, CAPACITY>& other) throw()  {
+			PODVectorStack_<BYTES, CAPACITY>& operator=(const PODVectorStack_<BYTES, CAPACITY>& other) throw()  {
 				_size = other._size;
 				memcpy(_data, other._data, _size * BYTES);
 				return *this;
@@ -242,7 +242,7 @@ namespace anvil { namespace lutils {
 
 	}
 
-	template<class T, class IMPLEMENTATION = detail::PODVector_<sizeof(T)>>
+	template<class T, class IMPLEMENTATION>
 	class PODVector {
 	private:
 		static_assert(std::is_pod<T>::value, "type must be POD");
@@ -257,20 +257,20 @@ namespace anvil { namespace lutils {
 			_vector()
 		{}
 
-		PODVector(PODVector<T>&& other) throw() :
+		PODVector(PODVector<T, IMPLEMENTATION>&& other) throw() :
 			_vector(std::move(other._vector))
 		{}
 
-		PODVector(const PODVector<T>& other) throw() :
+		PODVector(const PODVector<T, IMPLEMENTATION>& other) throw() :
 			_vector(other._vector)
 		{}
 
-		inline PODVector<T>& operator=(PODVector<T>&& other) throw() {
+		inline PODVector<T, IMPLEMENTATION>& operator=(PODVector<T, IMPLEMENTATION>&& other) throw() {
 			_vector = std::move(other._vector);
 			return *this;
 		}
 
-		inline PODVector<T>& operator=(const PODVector<T>& other) throw() {
+		inline PODVector<T, IMPLEMENTATION>& operator=(const PODVector<T, IMPLEMENTATION>& other) throw() {
 			_vector = other._vector;
 			return *this;
 		}
@@ -309,7 +309,7 @@ namespace anvil { namespace lutils {
 			return _vector.pop_back();
 		}
 
-		inline void push_back_noreserve_nobounds(const const T& src) throw() {
+		inline void push_back_noreserve_nobounds(const T& src) throw() {
 			_vector.push_back_noreserve_nobounds(&src);
 		}
 
@@ -374,8 +374,11 @@ namespace anvil { namespace lutils {
 		}
 	};
 
+	template<class T>
+	using PODVectorHeap = PODVector<T, detail::PODVectorHeap_<sizeof(T)>>;
+
 	template<class T, uint32_t SIZE>
-	using PODVectorStatic = PODVector<T, detail::PODVectorStatic_<sizeof(T), SIZE>>;
+	using PODVectorStack = PODVector<T, detail::PODVectorStack_<sizeof(T), SIZE>>;
 }}
 
 #endif
