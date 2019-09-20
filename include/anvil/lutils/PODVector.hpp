@@ -147,14 +147,107 @@ namespace anvil { namespace lutils {
 			}
 		};
 
+		template<uint32_t BYTES, const uint32_t CAPACITY>
+		class PODVectorStatic_ {
+		private:
+			uint8_t _data[BYTES * CAPACITY];
+			uint32_t _size;
+		public:
+			enum { pod_bytes = BYTES };
+
+			PODVectorStatic_() throw() :
+				_size(0u)
+			{}
+
+			PODVectorStatic_(PODVectorStatic_<BYTES, CAPACITY>&& other) throw() :
+				_size(other._size)
+			{
+				other._size = 0u;
+			}
+
+			PODVectorStatic_(const PODVectorStatic_<BYTES, CAPACITY>& other) throw() :
+				_size(other._size)
+			{
+				memcpy(_data, other._data, _size * BYTES);
+			}
+
+			PODVectorStatic_<BYTES, CAPACITY>& operator=(PODVectorStatic_<BYTES, CAPACITY>&& other) throw() {
+				uint8_t buffer[sizeof(PODVectorStatic_<BYTES, CAPACITY>)];
+				memcpy(buffer, this, sizeof(PODVectorStatic_<BYTES, CAPACITY>));
+				memcpy(this, &other, sizeof(PODVectorStatic_<BYTES, CAPACITY>));
+				memcpy(&other, buffer, sizeof(PODVectorStatic_<BYTES, CAPACITY>));
+				return *this;
+			}
+
+			PODVectorStatic_<BYTES, CAPACITY>& operator=(const PODVectorStatic_<BYTES, CAPACITY>& other) throw()  {
+				_size = other._size;
+				memcpy(_data, other._data, _size * BYTES);
+				return *this;
+			}
+
+			inline void clear() throw() {
+				_size = 0u;
+			}
+
+			inline bool empty() const throw() {
+				return _size == 0u;
+			}
+
+			inline uint32_t size() const throw() {
+				return _size;
+			}
+
+			inline uint32_t capacity() const throw() {
+				return CAPACITY;
+			}
+
+			inline void* data() throw() {
+				return _data;
+			}
+
+			inline const void* data() const throw() {
+				return _data;
+			}
+
+			bool reserve(const uint32_t size) throw() {
+				return size <= CAPACITY;
+			}
+
+			inline bool pop_back() throw() {
+				if (_size > 0u) {
+					--_size;
+					return true;
+				}
+				return false;
+			}
+
+			inline void push_back_noreserve_nobounds(const void* src) throw() {
+				void* const dst = _data + _size * BYTES;
+				memcpy(dst, src, BYTES);
+				++_size;
+			}
+
+			bool push_back_noreserve(const void* src) throw() {
+				if (_size + 1u > CAPACITY) return false;
+				push_back_noreserve_nobounds(src);
+				return true;
+			}
+
+			bool push_back(const void* src) {
+				if (_size + 1u > CAPACITY) return false;
+				push_back_noreserve_nobounds(src);
+				return true;
+			}
+		};
+
 	}
 
-	template<class T>
+	template<class T, class IMPLEMENTATION = detail::PODVector_<sizeof(T)>>
 	class PODVector {
 	private:
 		static_assert(std::is_pod<T>::value, "type must be POD");
 
-		detail::PODVector_<sizeof(T)> _vector;
+		IMPLEMENTATION _vector;
 	public:
 		typedef T type;
 		typedef T* iterator;
@@ -280,6 +373,9 @@ namespace anvil { namespace lutils {
 			return data()[index];
 		}
 	};
+
+	template<class T, uint32_t SIZE>
+	using PODVectorStatic = PODVector<T, detail::PODVectorStatic_<sizeof(T), SIZE>>;
 }}
 
 #endif
