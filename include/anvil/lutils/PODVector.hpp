@@ -119,7 +119,19 @@ namespace anvil { namespace lutils {
 				return false;
 			}
 
-			bool push_back(const void* src) throw() {
+			inline void push_back_noreserve_nobounds(const void* src) throw() {
+				void* const dst = static_cast<int8_t*>(_data) + _size * BYTES;
+				memcpy(dst, src, BYTES);
+				++_size;
+			}
+
+			bool push_back_noreserve(const void* src) throw() {
+				if (_size + 1u > _capacity) return false;
+				push_back_noreserve_nobounds(src);
+				return true;
+			}
+
+			bool push_back(const void* src) {
 				if (_size + 1u > _capacity) {
 					uint32_t sizeToReserve;
 					if (_size == 0u) {
@@ -130,9 +142,7 @@ namespace anvil { namespace lutils {
 					if (!reserve(sizeToReserve)) return false;
 				}
 
-				void* const dst = static_cast<int8_t*>(_data) + _size * BYTES;
-				memcpy(dst, src, BYTES);
-				++_size;
+				push_back_noreserve_nobounds(src);
 				return true;
 			}
 		};
@@ -204,7 +214,15 @@ namespace anvil { namespace lutils {
 			return _vector.pop_back();
 		}
 
-		inline bool push_back(const T& src) throw() {
+		inline void push_back_noreserve_nobounds(const const T& src) throw() {
+			_vector.push_back_noreserve_nobounds(&src);
+		}
+
+		bool push_back_noreserve(const const T& src) throw() {
+			return _vector.push_back_noreserve(&src);
+		}
+
+		inline bool push_back(const T& src) {
 			return _vector.push_back(&src);
 		}
 
