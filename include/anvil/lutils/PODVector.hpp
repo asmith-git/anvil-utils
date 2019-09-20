@@ -66,38 +66,38 @@ namespace anvil { namespace lutils {
 			}
 
 			PODVector_<BYTES>& operator=(const PODVector_<BYTES>& other) throw()  {
-				Clear();
-				Reserve(other._size);
+				clear();
+				reserve(other._size);
 				_size = other._size;
 				memcpy(_data, other._data, _size * BYTES);
 				return *this;
 			}
 
-			inline void Clear() throw() {
+			inline void clear() throw() {
 				_size = 0u;
 			}
 
-			inline bool Empty() const throw() {
+			inline bool empty() const throw() {
 				return _size == 0u;
 			}
 
-			inline uint32_t Size() const throw() {
+			inline uint32_t size() const throw() {
 				return _size;
 			}
 
-			inline uint32_t Capacity() const throw() {
+			inline uint32_t capacity() const throw() {
 				return _capacity;
 			}
 
-			inline void* Data() throw() {
+			inline void* data() throw() {
 				return _data;
 			}
 
-			inline const void* Data() const throw() {
+			inline const void* data() const throw() {
 				return _data;
 			}
 
-			bool Reserve(const uint32_t size) throw() {
+			bool reserve(const uint32_t size) throw() {
 				if (size > _capacity) {
 					_capacity = size;
 					void* const new_data = operator new(size * BYTES);
@@ -111,7 +111,7 @@ namespace anvil { namespace lutils {
 				return true;
 			}
 
-			inline bool PopBack() throw() {
+			inline bool pop_back() throw() {
 				if (_size > 0u) {
 					--_size;
 					return true;
@@ -119,7 +119,7 @@ namespace anvil { namespace lutils {
 				return false;
 			}
 
-			bool PushBack(const void* src) throw() {
+			bool push_back(const void* src) throw() {
 				if (_size + 1u > _capacity) {
 					uint32_t sizeToReserve;
 					if (_size == 0u) {
@@ -127,7 +127,7 @@ namespace anvil { namespace lutils {
 					} else {
 						sizeToReserve = _size * 2u;
 					}
-					if (!Reserve(sizeToReserve)) return false;
+					if (!reserve(sizeToReserve)) return false;
 				}
 
 				void* const dst = static_cast<int8_t*>(_data) + _size * BYTES;
@@ -172,77 +172,77 @@ namespace anvil { namespace lutils {
 			return *this;
 		}
 
-		inline void Clear() throw() {
-			_vector.Clear();
+		inline void clear() throw() {
+			_vector.clear();
 		}
 
-		inline bool Empty() const throw() {
-			return _vector.Empty();
+		inline bool empty() const throw() {
+			return _vector.empty();
 		}
 
-		inline uint32_t Size() const throw() {
-			return _vector.Clear();
+		inline uint32_t size() const throw() {
+			return _vector.size();
 		}
 
-		inline uint32_t Capacity() const throw() {
-			return _vector.Capacity();
+		inline uint32_t capacity() const throw() {
+			return _vector.capacity();
 		}
 
-		inline T* Data() throw() {
-			return static_cast<T*>(_vector.Data());
+		inline T* data() throw() {
+			return static_cast<T*>(_vector.data());
 		}
 
-		inline const T* Data() const throw() {
-			return static_cast<const T*>(_vector.Data());
+		inline const T* data() const throw() {
+			return static_cast<const T*>(_vector.data());
 		}
 
-		bool Reserve(const uint32_t size) throw() {
-			return _vector.Reserve(size);
+		bool reserve(const uint32_t size) throw() {
+			return _vector.reserve(size);
 		}
 
-		inline bool PopBack() throw() {
-			return _vector.PopBack();
+		inline bool pop_back() throw() {
+			return _vector.pop_back();
 		}
 
-		inline bool PushBack(const T& src) throw() {
-			return _vector.PushBack(&src);
+		inline bool push_back(const T& src) throw() {
+			return _vector.push_back(&src);
 		}
 
 		inline iterator begin() throw() {
-			return Data();
+			return data();
 		}
 
 		inline iterator end() throw() {
-			return begin() + _vector.Size();
+			return begin() + _vector.size();
 		}
 
 		inline const_iterator begin() const throw() {
-			return Data();
+			return data();
 		}
 
 		inline const_iterator end() const throw() {
-			return begin() + _vector.Size();
+			return begin() + _vector.size();
 		}
 
-		inline T& Front() throw() {
+		inline T& front() throw() {
 			return *begin();
 		}
 
-		inline T& Back() throw() {
+		inline T& back() throw() {
 			return *(end() - 1u);
 		}
 
-		inline const T& Front() const throw() {
+		inline const T& front() const throw() {
 			return *begin();
 		}
 
-		inline const T& Back() const throw() {
+		inline const T& back() const throw() {
 			return *(end() - 1u);
 		}
 
-		inline T PopBack2() throw() {
-			const T tmp = Data()[_vector.Size() - 1u];
-			ANVIL_CONTRACT(_vector.PopBack());
+		inline T pop_back2() throw() {
+			const T tmp = data()[_vector.size() - 1u];
+			ANVIL_CONTRACT(_vector.pop_back());
 			return tmp;
 		}
 	};
