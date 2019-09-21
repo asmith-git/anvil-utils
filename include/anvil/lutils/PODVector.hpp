@@ -26,14 +26,15 @@ namespace anvil { namespace lutils {
 		class PODVectorCoreHeap {
 		private:
 			void* _data;
-			uint32_t _capacity;
 		public:
 			void* head;
+		private:
+			uint32_t _capacity;
 
 			constexpr PODVectorCoreHeap() throw() :
 				_data(nullptr),
-				_capacity(0u),
-				head(nullptr)
+				head(nullptr),
+				_capacity(0u)
 			{}
 
 			PODVectorCoreHeap(PODVectorCoreHeap<BYTES>&& other) throw() :
@@ -42,8 +43,8 @@ namespace anvil { namespace lutils {
 				head(other.head)
 			{
 				other._data = nullptr;
-				other._capacity = 0u;
 				other.head = nullptr;
+				other._capacity = 0u;
 			}
 
 			PODVectorCoreHeap(const PODVectorCoreHeap<BYTES>& other) :
