@@ -270,7 +270,7 @@ namespace anvil { namespace lutils {
 
 			inline void pop_front_nobounds() {
 				const void data = _core.data();
-				memcpy(data, static_cast<int8_t*>(_core.head) + BYTES, size_bytes() - BYTES);
+				memcpy(data, static_cast<int8_t*>(data) + BYTES, size_bytes() - BYTES);
 			}
 
 			inline bool pop_front() {
