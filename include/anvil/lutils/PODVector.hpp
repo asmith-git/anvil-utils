@@ -326,8 +326,12 @@ namespace anvil { namespace lutils {
 				return insert_nobounds(pos, begin, end);
 			}
 		};
-
 	}
+
+	enum OptimisationFlags : uint32_t {
+		NO_BOUNDARY_CHECKS = 1u,
+		NO_MEMORY_RESERVE = 2u
+	};
 
 	template<class T, class IMPLEMENTATION>
 	class PODVector {
@@ -382,30 +386,42 @@ namespace anvil { namespace lutils {
 			return _vector.capacity();
 		}
 
-		inline T* data() throw() {
-			ANVIL_DEBUG_CONTRACT(!empty(), "PODVector index out of bounds");
-			return static_cast<T*>(_vector.data());
+		template<uint32_t optimisation_flags>
+		inline const T* data() const {
+			if constexpr ((optimisation_flags & NO_BOUNDARY_CHECKS) == 0u) {
+				ANVIL_CONTRACT(!empty(), "PODVector index out of bounds");
+			}
+			return *(end() - 1u);
 		}
 
-		inline const T* data() const throw() {
-			ANVIL_DEBUG_CONTRACT(!empty(), "PODVector index out of bounds");
-			return static_cast<const T*>(_vector.data());
+		inline const T* data() const {
+			return data<0u>();
+		}
+
+		inline T* data() {
+			return const_cast<T*>(const_cast<PODVector<T, IMPLEMENTATION>*>(this)->data());
 		}
 
 		bool reserve(const uint32_t size) throw() {
 			return _vector.reserve(size);
 		}
 
-		inline void push_back_noreserve_nobounds(const T& src) throw() {
-			_vector.push_back_noreserve_nobounds(&src);
-		}
-
-		bool push_back_noreserve(const T& src) throw() {
-			return _vector.push_back_noreserve(&src);
+		template<uint32_t optimisation_flags>
+		inline bool push_back(const T& src) {
+			if constexpr ((optimisation_flags & NO_MEMORY_RESERVE) != 0u) {
+				if constexpr ((optimisation_flags & NO_BOUNDARY_CHECKS) != 0u) {
+					_vector.push_back_noreserve_nobounds(&src);
+					return true;
+				} else {
+					return _vector.push_back_noreserve(&src);
+				}
+			} else {
+				return _vector.push_back(&src);
+			}
 		}
 
 		inline bool push_back(const T& src) {
-			return _vector.push_back(&src);
+			return push_back<0u>(src);
 		}
 
 		inline iterator begin() throw() {
@@ -424,64 +440,87 @@ namespace anvil { namespace lutils {
 			return static_cast<const_iterator>(_vector.end());
 		}
 
-		inline T& front() throw() {
-			ANVIL_DEBUG_CONTRACT(!empty(), "PODVector index out of bounds");
+		template<uint32_t optimisation_flags>
+		inline const T& front() const {
+			if constexpr ((optimisation_flags & NO_BOUNDARY_CHECKS) == 0u) {
+				ANVIL_CONTRACT(!empty(), "PODVector index out of bounds");
+			}
 			return *begin();
 		}
 
-		inline T& back() throw() {
-			ANVIL_DEBUG_CONTRACT(!empty(), "PODVector index out of bounds");
+		template<uint32_t optimisation_flags>
+		inline const T& back() const {
+			if constexpr ((optimisation_flags & NO_BOUNDARY_CHECKS) == 0u) {
+				ANVIL_CONTRACT(!empty(), "PODVector index out of bounds");
+			}
 			return *(end() - 1u);
 		}
 
-		inline const T& front() const throw() {
-			ANVIL_DEBUG_CONTRACT(! empty(), "PODVector index out of bounds");
-			return *begin();
+		inline const T& front() const {
+			return front<0u>();
 		}
 
-		inline const T& back() const throw() {
-			ANVIL_DEBUG_CONTRACT(!empty(), "PODVector index out of bounds");
-			return *(end() - 1u);
+		inline T& front() {
+			return const_cast<T&>(const_cast<PODVector<T, IMPLEMENTATION>*>(this)->front());
 		}
 
-		inline void pop_back_nobounds() throw() {
-			_vector.pop_back_nobounds();
+		inline const T& back() const {
+			return back<0u>();
+		}
+
+		inline T& back() {
+			return const_cast<T&>(const_cast<PODVector<T, IMPLEMENTATION>*>(this)->back());
+		}
+
+		template<uint32_t optimisation_flags>
+		inline void pop_back() throw() {
+			if constexpr ((optimisation_flags & NO_BOUNDARY_CHECKS) != 0u) {
+				_vector.pop_back_nobounds();
+				return true;
+			} else {
+				return _vector.pop_back();
+			}
 		}
 
 		inline bool pop_back() throw() {
-			return _vector.pop_back();
+			return pop_back<0u>();
 		}
 
-		inline T pop_back2_nobounds() throw() {
+		template<uint32_t optimisation_flags>
+		inline T pop_back2() throw() {
+			if constexpr ((optimisation_flags & NO_BOUNDARY_CHECKS) == 0u) {
+				ANVIL_CONTRACT(!empty(), "PODVector index out of bounds");
+			}
 			const T tmp = back();
-			pop_back_nobounds();
+			_vector.pop_back_nobounds();
 			return tmp;
 		}
 
 		inline T pop_back2() throw() {
-			const T tmp = back();
-			pop_back();
-			return tmp;
+			return pop_back2<0u>();
 		}
 
-		inline void pop_front_nobounds() throw() {
-			erase_nobounds(begin());
+		template<uint32_t optimisation_flags>
+		inline bool pop_front() throw() {
+			return erase<optimisation_flags>(begin());
 		}
 
 		inline bool pop_front() throw() {
-			return erase(begin());
+			return pop_front<0u>();
 		}
 
-		inline T pop_front2_nobounds() throw() {
+		template<uint32_t optimisation_flags>
+		inline T pop_front2() throw() {
+			if constexpr ((optimisation_flags & NO_BOUNDARY_CHECKS) == 0u) {
+				ANVIL_CONTRACT(!empty(), "PODVector index out of bounds");
+			}
 			const T tmp = front();
-			pop_front_nobounds();
+			_vector.pop_front_nobounds();
 			return tmp;
 		}
 
 		inline T pop_front2() throw() {
-			const T tmp = front();
-			pop_front();
-			return tmp;
+			return pop_front2<0u>();
 		}
 
 		inline T& operator[](const uint32_t index) throw() {
@@ -494,44 +533,54 @@ namespace anvil { namespace lutils {
 			return data()[index];
 		}
 
-		inline void erase_nobounds(const const_iterator begin, const const_iterator end) throw() {
-			_vector.erase_nobounds(begin, end);
+		template<uint32_t optimisation_flags>
+		inline bool erase(const const_iterator begin, const const_iterator end) throw() {
+			if constexpr ((optimisation_flags & NO_BOUNDARY_CHECKS) != 0u) {
+				_vector.erase_nobounds(begin, end);
+				return true;
+			} else {
+				return _vector.erase(begin, end);
+			}
 		}
 
 		inline bool erase(const const_iterator begin, const const_iterator end) throw() {
-			return _vector.erase(begin, end);
+			return erase<0u>(begin, end);
 		}
 
-		inline void erase_nobounds(const const_iterator iterator) throw() {
-			erase_nobounds(iterator, iterator + 1u);
+		template<uint32_t optimisation_flags>
+		inline bool erase(const const_iterator pos) throw() {
+			return erase<optimisation_flags>(pos, pos + 1u);
 		}
 
-		inline bool erase(const const_iterator iterator) throw() {
-			return erase(iterator, iterator + 1u);
+		inline bool erase(const const_iterator pos) throw() {
+			return erase<0u>(pos);
 		}
 
-		inline void insert_no_reserve_nobounds(const const_iterator pos, const const_iterator begin, const const_iterator end) throw() {
-			_vector.insert_no_reserve_nobounds(pos, begin, end);
-		}
-
-		inline bool insert_nobounds(const const_iterator pos, const const_iterator begin, const const_iterator end) throw() {
-			return _vector.insert_nobounds(pos, begin, end);
+		template<uint32_t optimisation_flags>
+		inline bool insert(const const_iterator pos, const const_iterator begin, const const_iterator end) throw() {
+			if constexpr ((optimisation_flags & NO_BOUNDARY_CHECKS) != 0u) {
+				if constexpr ((optimisation_flags & NO_MEMORY_RESERVE) != 0u) {
+					_vector.insert_no_reserve_nobounds(pos, begin, end);
+					return true;
+				} else {
+					return _vector.insert_nobounds(pos, begin, end);
+				}
+			} else {
+				return _vector.insert(pos, begin, end);
+			}
 		}
 
 		inline bool insert(const const_iterator pos, const const_iterator begin, const const_iterator end) throw() {
-			return _vector.insert(pos, begin, end);
+			return insert<0u>(pos, begin, end);
 		}
 
-		inline void insert_no_reserve_nobounds(const const_iterator pos, const T& value) throw() {
-			insert_no_reserve_nobounds(pos, &value, &value + 1u);
-		}
-
-		inline bool insert_nobounds(const const_iterator pos, const T& value) throw() {
-			return insert_nobounds(pos, &value, &value + 1u);
+		template<uint32_t optimisation_flags>
+		inline bool insert(const const_iterator pos, const T& value) throw() {
+			return insert<optimisation_flags>(pos, &value, &value + 1u);
 		}
 
 		inline bool insert(const const_iterator pos, const T& value) throw() {
-			return insert(pos, &value, &value + 1u);
+			return insert<0u>(pos, value);
 		}
 	};
 
