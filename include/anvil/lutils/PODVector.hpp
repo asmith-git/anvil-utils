@@ -394,12 +394,17 @@ namespace anvil { namespace lutils {
 			return *(end() - 1u);
 		}
 
+		template<uint32_t optimisation_flags>
+		inline T* data() {
+			return const_cast<T*>(const_cast<PODVector<T, IMPLEMENTATION>*>(this)->data<optimisation_flags>());
+		}
+
 		inline const T* data() const {
 			return data<0u>();
 		}
 
 		inline T* data() {
-			return const_cast<T*>(const_cast<PODVector<T, IMPLEMENTATION>*>(this)->data());
+			return data<0u>();
 		}
 
 		bool reserve(const uint32_t size) throw() {
@@ -449,6 +454,11 @@ namespace anvil { namespace lutils {
 		}
 
 		template<uint32_t optimisation_flags>
+		inline T& front() {
+			return const_cast<T&>(const_cast<PODVector<T, IMPLEMENTATION>*>(this)->front<optimisation_flags>());
+		}
+
+		template<uint32_t optimisation_flags>
 		inline const T& back() const {
 			if constexpr ((optimisation_flags & NO_BOUNDARY_CHECKS) == 0u) {
 				ANVIL_CONTRACT(!empty(), "PODVector index out of bounds");
@@ -456,12 +466,17 @@ namespace anvil { namespace lutils {
 			return *(end() - 1u);
 		}
 
+		template<uint32_t optimisation_flags>
+		inline T& back() {
+			return const_cast<T&>(const_cast<PODVector<T, IMPLEMENTATION>*>(this)->back<optimisation_flags>());
+		}
+
 		inline const T& front() const {
 			return front<0u>();
 		}
 
 		inline T& front() {
-			return const_cast<T&>(const_cast<PODVector<T, IMPLEMENTATION>*>(this)->front());
+			return front<0u>();
 		}
 
 		inline const T& back() const {
@@ -469,7 +484,7 @@ namespace anvil { namespace lutils {
 		}
 
 		inline T& back() {
-			return const_cast<T&>(const_cast<PODVector<T, IMPLEMENTATION>*>(this)->back());
+			return back<0u>();
 		}
 
 		template<uint32_t optimisation_flags>
