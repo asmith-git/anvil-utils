@@ -424,6 +424,15 @@ namespace anvil { namespace lutils {
 			return push_back<0u>(src);
 		}
 
+		template<uint32_t optimisation_flags>
+		inline bool push_front(const T& src) {
+			return insert<optimisation_flags>(static_cast<T*>(_vector.data()), &src);
+		}
+
+		inline bool push_front(const T& src) {
+			return push_front<0u>(src);
+		}
+
 		inline iterator begin() throw() {
 			return static_cast<iterator>(_vector.begin());
 		}
