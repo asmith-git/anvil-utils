@@ -354,17 +354,23 @@ namespace anvil { namespace lutils {
 			_vector(std::move(other._vector))
 		{}
 
-		PODVector(const PODVector<T, IMPLEMENTATION>& other) throw() :
+		PODVector(const PODVector<T, IMPLEMENTATION>& other) :
 			_vector(other._vector)
 		{}
 
-		inline PODVector<T, IMPLEMENTATION>& operator=(PODVector<T, IMPLEMENTATION>&& other) throw() {
+		inline PODVector<T, IMPLEMENTATION>& operator=(PODVector<T, IMPLEMENTATION>&& other) {
 			_vector = std::move(other._vector);
 			return *this;
 		}
 
-		inline PODVector<T, IMPLEMENTATION>& operator=(const PODVector<T, IMPLEMENTATION>& other) throw() {
-			_vector = other._vector;
+		template<class IMPLEMENTATION2>
+		inline PODVector<T, IMPLEMENTATION>& operator=(const PODVector<T, IMPLEMENTATION2>& other) {
+			clear();
+			if (reserve(other.size())) {
+				insert<OPTIMISE_ALL>(begin(), other.begin(), other.end());
+			} else {
+				ANVIL_CONTRACT(false, "Failed to reserve memory");
+			}
 			return *this;
 		}
 
