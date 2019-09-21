@@ -248,9 +248,13 @@ namespace anvil { namespace lutils {
 				return _core.reserve(newSize);
 			}
 
+			inline bool pop_back_nobounds() throw() {
+				_core.head = static_cast<int8_t*>(_core.head) - BYTES;
+			}
+
 			inline bool pop_back() throw() {
 				if (! empty()) {
-					_core.head = static_cast<int8_t*>(_core.head) - BYTES;
+					pop_back_nobounds();
 					return true;
 				}
 				return false;
@@ -416,8 +420,18 @@ namespace anvil { namespace lutils {
 			return *(end() - 1u);
 		}
 
+		inline void pop_back_nobounds() throw() {
+			_vector.pop_back_nobounds();
+		}
+
 		inline bool pop_back() throw() {
 			return _vector.pop_back();
+		}
+
+		inline T pop_back2_nobounds() throw() {
+			const T tmp = back();
+			pop_back_nobounds();
+			return tmp;
 		}
 
 		inline T pop_back2() throw() {
@@ -426,8 +440,18 @@ namespace anvil { namespace lutils {
 			return tmp;
 		}
 
+		inline void pop_front_nobounds() throw() {
+			erase_nobounds(begin());
+		}
+
 		inline bool pop_front() throw() {
 			return erase(begin());
+		}
+
+		inline T pop_front2_nobounds() throw() {
+			const T tmp = front();
+			pop_front_nobounds();
+			return tmp;
 		}
 
 		inline T pop_front2() throw() {
@@ -454,8 +478,8 @@ namespace anvil { namespace lutils {
 			return _vector.erase(iterator, iterator + 1u);
 		}
 
-		inline bool erase_nobound(const const_iterator begin, const const_iterator end) throw() {
-			return _vector.erase_nobound(begin, end);
+		inline bool erase_nobounds(const const_iterator begin, const const_iterator end) throw() {
+			return _vector.erase_nobounds(begin, end);
 		}
 
 		inline bool erase(const const_iterator begin, const const_iterator end) throw() {
