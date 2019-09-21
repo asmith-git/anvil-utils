@@ -517,17 +517,17 @@ namespace anvil { namespace lutils {
 		}
 
 		template<uint32_t optimisation_flags>
-		inline T pop_back2() throw() {
+		inline bool pop_back(T& value) throw() {
 			if constexpr ((optimisation_flags & NO_BOUNDARY_CHECKS) == 0u) {
-				ANVIL_CONTRACT(!empty(), "PODVector index out of bounds");
+				if (empty()) return false;
 			}
-			const T tmp = back();
 			_vector.pop_back_nobounds();
-			return tmp;
+			memcpy(&value, static_cast<T*>(_vector.end()), sizeof(T));
+			return true;
 		}
 
-		inline T pop_back2() throw() {
-			return pop_back2<0u>();
+		inline bool pop_back(T& value) throw() {
+			return pop_back<0u>(value);
 		}
 
 		template<uint32_t optimisation_flags>
@@ -543,19 +543,19 @@ namespace anvil { namespace lutils {
 		inline bool pop_front() throw() {
 			return pop_front<0u>();
 		}
-
+		
 		template<uint32_t optimisation_flags>
-		inline T pop_front2() throw() {
+		inline bool pop_front(T& value) throw() {
 			if constexpr ((optimisation_flags & NO_BOUNDARY_CHECKS) == 0u) {
-				ANVIL_CONTRACT(!empty(), "PODVector index out of bounds");
+				if (empty()) return false;
 			}
-			const T tmp = front();
+			memcpy(&value, static_cast<T*>(_vector.data()), sizeof(T));
 			_vector.pop_front_nobounds();
-			return tmp;
+			return true;
 		}
 
-		inline T pop_front2() throw() {
-			return pop_front2<0u>();
+		inline bool pop_front(T& value) throw() {
+			return pop_front<0u>(value);
 		}
 
 		inline T& operator[](const uint32_t index) throw() {
