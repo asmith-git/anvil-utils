@@ -330,7 +330,9 @@ namespace anvil { namespace lutils {
 
 	enum OptimisationFlags : uint32_t {
 		NO_BOUNDARY_CHECKS = 1u,
-		NO_MEMORY_RESERVE = 2u
+		NO_MEMORY_RESERVE = 2u,
+
+		OPTIMISE_ALL = NO_BOUNDARY_CHECKS | NO_MEMORY_RESERVE
 	};
 
 	template<class T, class IMPLEMENTATION>
@@ -389,7 +391,7 @@ namespace anvil { namespace lutils {
 		template<uint32_t optimisation_flags>
 		inline const T* data() const {
 			if constexpr ((optimisation_flags & NO_BOUNDARY_CHECKS) == 0u) {
-				ANVIL_CONTRACT(!empty(), "PODVector index out of bounds");
+				if (empty()) return nullptr;
 			}
 			return *(end() - 1u);
 		}
