@@ -355,12 +355,12 @@ namespace anvil { namespace lutils {
 		}
 
 		inline T* data() throw() {
-			ANVIL_DEBUG_CONTRACT(!empty());
+			ANVIL_DEBUG_CONTRACT(!empty(), "PODVector index out of bounds");
 			return static_cast<T*>(_vector.data());
 		}
 
 		inline const T* data() const throw() {
-			ANVIL_DEBUG_CONTRACT(!empty());
+			ANVIL_DEBUG_CONTRACT(!empty(), "PODVector index out of bounds");
 			return static_cast<const T*>(_vector.data());
 		}
 
@@ -397,22 +397,22 @@ namespace anvil { namespace lutils {
 		}
 
 		inline T& front() throw() {
-			ANVIL_DEBUG_CONTRACT(!empty());
+			ANVIL_DEBUG_CONTRACT(!empty(), "PODVector index out of bounds");
 			return *begin();
 		}
 
 		inline T& back() throw() {
-			ANVIL_DEBUG_CONTRACT(!empty());
+			ANVIL_DEBUG_CONTRACT(!empty(), "PODVector index out of bounds");
 			return *(end() - 1u);
 		}
 
 		inline const T& front() const throw() {
-			ANVIL_DEBUG_CONTRACT(! empty());
+			ANVIL_DEBUG_CONTRACT(! empty(), "PODVector index out of bounds");
 			return *begin();
 		}
 
 		inline const T& back() const throw() {
-			ANVIL_DEBUG_CONTRACT(!empty());
+			ANVIL_DEBUG_CONTRACT(!empty(), "PODVector index out of bounds");
 			return *(end() - 1u);
 		}
 
@@ -437,12 +437,12 @@ namespace anvil { namespace lutils {
 		}
 
 		inline T& operator[](const uint32_t index) throw() {
-			ANVIL_DEBUG_CONTRACT(index < size());
+			ANVIL_DEBUG_CONTRACT(index < size(), "PODVector index out of bounds");
 			return data()[index];
 		}
 
 		inline const T& operator[](const uint32_t index) const throw() {
-			ANVIL_DEBUG_CONTRACT(index < size());
+			ANVIL_DEBUG_CONTRACT(index < size(), "PODVector index out of bounds");
 			return data()[index];
 		}
 
