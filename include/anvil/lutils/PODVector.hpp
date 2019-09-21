@@ -23,7 +23,7 @@ namespace anvil { namespace lutils {
 	namespace detail {
 
 		template<uint32_t BYTES>
-		class PODVectorCoreHeap {
+		class PODVectorCoreDynamic {
 		private:
 			void* _data;
 		public:
@@ -32,13 +32,13 @@ namespace anvil { namespace lutils {
 			uint32_t _capacity;
 		public:
 
-			constexpr PODVectorCoreHeap() throw() :
+			constexpr PODVectorCoreDynamic() throw() :
 				_data(nullptr),
 				head(nullptr),
 				_capacity(0u)
 			{}
 
-			PODVectorCoreHeap(PODVectorCoreHeap<BYTES>&& other) throw() :
+			PODVectorCoreDynamic(PODVectorCoreDynamic<BYTES>&& other) throw() :
 				_data(other._data),
 				_capacity(other._capacity),
 				head(other.head)
@@ -48,7 +48,7 @@ namespace anvil { namespace lutils {
 				other._capacity = 0u;
 			}
 
-			PODVectorCoreHeap(const PODVectorCoreHeap<BYTES>& other) :
+			PODVectorCoreDynamic(const PODVectorCoreDynamic<BYTES>& other) :
 				_capacity(other.size)
 			{
 				const uint32_t bytes = other.size_bytes();
@@ -57,15 +57,15 @@ namespace anvil { namespace lutils {
 				head = static_cast<int8_t*>(_data) + bytes;
 			}
 
-			void operator=(PODVectorCoreHeap<BYTES>&& other) throw() {
-				enum { bytes = sizeof(PODVectorCoreHeap<BYTES>) };
+			void operator=(PODVectorCoreDynamic<BYTES>&& other) throw() {
+				enum { bytes = sizeof(PODVectorCoreDynamic<BYTES>) };
 				uint8_t buffer[bytes];
 				memcpy(buffer, this, bytes);
 				memcpy(this, &other, bytes);
 				memcpy(&other, buffer, bytes);
 			}
 
-			void operator=(const PODVectorCoreHeap<BYTES>& other) throw() {
+			void operator=(const PODVectorCoreDynamic<BYTES>& other) throw() {
 				head = _data;
 				const uint32_t bytes = other.size_bytes();
 				const uint32_t size = bytes / BYTES;
@@ -74,7 +74,7 @@ namespace anvil { namespace lutils {
 				head = static_cast<int8_t*>(_data) + bytes;
 			}
 
-			~PODVectorCoreHeap() throw() {
+			~PODVectorCoreDynamic() throw() {
 				if (_data) operator delete(_data);
 			}
 
@@ -111,35 +111,35 @@ namespace anvil { namespace lutils {
 		};
 
 		template<uint32_t BYTES, const uint32_t CAPACITY>
-		class PODVectorCoreStack {
+		class PODVectorCoreStatic {
 		private:
 			uint8_t _data[BYTES * CAPACITY];
 		public:
 			void* head;
 
-			constexpr PODVectorCoreStack() throw() :
+			constexpr PODVectorCoreStatic() throw() :
 				head(_data)
 			{}
 
-			PODVectorCoreStack(PODVectorCoreStack<BYTES, CAPACITY>&& other) throw() {
+			PODVectorCoreStatic(PODVectorCoreStatic<BYTES, CAPACITY>&& other) throw() {
 				const uint32_t bytes = other.size_bytes();
 				memcpy(_data, other._data, bytes);
 				head = static_cast<int8_t*>(head) + bytes;
 			}
 
-			PODVectorCoreStack(const PODVectorCoreStack<BYTES, CAPACITY>& other) {
+			PODVectorCoreStatic(const PODVectorCoreStatic<BYTES, CAPACITY>& other) {
 				const uint32_t bytes = other.size_bytes();
 				memcpy(_data, other._data, bytes);
 				head = static_cast<int8_t*>(head) + bytes;
 			}
 
-			void operator=(PODVectorCoreStack<BYTES, CAPACITY>&& other) throw() {
+			void operator=(PODVectorCoreStatic<BYTES, CAPACITY>&& other) throw() {
 				const uint32_t bytes = other.size_bytes();
 				memcpy(_data, other._data, bytes);
 				head = static_cast<int8_t*>(head) + bytes;
 			}
 
-			void operator=(const PODVectorCoreStack<BYTES, CAPACITY>& other) throw() {
+			void operator=(const PODVectorCoreStatic<BYTES, CAPACITY>& other) throw() {
 				const uint32_t bytes = other.size_bytes();
 				memcpy(_data, other._data, bytes);
 				head = static_cast<int8_t*>(head) + bytes;
@@ -399,7 +399,7 @@ namespace anvil { namespace lutils {
 		}
 
 		inline T* data() {
-			return const_cast<T*>(const_cast<PODVector<T, IMPLEMENTATION>*>(this)->data<optimisation_flags>());
+			return const_cast<T*>(const_cast<PODVector<T, IMPLEMENTATION>*>(this)->data());
 		}
 
 		bool reserve(const uint32_t size) throw() {
@@ -595,10 +595,10 @@ namespace anvil { namespace lutils {
 	};
 
 	template<class T>
-	using PODVectorHeap = PODVector<T, detail::PODVector_<sizeof(T), detail::PODVectorCoreHeap<sizeof(T)>>>;
+	using PODVectorDynamic = PODVector<T, detail::PODVector_<sizeof(T), detail::PODVectorCoreDynamic<sizeof(T)>>>;
 
 	template<class T, uint32_t SIZE>
-	using PODVectorStack = PODVector<T, detail::PODVector_<sizeof(T), detail::PODVectorCoreStack<sizeof(T), SIZE>>>;
+	using PODVectorStatic = PODVector<T, detail::PODVector_<sizeof(T), detail::PODVectorCoreStatic<sizeof(T), SIZE>>>;
 }}
 
 #endif
