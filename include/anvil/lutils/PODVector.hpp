@@ -282,6 +282,21 @@ namespace anvil { namespace lutils {
 				push_back_noreserve_nobounds(src);
 				return true;
 			}
+
+			void erase_nobounds(const void* begin, const void* end) {
+				const uint32_t count = (static_cast<const int8_t*>(end) - static_cast<const int8_t*>(begin)) / BYTES;
+				void* new_head = static_cast<int8_t*>(_core.head) - (count * BYTES);
+				if (new_head != begin) {
+					memcpy(const_cast<void*>(begin), end, static_cast<const int8_t*>(_core.head) - static_cast<const int8_t*>(end));
+				}
+				_core.head = new_head;
+			}
+
+			inline bool erase(const void* begin, const void* end) {
+				if (end < begin || begin < _core.data() || end > _core.head) return false;
+				erase_nobounds(begin, end);
+				return true;
+			}
 		};
 
 	}
@@ -353,10 +368,6 @@ namespace anvil { namespace lutils {
 			return _vector.reserve(size);
 		}
 
-		inline bool pop_back() throw() {
-			return _vector.pop_back();
-		}
-
 		inline void push_back_noreserve_nobounds(const T& src) throw() {
 			_vector.push_back_noreserve_nobounds(&src);
 		}
@@ -405,9 +416,23 @@ namespace anvil { namespace lutils {
 			return *(end() - 1u);
 		}
 
+		inline bool pop_back() throw() {
+			return _vector.pop_back();
+		}
+
 		inline T pop_back2() throw() {
-			const T tmp = data()[_vector.size() - 1u];
-			ANVIL_CONTRACT(_vector.pop_back());
+			const T tmp = back();
+			pop_back();
+			return tmp;
+		}
+
+		inline bool pop_front() throw() {
+			return erase(begin());
+		}
+
+		inline T pop_front2() throw() {
+			const T tmp = front();
+			pop_front();
 			return tmp;
 		}
 
@@ -419,6 +444,22 @@ namespace anvil { namespace lutils {
 		inline const T& operator[](const uint32_t index) const throw() {
 			ANVIL_DEBUG_CONTRACT(index < size());
 			return data()[index];
+		}
+
+		inline void erase_nobounds(const const_iterator iterator) throw() {
+			_vector.erase_nobounds(iterator, iterator + 1u);
+		}
+
+		inline bool erase(const const_iterator iterator) throw() {
+			return _vector.erase(iterator, iterator + 1u);
+		}
+
+		inline bool erase_nobound(const const_iterator begin, const const_iterator end) throw() {
+			return _vector.erase_nobound(begin, end);
+		}
+
+		inline bool erase(const const_iterator begin, const const_iterator end) throw() {
+			return _vector.erase(begin, end);
 		}
 	};
 
