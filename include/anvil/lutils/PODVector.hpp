@@ -304,7 +304,7 @@ namespace anvil { namespace lutils {
 				const uint32_t thisBytes = static_cast<const int8_t*>(_core.head) - static_cast<const int8_t*>(pos);
 				const uint32_t otherBytes = otherSize * BYTES;
 				void* const newHead = static_cast<int8_t*>(_core.head) + otherBytes;
-				if (thisBytes > 0u) memcpy(newHead, _core.head, thisBytes);
+				memcpy(newHead, _core.head, thisBytes);
 				memcpy(_core.head, begin, otherBytes);
 				_core.head = newHead;
 			}
@@ -394,25 +394,12 @@ namespace anvil { namespace lutils {
 			return _vector.capacity();
 		}
 
-		template<uint32_t optimisation_flags>
 		inline const T* data() const {
-			if constexpr ((optimisation_flags & NO_BOUNDARY_CHECKS) == 0u) {
-				if (empty()) return nullptr;
-			}
-			return *(end() - 1u);
-		}
-
-		template<uint32_t optimisation_flags>
-		inline T* data() {
-			return const_cast<T*>(const_cast<PODVector<T, IMPLEMENTATION>*>(this)->data<optimisation_flags>());
-		}
-
-		inline const T* data() const {
-			return data<0u>();
+			return empty() ? _vector.data() : nullptr;
 		}
 
 		inline T* data() {
-			return data<0u>();
+			return const_cast<T*>(const_cast<PODVector<T, IMPLEMENTATION>*>(this)->data<optimisation_flags>());
 		}
 
 		bool reserve(const uint32_t size) throw() {
