@@ -67,8 +67,9 @@ namespace anvil { namespace lutils {
 
 			void operator=(const PODVectorCoreHeap<BYTES>& other) throw() {
 				head = _data;
-				reserve(other.size);
 				const uint32_t bytes = other.size_bytes();
+				const uint32_t size = bytes / BYTES;
+				if(size > _capacity) reserve_nobounds(size);
 				memcpy(_data, other._data, bytes);
 				head = static_cast<int8_t*>(_data) + bytes;
 			}
@@ -97,18 +98,14 @@ namespace anvil { namespace lutils {
 				return _data;
 			}
 
-			bool reserve(const uint32_t newSize) throw() {
-				if (newSize > _capacity) {
-					_capacity = newSize;
-					const uint32_t bytes = size_bytes();
-					void* const new_data = operator new(newSize * BYTES);
-					if (new_data == nullptr) return false;
-					if (_data > 0u) {
-						memcpy(new_data, _data, bytes);
-						operator delete(_data);
-					}
-					_data = new_data;
-				}
+			bool reserve_nobounds(const uint32_t newSize) throw() {
+				_capacity = newSize;
+				void* const new_data = operator new(newSize * BYTES);
+				if (new_data == nullptr) return false;
+				const uint32_t bytes = size_bytes();
+				memcpy(new_data, _data, bytes);
+				if (_data) operator delete(_data);
+				_data = new_data;
 				return true;
 			}
 		};
@@ -168,7 +165,7 @@ namespace anvil { namespace lutils {
 				return _data;
 			}
 
-			constexpr bool reserve(const uint32_t newSize) throw() {
+			constexpr inline bool reserve_nobounds(const uint32_t newSize) const throw() {
 				return newSize <= CAPACITY;
 			}
 		};
@@ -246,8 +243,17 @@ namespace anvil { namespace lutils {
 				return _core.head != _core.data();
 			}
 
-			inline bool reserve(const uint32_t newSize) throw() {
-				return _core.reserve(newSize);
+			inline bool reserve(uint32_t newSize) throw() {
+				uint32_t cap = _core.capacity();
+				if (newSize > cap) {
+					if (cap == 0u) {
+						cap = 8u;
+					} else {
+						cap *= 2u;
+					}
+					return _core.reserve_nobounds(newSize < cap ? cap : newSize);
+				}
+				return true;
 			}
 
 			inline bool pop_back_nobounds() throw() {
@@ -274,23 +280,13 @@ namespace anvil { namespace lutils {
 			}
 
 			bool push_back(const void* src) {
-				const uint32_t size = _core.size();
-				if (size + 1u > _core.capacity()) {
-					uint32_t sizeToReserve;
-					if (size == 0u) {
-						sizeToReserve = 8u;
-					} else {
-						sizeToReserve = size * 2u;
-					}
-					if (!_core.reserve(sizeToReserve)) return false;
-				}
-
+				if (!reserve(_core.size() + 1u)) return false;
 				push_back_noreserve_nobounds(src);
 				return true;
 			}
 
 			void erase_nobounds(const void* begin, const void* end) {
-				const uint32_t count = (static_cast<const int8_t*>(end) - static_cast<const int8_t*>(begin)) / BYTES;
+				const uint32_t count = static_cast<uint32_t>(static_cast<const int8_t*>(end) - static_cast<const int8_t*>(begin)) / BYTES;
 				void* new_head = static_cast<int8_t*>(_core.head) - (count * BYTES);
 				if (new_head != begin) {
 					memcpy(const_cast<void*>(begin), end, static_cast<const int8_t*>(_core.head) - static_cast<const int8_t*>(end));
@@ -307,10 +303,10 @@ namespace anvil { namespace lutils {
 			void insert_noreserve_nobounds_(const void* pos, const void* begin, const void* end, const uint32_t otherSize) throw() {
 				const uint32_t thisBytes = static_cast<const int8_t*>(_core.head) - static_cast<const int8_t*>(pos);
 				const uint32_t otherBytes = otherSize * BYTES;
-				void* const new_head = static_cast<int8_t*>(_core.head) + otherBytes;
-				memcpy(new_head, _core.head, thisBytes);
+				void* const newHead = static_cast<int8_t*>(_core.head) + otherBytes;
+				if (thisBytes > 0u) memcpy(newHead, _core.head, thisBytes);
 				memcpy(_core.head, begin, otherBytes);
-				_core.head = new_head;
+				_core.head = newHead;
 			}
 		public:
 			inline void insert_noreserve_nobounds(const void* pos, const void* begin, const void* end) throw() {
@@ -404,7 +400,7 @@ namespace anvil { namespace lutils {
 			_vector.push_back_noreserve_nobounds(&src);
 		}
 
-		bool push_back_noreserve(const const T& src) throw() {
+		bool push_back_noreserve(const T& src) throw() {
 			return _vector.push_back_noreserve(&src);
 		}
 
