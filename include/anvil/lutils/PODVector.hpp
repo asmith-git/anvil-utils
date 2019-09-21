@@ -304,7 +304,7 @@ namespace anvil { namespace lutils {
 				return true;
 			}
 		private:
-			void insert_noreserve_nobounds_(const void* pos, const void* begin, const void* end, const uint32_t thisSize, const uint32_t otherSize) throw() {
+			void insert_noreserve_nobounds_(const void* pos, const void* begin, const void* end, const uint32_t otherSize) throw() {
 				const uint32_t thisBytes = static_cast<const int8_t*>(_core.head) - static_cast<const int8_t*>(pos);
 				const uint32_t otherBytes = otherSize * BYTES;
 				void* const new_head = static_cast<int8_t*>(_core.head) + otherBytes;
@@ -315,15 +315,13 @@ namespace anvil { namespace lutils {
 		public:
 			inline void insert_noreserve_nobounds(const void* pos, const void* begin, const void* end) throw() {
 				const uint32_t otherSize = (static_cast<const int8_t*>(end) - static_cast<const int8_t*>(begin)) / BYTES;
-				const uint32_t thisSize = size();
-				insert_noreserve_nobounds_(pos, begin, end, thisSize, otherSize);
+				insert_noreserve_nobounds_(pos, begin, end, otherSize);
 			}
 
 			inline bool insert_nobounds(const void* pos, const void* begin, const void* end) {
 				const uint32_t otherSize = (static_cast<const int8_t*>(end) - static_cast<const int8_t*>(begin)) / BYTES;
-				const uint32_t thisSize = size();
-				if (!reserve(thisSize + otherSize)) return false;
-				insert_noreserve_nobounds_(pos, begin, end, thisSize, otherSize);
+				if (!reserve(size() + otherSize)) return false;
+				insert_noreserve_nobounds_(pos, begin, end, otherSize);
 				return true;
 			}
 
