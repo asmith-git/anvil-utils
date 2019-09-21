@@ -23,218 +23,225 @@ namespace anvil { namespace lutils {
 	namespace detail {
 
 		template<uint32_t BYTES>
-		class PODVectorHeap_ {
+		class PODVectorCoreHeap {
 		private:
 			void* _data;
-			uint32_t _size;
 			uint32_t _capacity;
 		public:
-			enum { pod_bytes = BYTES };
+			uint32_t size;
 
-			PODVectorHeap_() throw() :
+			constexpr PODVectorCoreHeap() throw() :
 				_data(nullptr),
-				_size(0u),
-				_capacity(0u)
+				_capacity(0u),
+				size(0u)
 			{}
 
-			PODVectorHeap_(PODVectorHeap_<BYTES>&& other) throw() :
+			PODVectorCoreHeap(PODVectorCoreHeap<BYTES>&& other) throw() :
 				_data(other._data),
-				_size(other._size),
-				_capacity(other._capacity)
+				_capacity(other._capacity),
+				size(other.size)
 			{
-				memset(&other, 0, sizeof(PODVectorHeap_<BYTES>));
+				other._data = nullptr;
+				other._capacity = 0u;
+				other.size = 0u;
 			}
 
-			PODVectorHeap_(const PODVectorHeap_<BYTES>& other) throw() :
-				_data(operator new(other._size * BYTES)),
-				_size(other._size),
-				_capacity(other._capacity)
+			PODVectorCoreHeap(const PODVectorCoreHeap<BYTES>& other) :
+				_data(other.size == 0u ? nullptr : operator new(other.size * BYTES)),
+				_capacity(other.size),
+				size(other.size)
 			{
-				memcpy(_data, other._data, _size * BYTES);
+				memcpy(_data, other._data, other.size * BYTES);
 			}
 
-			~PODVectorHeap_() throw() {
+			void operator=(PODVectorCoreHeap<BYTES>&& other) throw() {
+				uint8_t buffer[sizeof(PODVectorCoreHeap<BYTES>)];
+				memcpy(buffer, this, sizeof(PODVectorCoreHeap<BYTES>));
+				memcpy(this, &other, sizeof(PODVectorCoreHeap<BYTES>));
+				memcpy(&other, buffer, sizeof(PODVectorCoreHeap<BYTES>));
+			}
+
+			void operator=(const PODVectorCoreHeap<BYTES>& other) throw() {
+				size = 0u;
+				reserve(other.size);
+				memcpy(_data, other._data, other.size * BYTES);
+				size = other.size;
+			}
+
+			~PODVectorCoreHeap() throw() {
 				if (_data) operator delete(_data);
 			}
 
-			PODVectorHeap_<BYTES>& operator=(PODVectorHeap_<BYTES>&& other) throw() {
-				uint8_t buffer[sizeof(PODVectorHeap_<BYTES>)];
-				memcpy(buffer, this, sizeof(PODVectorHeap_<BYTES>));
-				memcpy(this, &other, sizeof(PODVectorHeap_<BYTES>));
-				memcpy(&other, buffer, sizeof(PODVectorHeap_<BYTES>));
-				return *this;
-			}
-
-			PODVectorHeap_<BYTES>& operator=(const PODVectorHeap_<BYTES>& other) throw()  {
-				clear();
-				reserve(other._size);
-				_size = other._size;
-				memcpy(_data, other._data, _size * BYTES);
-				return *this;
-			}
-
-			inline void clear() throw() {
-				_size = 0u;
-			}
-
-			inline bool empty() const throw() {
-				return _size == 0u;
-			}
-
-			inline uint32_t size() const throw() {
-				return _size;
-			}
-
-			inline uint32_t capacity() const throw() {
+			constexpr inline uint32_t capacity() const throw() {
 				return _capacity;
 			}
 
-			inline void* data() throw() {
+			constexpr inline void* data() throw() {
 				return _data;
 			}
 
-			inline const void* data() const throw() {
+			constexpr inline const void* data() const throw() {
 				return _data;
 			}
 
-			bool reserve(const uint32_t size) throw() {
-				if (size > _capacity) {
-					_capacity = size;
-					void* const new_data = operator new(size * BYTES);
+			bool reserve(const uint32_t newSize) throw() {
+				if (newSize > _capacity) {
+					_capacity = newSize;
+					void* const new_data = operator new(newSize * BYTES);
 					if (new_data == nullptr) return false;
 					if (_data > 0u) {
-						memcpy(new_data, _data, _size * BYTES);
+						memcpy(new_data, _data, size * BYTES);
 						operator delete(_data);
 					}
 					_data = new_data;
 				}
 				return true;
 			}
-
-			inline bool pop_back() throw() {
-				if (_size > 0u) {
-					--_size;
-					return true;
-				}
-				return false;
-			}
-
-			inline void push_back_noreserve_nobounds(const void* src) throw() {
-				void* const dst = static_cast<int8_t*>(_data) + _size * BYTES;
-				memcpy(dst, src, BYTES);
-				++_size;
-			}
-
-			bool push_back_noreserve(const void* src) throw() {
-				if (_size + 1u > _capacity) return false;
-				push_back_noreserve_nobounds(src);
-				return true;
-			}
-
-			bool push_back(const void* src) {
-				if (_size + 1u > _capacity) {
-					uint32_t sizeToReserve;
-					if (_size == 0u) {
-						sizeToReserve = 8u;
-					} else {
-						sizeToReserve = _size * 2u;
-					}
-					if (!reserve(sizeToReserve)) return false;
-				}
-
-				push_back_noreserve_nobounds(src);
-				return true;
-			}
 		};
 
 		template<uint32_t BYTES, const uint32_t CAPACITY>
-		class PODVectorStack_ {
+		class PODVectorCoreStack {
 		private:
 			uint8_t _data[BYTES * CAPACITY];
-			uint32_t _size;
 		public:
-			enum { pod_bytes = BYTES };
+			uint32_t size;
 
-			PODVectorStack_() throw() :
-				_size(0u)
+			constexpr PODVectorCoreStack() throw() :
+				size(0u)
 			{}
 
-			PODVectorStack_(PODVectorStack_<BYTES, CAPACITY>&& other) throw() :
-				_size(other._size)
+			PODVectorCoreStack(PODVectorCoreStack<BYTES, CAPACITY>&& other) throw() :
+				_data(other._data),
+				size(other.size)
 			{
-				other._size = 0u;
+				ANVIL_ASSUME(size <= CAPACITY);
+				memcpy(_data, other._data, size * BYTES);
 			}
 
-			PODVectorStack_(const PODVectorStack_<BYTES, CAPACITY>& other) throw() :
-				_size(other._size)
+			PODVectorCoreStack(const PODVectorCoreStack<BYTES, CAPACITY>& other) :
+				size(other.size)
 			{
-				memcpy(_data, other._data, _size * BYTES);
+				ANVIL_ASSUME(size <= CAPACITY);
+				memcpy(_data, other._data, size * BYTES);
 			}
 
-			PODVectorStack_<BYTES, CAPACITY>& operator=(PODVectorStack_<BYTES, CAPACITY>&& other) throw() {
-				uint8_t buffer[sizeof(PODVectorStack_<BYTES, CAPACITY>)];
-				memcpy(buffer, this, sizeof(PODVectorStack_<BYTES, CAPACITY>));
-				memcpy(this, &other, sizeof(PODVectorStack_<BYTES, CAPACITY>));
-				memcpy(&other, buffer, sizeof(PODVectorStack_<BYTES, CAPACITY>));
-				return *this;
+			void operator=(PODVectorCoreStack<BYTES, CAPACITY>&& other) throw() {
+				size = other.size;
+				ANVIL_ASSUME(size <= CAPACITY);
+				memcpy(_data, other._data, other.size * BYTES);
 			}
 
-			PODVectorStack_<BYTES, CAPACITY>& operator=(const PODVectorStack_<BYTES, CAPACITY>& other) throw()  {
-				_size = other._size;
-				memcpy(_data, other._data, _size * BYTES);
-				return *this;
+			void operator=(const PODVectorCoreStack<BYTES, CAPACITY>& other) throw() {
+				size = other.size;
+				ANVIL_ASSUME(size <= CAPACITY);
+				memcpy(_data, other._data, other.size * BYTES);
 			}
 
-			inline void clear() throw() {
-				_size = 0u;
-			}
-
-			inline bool empty() const throw() {
-				return _size == 0u;
-			}
-
-			inline uint32_t size() const throw() {
-				return _size;
-			}
-
-			inline uint32_t capacity() const throw() {
+			constexpr inline uint32_t capacity() const throw() {
 				return CAPACITY;
 			}
 
-			inline void* data() throw() {
+			constexpr inline void* data() throw() {
 				return _data;
+			}
+
+			constexpr inline const void* data() const throw() {
+				return _data;
+			}
+
+			constexpr bool reserve(const uint32_t newSize) throw() {
+				return newSize <= CAPACITY;
+			}
+		};
+
+		template<uint32_t BYTES, class CORE>
+		class PODVector_ {
+		private:
+			CORE _core;
+		public:
+			enum { pod_bytes = BYTES };
+
+			PODVector_() throw() :
+				_core()
+			{}
+
+			PODVector_(PODVector_<BYTES,CORE>&& other) throw() :
+				_core(std::move(other._core))
+			{}
+
+			PODVector_(const PODVector_<BYTES, CORE>& other) throw() :
+				_core(other._core)
+			{}
+
+			inline PODVector_<BYTES, CORE>& operator=(PODVector_<BYTES, CORE>&& other) throw() {
+				_core = std::move(other._core);
+				return *this;
+			}
+
+			inline PODVector_<BYTES, CORE>& operator=(const PODVector_<BYTES, CORE>& other) throw()  {
+				_core = other._core;
+				return *this;
+			}
+
+			inline uint32_t capacity() const throw() {
+				return _core.capacity();
+			}
+
+			inline void* data() throw() {
+				return _core.data();
 			}
 
 			inline const void* data() const throw() {
-				return _data;
+				return _core.data();
 			}
 
-			bool reserve(const uint32_t size) throw() {
-				return size <= CAPACITY;
+			inline uint32_t size() const throw() {
+				return _core.size;
+			}
+
+			inline void clear() throw() {
+				_core.size = 0u;
+			}
+
+			inline bool empty() const throw() {
+				return _core.size == 0u;
+			}
+
+			inline bool reserve(const uint32_t newSize) throw() {
+				return _core.reserve(newSize);
 			}
 
 			inline bool pop_back() throw() {
-				if (_size > 0u) {
-					--_size;
+				if (_core.size > 0u) {
+					--_core.size;
 					return true;
 				}
 				return false;
 			}
 
 			inline void push_back_noreserve_nobounds(const void* src) throw() {
-				void* const dst = _data + _size * BYTES;
+				void* const dst = static_cast<int8_t*>(_core.data()) + _core.size * BYTES;
 				memcpy(dst, src, BYTES);
-				++_size;
+				++_core.size;
 			}
 
 			bool push_back_noreserve(const void* src) throw() {
-				if (_size + 1u > CAPACITY) return false;
+				if (_core.size + 1u > _core.capacity()) return false;
 				push_back_noreserve_nobounds(src);
 				return true;
 			}
 
 			bool push_back(const void* src) {
-				if (_size + 1u > CAPACITY) return false;
+				if (_core.size + 1u > _core.capacity()) {
+					uint32_t sizeToReserve;
+					if (_core.size == 0u) {
+						sizeToReserve = 8u;
+					} else {
+						sizeToReserve = _core.size * 2u;
+					}
+					if (!_core.reserve(sizeToReserve)) return false;
+				}
+
 				push_back_noreserve_nobounds(src);
 				return true;
 			}
@@ -375,10 +382,10 @@ namespace anvil { namespace lutils {
 	};
 
 	template<class T>
-	using PODVectorHeap = PODVector<T, detail::PODVectorHeap_<sizeof(T)>>;
+	using PODVectorHeap = PODVector<T, detail::PODVector_<sizeof(T), detail::PODVectorCoreHeap<sizeof(T)>>>;
 
 	template<class T, uint32_t SIZE>
-	using PODVectorStack = PODVector<T, detail::PODVectorStack_<sizeof(T), SIZE>>;
+	using PODVectorStack = PODVector<T, detail::PODVector_<sizeof(T), detail::PODVectorCoreStack<sizeof(T), SIZE>>>;
 }}
 
 #endif
