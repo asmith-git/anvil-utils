@@ -30,6 +30,7 @@ namespace anvil { namespace lutils {
 			void* head;
 		private:
 			uint32_t _capacity;
+		public:
 
 			constexpr PODVectorCoreHeap() throw() :
 				_data(nullptr),
@@ -302,6 +303,34 @@ namespace anvil { namespace lutils {
 				erase_nobounds(begin, end);
 				return true;
 			}
+		private:
+			void insert_noreserve_nobounds_(const void* pos, const void* begin, const void* end, const uint32_t thisSize, const uint32_t otherSize) throw() {
+				const uint32_t thisBytes = static_cast<const int8_t*>(_core.head) - static_cast<const int8_t*>(pos);
+				const uint32_t otherBytes = otherSize * BYTES;
+				void* const new_head = static_cast<int8_t*>(_core.head) + otherBytes;
+				memcpy(new_head, _core.head, thisBytes);
+				memcpy(_core.head, begin, otherBytes);
+				_core.head = new_head;
+			}
+		public:
+			inline void insert_noreserve_nobounds(const void* pos, const void* begin, const void* end) throw() {
+				const uint32_t otherSize = (static_cast<const int8_t*>(end) - static_cast<const int8_t*>(begin)) / BYTES;
+				const uint32_t thisSize = size();
+				insert_noreserve_nobounds_(pos, begin, end, thisSize, otherSize);
+			}
+
+			inline bool insert_nobounds(const void* pos, const void* begin, const void* end) {
+				const uint32_t otherSize = (static_cast<const int8_t*>(end) - static_cast<const int8_t*>(begin)) / BYTES;
+				const uint32_t thisSize = size();
+				if (!reserve(thisSize + otherSize)) return false;
+				insert_noreserve_nobounds_(pos, begin, end, thisSize, otherSize);
+				return true;
+			}
+
+			inline bool insert(const void* pos, const void* begin, const void* end) {
+				if (end < begin || pos < _core.data() || pos >= _core.head) return false;
+				return insert_nobounds(pos, begin, end);
+			}
 		};
 
 	}
@@ -471,20 +500,44 @@ namespace anvil { namespace lutils {
 			return data()[index];
 		}
 
-		inline void erase_nobounds(const const_iterator iterator) throw() {
-			_vector.erase_nobounds(iterator, iterator + 1u);
-		}
-
-		inline bool erase(const const_iterator iterator) throw() {
-			return _vector.erase(iterator, iterator + 1u);
-		}
-
-		inline bool erase_nobounds(const const_iterator begin, const const_iterator end) throw() {
-			return _vector.erase_nobounds(begin, end);
+		inline void erase_nobounds(const const_iterator begin, const const_iterator end) throw() {
+			_vector.erase_nobounds(begin, end);
 		}
 
 		inline bool erase(const const_iterator begin, const const_iterator end) throw() {
 			return _vector.erase(begin, end);
+		}
+
+		inline void erase_nobounds(const const_iterator iterator) throw() {
+			erase_nobounds(iterator, iterator + 1u);
+		}
+
+		inline bool erase(const const_iterator iterator) throw() {
+			return erase(iterator, iterator + 1u);
+		}
+
+		inline void insert_no_reserve_nobounds(const const_iterator pos, const const_iterator begin, const const_iterator end) throw() {
+			_vector.insert_no_reserve_nobounds(pos, begin, end);
+		}
+
+		inline bool insert_nobounds(const const_iterator pos, const const_iterator begin, const const_iterator end) throw() {
+			return _vector.insert_nobounds(pos, begin, end);
+		}
+
+		inline bool insert(const const_iterator pos, const const_iterator begin, const const_iterator end) throw() {
+			return _vector.insert(pos, begin, end);
+		}
+
+		inline void insert_no_reserve_nobounds(const const_iterator pos, const T& value) throw() {
+			insert_no_reserve_nobounds(pos, &value, &value + 1u);
+		}
+
+		inline bool insert_nobounds(const const_iterator pos, const T& value) throw() {
+			return insert_nobounds(pos, &value, &value + 1u);
+		}
+
+		inline bool insert(const const_iterator pos, const T& value) throw() {
+			return insert(pos, &value, &value + 1u);
 		}
 	};
 
