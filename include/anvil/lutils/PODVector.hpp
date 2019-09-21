@@ -256,7 +256,7 @@ namespace anvil { namespace lutils {
 				return true;
 			}
 
-			inline bool pop_back_nobounds() throw() {
+			inline void pop_back_nobounds() throw() {
 				_core.head = static_cast<int8_t*>(_core.head) - BYTES;
 			}
 
@@ -266,6 +266,17 @@ namespace anvil { namespace lutils {
 					return true;
 				}
 				return false;
+			}
+
+			inline void pop_front_nobounds() {
+				const void data = _core.data();
+				memcpy(data, static_cast<int8_t*>(_core.head) + BYTES, size_bytes() - BYTES);
+			}
+
+			inline bool pop_front() {
+				if (empty()) return false;
+				pop_front_nobounds();
+				return true;
 			}
 
 			inline void push_back_noreserve_nobounds(const void* src) throw() {
@@ -521,7 +532,12 @@ namespace anvil { namespace lutils {
 
 		template<uint32_t optimisation_flags>
 		inline bool pop_front() throw() {
-			return erase<optimisation_flags>(begin());
+			if constexpr ((optimisation_flags & NO_BOUNDARY_CHECKS) != 0u) {
+				_vector.pop_front_nobounds();
+				return true;
+			} else {
+				return _vector.pop_front();
+			}
 		}
 
 		inline bool pop_front() throw() {
