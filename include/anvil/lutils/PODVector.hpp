@@ -28,48 +28,59 @@ namespace anvil { namespace lutils {
 			void* _data;
 			uint32_t _capacity;
 		public:
-			uint32_t size;
+			void* head;
 
 			constexpr PODVectorCoreHeap() throw() :
 				_data(nullptr),
 				_capacity(0u),
-				size(0u)
+				head(nullptr)
 			{}
 
 			PODVectorCoreHeap(PODVectorCoreHeap<BYTES>&& other) throw() :
 				_data(other._data),
 				_capacity(other._capacity),
-				size(other.size)
+				head(other.head)
 			{
 				other._data = nullptr;
 				other._capacity = 0u;
-				other.size = 0u;
+				other.head = nullptr;
 			}
 
 			PODVectorCoreHeap(const PODVectorCoreHeap<BYTES>& other) :
-				_data(other.size == 0u ? nullptr : operator new(other.size * BYTES)),
-				_capacity(other.size),
-				size(other.size)
+				_capacity(other.size)
 			{
-				memcpy(_data, other._data, other.size * BYTES);
+				const uint32_t bytes = other.size_bytes();
+				_data = bytes == 0u ? nullptr : operator new(bytes);
+				memcpy(_data, other._data, bytes);
+				head = static_cast<int8_t*>(_data) + bytes;
 			}
 
 			void operator=(PODVectorCoreHeap<BYTES>&& other) throw() {
-				uint8_t buffer[sizeof(PODVectorCoreHeap<BYTES>)];
-				memcpy(buffer, this, sizeof(PODVectorCoreHeap<BYTES>));
-				memcpy(this, &other, sizeof(PODVectorCoreHeap<BYTES>));
-				memcpy(&other, buffer, sizeof(PODVectorCoreHeap<BYTES>));
+				enum { bytes = sizeof(PODVectorCoreHeap<BYTES>) };
+				uint8_t buffer[bytes];
+				memcpy(buffer, this, bytes);
+				memcpy(this, &other, bytes);
+				memcpy(&other, buffer, bytes);
 			}
 
 			void operator=(const PODVectorCoreHeap<BYTES>& other) throw() {
-				size = 0u;
+				head = _data;
 				reserve(other.size);
-				memcpy(_data, other._data, other.size * BYTES);
-				size = other.size;
+				const uint32_t bytes = other.size_bytes();
+				memcpy(_data, other._data, bytes);
+				head = static_cast<int8_t*>(_data) + bytes;
 			}
 
 			~PODVectorCoreHeap() throw() {
 				if (_data) operator delete(_data);
+			}
+
+			constexpr inline uint32_t size_bytes() const throw() {
+				return static_cast<const int8_t*>(head) - static_cast<const int8_t*>(_data);
+			}
+
+			constexpr inline uint32_t size() const throw() {
+				return size_bytes() / BYTES;
 			}
 
 			constexpr inline uint32_t capacity() const throw() {
@@ -87,10 +98,11 @@ namespace anvil { namespace lutils {
 			bool reserve(const uint32_t newSize) throw() {
 				if (newSize > _capacity) {
 					_capacity = newSize;
+					const uint32_t bytes = size_bytes();
 					void* const new_data = operator new(newSize * BYTES);
 					if (new_data == nullptr) return false;
 					if (_data > 0u) {
-						memcpy(new_data, _data, size * BYTES);
+						memcpy(new_data, _data, bytes);
 						operator delete(_data);
 					}
 					_data = new_data;
@@ -104,37 +116,42 @@ namespace anvil { namespace lutils {
 		private:
 			uint8_t _data[BYTES * CAPACITY];
 		public:
-			uint32_t size;
+			void* head;
 
 			constexpr PODVectorCoreStack() throw() :
-				size(0u)
+				head(_data)
 			{}
 
-			PODVectorCoreStack(PODVectorCoreStack<BYTES, CAPACITY>&& other) throw() :
-				_data(other._data),
-				size(other.size)
-			{
-				ANVIL_ASSUME(size <= CAPACITY);
-				memcpy(_data, other._data, size * BYTES);
+			PODVectorCoreStack(PODVectorCoreStack<BYTES, CAPACITY>&& other) throw() {
+				const uint32_t bytes = other.size_bytes();
+				memcpy(_data, other._data, bytes);
+				head = static_cast<int8_t*>(head) + bytes;
 			}
 
-			PODVectorCoreStack(const PODVectorCoreStack<BYTES, CAPACITY>& other) :
-				size(other.size)
-			{
-				ANVIL_ASSUME(size <= CAPACITY);
-				memcpy(_data, other._data, size * BYTES);
+			PODVectorCoreStack(const PODVectorCoreStack<BYTES, CAPACITY>& other) {
+				const uint32_t bytes = other.size_bytes();
+				memcpy(_data, other._data, bytes);
+				head = static_cast<int8_t*>(head) + bytes;
 			}
 
 			void operator=(PODVectorCoreStack<BYTES, CAPACITY>&& other) throw() {
-				size = other.size;
-				ANVIL_ASSUME(size <= CAPACITY);
-				memcpy(_data, other._data, other.size * BYTES);
+				const uint32_t bytes = other.size_bytes();
+				memcpy(_data, other._data, bytes);
+				head = static_cast<int8_t*>(head) + bytes;
 			}
 
 			void operator=(const PODVectorCoreStack<BYTES, CAPACITY>& other) throw() {
-				size = other.size;
-				ANVIL_ASSUME(size <= CAPACITY);
-				memcpy(_data, other._data, other.size * BYTES);
+				const uint32_t bytes = other.size_bytes();
+				memcpy(_data, other._data, bytes);
+				head = static_cast<int8_t*>(head) + bytes;
+			}
+
+			constexpr inline uint32_t size_bytes() const throw() {
+				return static_cast<const uint8_t*>(head) - _data;
+			}
+
+			constexpr inline uint32_t size() const throw() {
+				return size_bytes() / BYTES;
 			}
 
 			constexpr inline uint32_t capacity() const throw() {
@@ -195,16 +212,36 @@ namespace anvil { namespace lutils {
 				return _core.data();
 			}
 
+			inline void* begin() throw() {
+				return _core.data();
+			}
+
+			inline void* end() throw() {
+				return _core.head;
+			}
+
+			inline const void* begin() const throw() {
+				return _core.data();
+			}
+
+			inline const void* end() const throw() {
+				return _core.head;
+			}
+
+			inline uint32_t size_bytes() const throw() {
+				return _core.size_bytes();
+			}
+
 			inline uint32_t size() const throw() {
-				return _core.size;
+				return _core.size();
 			}
 
 			inline void clear() throw() {
-				_core.size = 0u;
+				_core.head = _core.data();
 			}
 
 			inline bool empty() const throw() {
-				return _core.size == 0u;
+				return _core.head != _core.data();
 			}
 
 			inline bool reserve(const uint32_t newSize) throw() {
@@ -212,32 +249,32 @@ namespace anvil { namespace lutils {
 			}
 
 			inline bool pop_back() throw() {
-				if (_core.size > 0u) {
-					--_core.size;
+				if (! empty()) {
+					_core.head = static_cast<int8_t*>(_core.head) - BYTES;
 					return true;
 				}
 				return false;
 			}
 
 			inline void push_back_noreserve_nobounds(const void* src) throw() {
-				void* const dst = static_cast<int8_t*>(_core.data()) + _core.size * BYTES;
-				memcpy(dst, src, BYTES);
-				++_core.size;
+				memcpy(_core.head, src, BYTES);
+				_core.head = static_cast<int8_t*>(_core.head) + BYTES;
 			}
 
 			bool push_back_noreserve(const void* src) throw() {
-				if (_core.size + 1u > _core.capacity()) return false;
+				if (_core.size() + 1u > _core.capacity()) return false;
 				push_back_noreserve_nobounds(src);
 				return true;
 			}
 
 			bool push_back(const void* src) {
-				if (_core.size + 1u > _core.capacity()) {
+				const uint32_t size = _core.size();
+				if (size + 1u > _core.capacity()) {
 					uint32_t sizeToReserve;
-					if (_core.size == 0u) {
+					if (size == 0u) {
 						sizeToReserve = 8u;
 					} else {
-						sizeToReserve = _core.size * 2u;
+						sizeToReserve = size * 2u;
 					}
 					if (!_core.reserve(sizeToReserve)) return false;
 				}
@@ -290,6 +327,10 @@ namespace anvil { namespace lutils {
 			return _vector.empty();
 		}
 
+		inline uint32_t size_bytes() const throw() {
+			return _vector.size_bytes();
+		}
+
 		inline uint32_t size() const throw() {
 			return _vector.size();
 		}
@@ -329,19 +370,19 @@ namespace anvil { namespace lutils {
 		}
 
 		inline iterator begin() throw() {
-			return data();
+			return static_cast<iterator>(_vector.begin());
 		}
 
 		inline iterator end() throw() {
-			return begin() + _vector.size();
+			return static_cast<iterator>(_vector.end());
 		}
 
 		inline const_iterator begin() const throw() {
-			return data();
+			return static_cast<const_iterator>(_vector.begin());
 		}
 
 		inline const_iterator end() const throw() {
-			return begin() + _vector.size();
+			return static_cast<const_iterator>(_vector.end());
 		}
 
 		inline T& front() throw() {
