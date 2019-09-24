@@ -23,18 +23,27 @@ namespace anvil { namespace lutils {
 	template<class F, class T>
 	static void transform(T* begin, const T* const end, const F& unary_op) {
 		while (begin != end) {
-			binary_op(*begin);
+			unary_op(*begin);
 			++begin;
 		}
 	}
 
 	template<class F, class T>
 	static void transform(const T* input_begin, const T* const input_end, T* output_begin, const F& unary_op) {
-		static_assert(std::is_pod<T>::value, "type must be POD");
-
 		const uint32_t count = static_cast<uint32_t>(input_end - input_begin);
-		memcpy(output_begin, input_begin, count * sizeof(T));
-		transform<F, T>(output_begin, output_begin + count, binary_op);
+		if constexpr (std::is_pod<T>::value) {
+			if (input_begin != output_begin) memcpy(output_begin, input_begin, count * sizeof(T));
+			transform<F, T>(output_begin, output_begin + count, unary_op);
+		} else {
+			if (input_begin == output_begin) {
+				transform<F, T>(output_begin, output_begin + count, unary_op);
+			} else {
+				for (uint32_t i = 0u; i < count; ++i) {
+					output_begin[i] = input_begin[i];
+					unary_op(output_begin[i]);
+				}
+			}
+		}
 	}
 }}
 
