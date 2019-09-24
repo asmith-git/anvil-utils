@@ -519,9 +519,10 @@ namespace anvil { namespace lutils {
 		template<uint32_t optimisation_flags>
 		inline bool pop_back(T& value) throw() {
 			if constexpr ((optimisation_flags & NO_BOUNDARY_CHECKS) == 0u) {
-				if (empty()) return false;
+				if (!_vector.pop_back()) return false;
+			} else {
+				_vector.pop_back_nobounds();
 			}
-			_vector.pop_back_nobounds();
 			memcpy(&value, static_cast<T*>(_vector.end()), sizeof(T));
 			return true;
 		}
