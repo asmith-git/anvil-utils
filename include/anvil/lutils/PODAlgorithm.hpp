@@ -32,7 +32,7 @@ namespace anvil { namespace lutils {
 	static void transform(const T* input_begin, const T* const input_end, T* output_begin, const F& unary_op) {
 		const uint32_t count = static_cast<uint32_t>(input_end - input_begin);
 		if constexpr (std::is_pod<T>::value) {
-			if (input_begin != output_begin) memcpy(output_begin, input_begin, count * sizeof(T));
+			if (input_begin != output_begin) std::memcpy(output_begin, input_begin, count * sizeof(T));
 			transform<F, T>(output_begin, output_begin + count, unary_op);
 		} else {
 			if (input_begin == output_begin) {
