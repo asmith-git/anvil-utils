@@ -41,7 +41,7 @@ namespace anvil { namespace lutils {
 				// Divide the work into blocks of 4 KiB
 				enum {
 					CACHE_BLOCK_COUNT = TARGET_CACHE_BLOCK / sizeof(T),
-					ACTUAL_CACHE_BLOCK CACHE_BLOCK_COUNT * sizeof(T)
+					ACTUAL_CACHE_BLOCK = CACHE_BLOCK_COUNT * sizeof(T)
 				};
 
 				// Process the alligned blocks
