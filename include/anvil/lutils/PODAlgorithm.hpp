@@ -35,11 +35,11 @@ namespace anvil { namespace lutils {
 			// Call the in-place transformation algorithm
 			transform<F, T>(output_begin, output_begin + count, unary_op);
 		} else {
-			enum { TARGET_CACHE_BLOCK = 4096 };
+			enum : uint32_t { TARGET_CACHE_BLOCK = 4096u };
 			// If working on a small POD type
-			if constexpr (std::is_pod<T>::value && sizeof(T) < TARGET_CACHE_BLOCK) {
+			if constexpr (std::is_trivially_copyable<T>::value && sizeof(T) < TARGET_CACHE_BLOCK) {
 				// Divide the work into blocks of 4 KiB
-				enum {
+				enum : uint32_t {
 					CACHE_BLOCK_COUNT = TARGET_CACHE_BLOCK / sizeof(T),
 					ACTUAL_CACHE_BLOCK = CACHE_BLOCK_COUNT * sizeof(T)
 				};
