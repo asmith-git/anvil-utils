@@ -22,8 +22,6 @@ namespace anvil { namespace lutils {
 	
 	template<class F, class T>
 	static void transform(T* begin, const T* const end, const F& unary_op) {
-		static_assert(std::is_pod<T>::value, "type must be POD");
-
 		while (begin != end) {
 			binary_op(*begin);
 			++begin;
