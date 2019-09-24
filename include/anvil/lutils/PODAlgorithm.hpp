@@ -31,12 +31,27 @@ namespace anvil { namespace lutils {
 	template<class F, class T>
 	static void transform(const T* input_begin, const T* const input_end, T* output_begin, const F& unary_op) {
 		const uint32_t count = static_cast<uint32_t>(input_end - input_begin);
-		if constexpr (std::is_pod<T>::value) {
-			if (input_begin != output_begin) std::memcpy(output_begin, input_begin, count * sizeof(T));
+		if (input_begin == output_begin) {
 			transform<F, T>(output_begin, output_begin + count, unary_op);
 		} else {
-			if (input_begin == output_begin) {
-				transform<F, T>(output_begin, output_begin + count, unary_op);
+			enum {
+				CACHE_BLOCK = 4096, // 4 KiB
+				CACHE_BLOCK_COUNT = CACHE_BLOCK / sizeof(T)
+			};
+			if constexpr (std::is_pod<T>::value && sizeof(T) < CACHE_BLOCK) {
+				const uint32_t cacheAligned = count / CACHE_BLOCK_COUNT;
+				const uint32_t cacheUnaligned = count % CACHE_BLOCK_COUNT;
+
+				for (uint32_t i = 0u; i < cacheAligned; ++i) {
+					std::memcpy(output_begin, input_begin, CACHE_BLOCK);
+					T* const output_end = output_begin + CACHE_BLOCK_COUNT;
+					transform<F, T>(output_begin, output_end, unary_op);
+					output_begin = output_end;
+				}
+				if (cacheUnaligned != 0u) {
+					std::memcpy(output_begin, input_begin, cacheUnaligned * sizeof(T));
+					transform<F, T>(output_begin, output_begin + cacheUnaligned, unary_op);
+				}
 			} else {
 				for (uint32_t i = 0u; i < count; ++i) {
 					output_begin[i] = input_begin[i];
