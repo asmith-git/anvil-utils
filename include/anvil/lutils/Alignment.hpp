@@ -35,6 +35,8 @@
 #define ANVIL_PAGE_SIZE 4096 // 4 KiB
 #endif
 
+#include <cstdint>
+
 namespace anvil {
 	enum {
 		CACHE_LINE_BYTES = ANVIL_CACHE_LINE,
@@ -47,6 +49,23 @@ namespace anvil {
 	static_assert((CACHE_LEVEL_1_BYTES % CACHE_LINE_BYTES) == 0, "Level 1 cache size must be a multiple of cache line size");
 	static_assert((CACHE_LEVEL_2_BYTES % CACHE_LINE_BYTES) == 0, "Level 2 cache size must be a multiple of cache line size");
 	static_assert((CACHE_LEVEL_3_BYTES % CACHE_LINE_BYTES) == 0, "Level 3 cache size must be a multiple of cache line size");
+
+	static inline uintptr_t OffsetFromPreviousAlignment(const void* const ptr, const uintptr_t alignment) throw() {
+		union {
+			uintptr_t u;
+			const void* p;
+		};
+		p = ptr;
+		return u % alignment;
+	}
+
+	static inline uintptr_t OffsetToNextAlignment(const void* const ptr, const uintptr_t alignment) throw() {
+		return alignment - OffsetFromPreviousAlignment(ptr, alignment);
+	}
+
+	static inline bool IsAligned(const void* const ptr, const uintptr_t alignment) throw() {
+		return OffsetFromPreviousAlignment(ptr, alignment) == 0u;
+	}
 }
 
 #endif
