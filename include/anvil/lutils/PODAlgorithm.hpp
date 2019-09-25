@@ -15,8 +15,8 @@
 #ifndef ANVIL_LUTILS_POD_ALGORITHM_HPP
 #define ANVIL_LUTILS_POD_ALGORITHM_HPP
 
-#include <cstdint>
 #include <type_traits>
+#include "anvil/lutils/Alignment.hpp"
 
 namespace anvil { namespace lutils {
 	
@@ -35,7 +35,7 @@ namespace anvil { namespace lutils {
 			// Call the in-place transformation algorithm
 			transform<F, T>(output_begin, output_begin + count, unary_op);
 		} else {
-			enum : uint32_t { TARGET_CACHE_BLOCK = 4096u };
+			enum : uint32_t { TARGET_CACHE_BLOCK = PAGE_SIZE_BYTES };
 			// If working on a small POD type
 			if constexpr (std::is_trivially_copyable<T>::value && sizeof(T) < TARGET_CACHE_BLOCK) {
 				// Divide the work into blocks of 4 KiB
