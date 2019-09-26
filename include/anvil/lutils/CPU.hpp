@@ -39,6 +39,37 @@ namespace anvil {
 	};
 
 	static const constexpr CpuArchitecture CPU_ARCHITECUTE = static_cast<CpuArchitecture>(ANVIL_CPU_ARCHITECUTE);
+
+#if ANVIL_CPU_ARCHITECUTE == ANVIL_CPU_X86 || ANVIL_CPU_ARCHITECUTE == ANVIL_CPU_X86_64
+	#ifndef ANVIL_MIN_INSTRUCTION_SET
+		#define ANVIL_MIN_INSTRUCTION_SET (ASM_MMX | ASM_SSE | ASM_SSE2)
+	#endif
+
+	enum InstructionSets : uint64_t {
+		ASM_MMX =		1ull << 0ull,
+		ASM_SSE =		1ull << 1ull,
+		ASM_SSE2 =		1ull << 2ull,
+		ASM_SSE3 =		1ull << 3ull,
+		ASM_SSSE3 =		1ull << 4ull,
+		ASM_SSE41 =		1ull << 5ull,
+		ASM_SSE42 =		1ull << 6ull,
+		ASM_AVX =		1ull << 7ull,
+		ASM_AVX2 =		1ull << 8ull,
+		ASM_FMA3 =		1ull << 9ull,
+		ASM_AVX512F =	1ull << 10ull,
+		ASM_AVX512VL =	1ull << 11ull,
+		ASM_AVX512BW =	1ull << 12ull,
+	};
+
+	static constexpr const uint64_t ASM_MINIMUM = ANVIL_MIN_INSTRUCTION_SET;
+
+	static uint64_t CheckSupportedInstructionSets() throw() {
+		//! \todo Implement
+		return ASM_MINIMUM;
+	}
+
+#endif
+
 }
 
 #endif
