@@ -36,6 +36,7 @@
 #endif
 
 #include <cstdint>
+#include "CPU.hpp"
 
 namespace anvil {
 	enum {
