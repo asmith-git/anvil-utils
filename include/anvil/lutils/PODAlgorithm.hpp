@@ -17,50 +17,78 @@
 
 #include <type_traits>
 #include "anvil/lutils/Alignment.hpp"
+#if ANVIL_CPU_ARCHITECUTE == ANVIL_CPU_X86 || ANVIL_CPU_ARCHITECUTE == ANVIL_CPU_X86_64
+#include <immintrin.h>
+#endif
 
 namespace anvil { namespace lutils {
 
-	//template<size_t BYTES>
-	//static inline void FastMemcpy_avx512(void* const dst, const void* src) throw() {
-	//	static_assert((BYTES % 64u) == 0, "Memory block must be a multiple of 64u bytes");
-	//	__m512 xmm0;
-	//	for (size_t i = 0u; i < BYTES; i += 64u) {
-	//		xmm0 = _mm512_loadu_ps(reinterpret_cast<const float*>(static_cast<const uint8_t*>(src) + i));
-	//		_mm512_storeu_ps(reinterpret_cast<float*>(static_cast<uint8_t*>(dst) + i), xmm0);
-	//	}
-	//}
+#if ANVIL_CPU_ARCHITECUTE == ANVIL_CPU_X86 || ANVIL_CPU_ARCHITECUTE == ANVIL_CPU_X86_64
+	template<size_t BYTES>
+	static inline void FastMemcpy_avx512(void* const dst, const void* src) throw() {
+		static_assert((BYTES % 64u) == 0, "Memory block must be a multiple of 64u bytes");
+		__m512 xmm0;
+		for (size_t i = 0u; i < BYTES; i += 64u) {
+			xmm0 = _mm512_loadu_ps(reinterpret_cast<const float*>(static_cast<const uint8_t*>(src) + i));
+			_mm512_storeu_ps(reinterpret_cast<float*>(static_cast<uint8_t*>(dst) + i), xmm0);
+		}
+	}
 
-	//template<size_t BYTES>
-	//static inline void FastMemcpy_avx(void* const dst, const void* src) throw() {
-	//	static_assert((BYTES % 32u) == 0, "Memory block must be a multiple of 32 bytes");
-	//	__m256 xmm0;
-	//	for (size_t i = 0u; i < BYTES; i += 32u) {
-	//		xmm0 = _mm256_loadu_ps(reinterpret_cast<const float*>(static_cast<const uint8_t*>(src) + i));
-	//		_mm256_storeu_ps(reinterpret_cast<float*>(static_cast<uint8_t*>(dst) + i), xmm0);
-	//	}
-	//}
+	template<size_t BYTES>
+	static inline void FastMemcpy_avx(void* const dst, const void* src) throw() {
+		static_assert((BYTES % 32u) == 0, "Memory block must be a multiple of 32 bytes");
+		__m256 xmm0;
+		for (size_t i = 0u; i < BYTES; i += 32u) {
+			xmm0 = _mm256_loadu_ps(reinterpret_cast<const float*>(static_cast<const uint8_t*>(src) + i));
+			_mm256_storeu_ps(reinterpret_cast<float*>(static_cast<uint8_t*>(dst) + i), xmm0);
+		}
+	}
 
-	//template<size_t BYTES>
-	//static inline void FastMemcpy_sse(void* const dst, const void* src) throw() {
-	//	static_assert((BYTES % 16u) == 0, "Memory block must be a multiple of 16 bytes");
-	//	__m128 xmm0;
-	//	for (size_t i = 0u; i < BYTES; i += 16u) {
-	//		xmm0 = _mm_loadu_ps(reinterpret_cast<const float*>(static_cast<const uint8_t*>(src) + i));
-	//		_mm_storeu_ps(reinterpret_cast<float*>(static_cast<uint8_t*>(dst) + i), xmm0);
-	//	}
-	//}
+	template<size_t BYTES>
+	static inline void FastMemcpy_sse(void* const dst, const void* src) throw() {
+		static_assert((BYTES % 16u) == 0, "Memory block must be a multiple of 16 bytes");
+		__m128 xmm0;
+		for (size_t i = 0u; i < BYTES; i += 16u) {
+			xmm0 = _mm_loadu_ps(reinterpret_cast<const float*>(static_cast<const uint8_t*>(src) + i));
+			_mm_storeu_ps(reinterpret_cast<float*>(static_cast<uint8_t*>(dst) + i), xmm0);
+		}
+	}
+#endif
 
 	template<size_t BYTES>
 	static inline void FastMemcpy(void* const dst, const void* src) throw() {
-		//if constexpr ((BYTES % 64u) == 0) {
-		//	FastMemcpy_avx512(dst, src);
-		//} else if constexpr ((BYTES % 32u) == 0) {
-		//	FastMemcpy_avx(dst, src);
-		//} else if constexpr ((BYTES % 16u) == 0) {
-		//	FastMemcpy_sse(dst, src);
-		//} else {
-			std::memcpy(dst, src, BYTES);
-		//}
+#if ANVIL_CPU_ARCHITECUTE == ANVIL_CPU_X86 || ANVIL_CPU_ARCHITECUTE == ANVIL_CPU_X86_64
+		if constexpr ((BYTES % 64u) == 0) {
+			if constexpr ((ASM_MINIMUM & ASM_AVX512F) != 0ull) {
+				FastMemcpy_avx512<BYTES>(dst, src);
+				return;
+			} else if ((CheckSupportedInstructionSets() & ASM_AVX512F) != 0ull) {
+				FastMemcpy_avx512<BYTES>(dst, src);
+				return;
+			}
+		}
+		
+		if constexpr ((BYTES % 32u) == 0) {
+			if constexpr ((ASM_MINIMUM & ASM_AVX) != 0ull) {
+				FastMemcpy_avx<BYTES>(dst, src);
+				return;
+			} else if ((CheckSupportedInstructionSets() & ASM_AVX) != 0ull) {
+				FastMemcpy_avx<BYTES>(dst, src);
+				return;
+			}
+		}
+		
+		if constexpr ((BYTES % 16u) == 0) {
+			if constexpr ((ASM_MINIMUM & ASM_SSE) != 0ull) {
+				FastMemcpy_sse<BYTES>(dst, src);
+				return;
+			} else if ((CheckSupportedInstructionSets() & ASM_SSE) != 0ull) {
+				FastMemcpy_sse<BYTES>(dst, src);
+				return;
+			}
+		}
+#endif
+		std::memcpy(dst, src, BYTES);
 	}
 	
 	template<class F, class T>
