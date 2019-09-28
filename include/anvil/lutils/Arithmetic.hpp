@@ -23,6 +23,7 @@
 #include <nmmintrin.h>
 #include <immintrin.h>
 #include <ammintrin.h>
+#include <intrin.h>
 #endif
 
 namespace anvil {
@@ -231,9 +232,12 @@ namespace anvil {
 	}
 
 	template<class T>
-	static T Blend(const T ifOne, const T ifZero, const T mask) throw() {
+	static inline T Blend(const T ifOne, const T ifZero, const T mask) throw() {
 		return BitOr<T>(BitAnd<T>(mask, ifOne),  BitAndN<T>(mask, ifZero));
 	}
+
+	template<class T>
+	static bool BitTest(const T value, const size_t index) throw();
 
 	// IsOdd
 
@@ -1029,6 +1033,88 @@ namespace anvil {
 	}
 
 #endif
+
+	// BitTest
+
+	template<>
+	static inline bool BitTest<uint64_t>(const uint64_t value, const size_t index) throw() {
+#if ANVIL_CPU_ARCHITECUTE == ANVIL_CPU_X86 || ANVIL_CPU_ARCHITECUTE == ANVIL_CPU_X86_64
+		static_assert(sizeof(long long) == sizeof(int64_t), "Expected sizeof(long) == sizeof(int32_t)");
+		static_cast<bool>(_bittest64(reinterpret_cast<const long long*>(&value), static_cast<long long>(index)));
+#else
+		return (value & (1ull << index)) != 0ull;
+#endif
+	}
+
+	template<>
+	static inline bool BitTest<uint32_t>(const uint32_t value, const size_t index) throw() {
+#if ANVIL_CPU_ARCHITECUTE == ANVIL_CPU_X86 || ANVIL_CPU_ARCHITECUTE == ANVIL_CPU_X86_64
+		static_assert(sizeof(long) == sizeof(int32_t), "Expected sizeof(long) == sizeof(int32_t)");
+		static_cast<bool>(_bittest(reinterpret_cast<const long*>(&value), static_cast<int32_t>(index)));
+#else
+		return (value & (1u << index)) != 0u;
+#endif
+	}
+
+	template<>
+	static inline bool BitTest<uint16_t>(const uint16_t value, const size_t index) throw() {
+		return BitTest<uint32_t>(value, index);
+	}
+
+	template<>
+	static inline bool BitTest<uint8_t>(const uint8_t value, const size_t index) throw() {
+		return BitTest<uint32_t>(value, index);
+	}
+
+	template<>
+	static inline bool BitTest<int64_t>(const int64_t value, const size_t index) throw() {
+#if ANVIL_CPU_ARCHITECUTE == ANVIL_CPU_X86 || ANVIL_CPU_ARCHITECUTE == ANVIL_CPU_X86_64
+		static_assert(sizeof(long long) == sizeof(int64_t), "Expected sizeof(long) == sizeof(int32_t)");
+		static_cast<bool>(_bittest64(reinterpret_cast<const long long*>(&value), static_cast<long long>(index)));
+#else
+		return (value & (1ll << index)) != 0ll;
+#endif
+	}
+
+	template<>
+	static inline bool BitTest<int32_t>(const int32_t value, const size_t index) throw() {
+#if ANVIL_CPU_ARCHITECUTE == ANVIL_CPU_X86 || ANVIL_CPU_ARCHITECUTE == ANVIL_CPU_X86_64
+		static_assert(sizeof(long) == sizeof(int32_t), "Expected sizeof(long) == sizeof(int32_t)");
+		static_cast<bool>(_bittest(reinterpret_cast<const long*>(&value), static_cast<int32_t>(index)));
+#else
+		return (value & (1 << index)) != 0;
+#endif
+	}
+
+	template<>
+	static inline bool BitTest<int16_t>(const int16_t value, const size_t index) throw() {
+		return BitTest<int32_t>(value, index);
+	}
+
+	template<>
+	static inline bool BitTest<int8_t>(const int8_t value, const size_t index) throw() {
+		return BitTest<int32_t>(value, index);
+	}
+
+	template<>
+	static inline bool BitTest<float>(const float value, const size_t index) throw() {
+		union {
+			int32_t s;
+			float f;
+		};
+		f = value;
+		return BitTest<int32_t>(s, index);
+	}
+
+	template<>
+	static inline bool BitTest<double>(const double value, const size_t index) throw() {
+		union {
+			int64_t s;
+			double f;
+		};
+		f = value;
+		return BitTest<int64_t>(s, index);
+	}
 }
 
 #endif
