@@ -17,6 +17,11 @@
 
 #include <cstdint>
 #include "anvil/lutils/Assert.hpp"
+#include "anvil/lutils/CPU.hpp"
+
+#if ANVIL_CPU_ARCHITECUTE == ANVIL_CPU_X86 || ANVIL_CPU_ARCHITECUTE == ANVIL_CPU_X86_64
+#include <nmmintrin.h>
+#endif
 
 namespace anvil {
 	template<class T>
@@ -364,18 +369,34 @@ namespace anvil {
 
 	template<>
 	static size_t PopulationCount<uint64_t>(const uint64_t value) throw() {
-		// Based on implementation : https://rosettacode.org/wiki/Population_count#C
+#if ANVIL_CPU_ARCHITECUTE == ANVIL_CPU_X86_64
+		if constexpr ((ASM_MINIMUM & ASM_SSE42) != 0ull) {
+			int64_t count = _mm_popcnt_u64(value);
+			ANVIL_ASSUME(count >= 0);
+			ANVIL_ASSUME(count <= 64);
+			return static_cast<size_t>(count);
+		} 
+#endif
 		uint64_t b = value;
+		// Based on implementation : https://rosettacode.org/wiki/Population_count#C
 		b -= (b >> 1) & 0x5555555555555555ull;
 		b = (b & 0x3333333333333333ull) + ((b >> 2ull) & 0x3333333333333333ull);
 		b = (b + (b >> 4ull)) & 0x0f0f0f0f0f0f0f0full;
 		b = (b * 0x0101010101010101ull) >> 56ull;
 		ANVIL_ASSUME(b <= 64ull);
-		return b;
+		return static_cast<size_t>(b);
 	}
 
 	template<>
 	static size_t PopulationCount<uint32_t>(const uint32_t value) throw() {
+#if ANVIL_CPU_ARCHITECUTE == ANVIL_CPU_X86 || ANVIL_CPU_ARCHITECUTE == ANVIL_CPU_X86_64
+		if constexpr ((ASM_MINIMUM & ASM_SSE42) != 0ull) {
+			int count = _mm_popcnt_u32(value);
+			ANVIL_ASSUME(count >= 0);
+			ANVIL_ASSUME(count <= 32);
+			return static_cast<size_t>(count);
+		}
+#endif
 		// Based on implementation : https://rosettacode.org/wiki/Population_count#C
 		uint32_t b = value;
 		b -= (b >> 1) & 0x55555555u;
@@ -383,7 +404,7 @@ namespace anvil {
 		b = (b + (b >> 4u)) & 0x0f0f0f0fu;
 		b = (b * 0x01010101u) >> 24u;
 		ANVIL_ASSUME(b <= 32u);
-		return b;
+		return static_cast<size_t>(b);
 	}
 
 	template<>
