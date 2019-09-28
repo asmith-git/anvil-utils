@@ -16,6 +16,7 @@
 #define ANVIL_LUTILS_ARITHMETIC_HPP
 
 #include <cstdint>
+#include "anvil/lutils/Assert.hpp"
 
 namespace anvil {
 	template<class T>
@@ -35,6 +36,9 @@ namespace anvil {
 
 	template<class T>
 	static T RoundDownEven(const T) throw();
+
+	template<class T>
+	static size_t PopulationCount(const T) throw();
 
 	// IsOdd
 
@@ -354,6 +358,106 @@ namespace anvil {
 	template<>
 	static inline double RoundDownEven<double>(const double value) throw() {
 		return static_cast<double>(RoundDownEven(static_cast<int64_t>(value)));
+	}
+
+	// PopulationCount
+
+	template<>
+	static size_t PopulationCount<uint64_t>(const uint64_t value) throw() {
+		// Based on implementation : https://rosettacode.org/wiki/Population_count#C
+		uint64_t b = value;
+		b -= (b >> 1) & 0x5555555555555555ull;
+		b = (b & 0x3333333333333333ull) + ((b >> 2ull) & 0x3333333333333333ull);
+		b = (b + (b >> 4ull)) & 0x0f0f0f0f0f0f0f0full;
+		b = (b * 0x0101010101010101ull) >> 56ull;
+		ANVIL_ASSUME(b <= 64ull);
+		return b;
+	}
+
+	template<>
+	static size_t PopulationCount<uint32_t>(const uint32_t value) throw() {
+		// Based on implementation : https://rosettacode.org/wiki/Population_count#C
+		uint32_t b = value;
+		b -= (b >> 1) & 0x55555555u;
+		b = (b & 0x33333333u) + ((b >> 2u) & 0x33333333u);
+		b = (b + (b >> 4u)) & 0x0f0f0f0fu;
+		b = (b * 0x01010101u) >> 24u;
+		ANVIL_ASSUME(b <= 32u);
+		return b;
+	}
+
+	template<>
+	static inline size_t PopulationCount<uint16_t>(const uint16_t value) throw() {
+		const size_t tmp = PopulationCount<uint32_t>(value);
+		ANVIL_ASSUME(tmp <= 16u);
+		return tmp;
+	}
+
+	template<>
+	static inline size_t PopulationCount(const uint8_t value) throw() {
+		const size_t tmp = PopulationCount<uint32_t>(value);
+		ANVIL_ASSUME(tmp <= 8u);
+		return tmp;
+	}
+
+	template<>
+	static inline size_t PopulationCount<int64_t>(const int64_t value) throw() {
+		union {
+			uint64_t u;
+			int64_t s;
+		};
+		s = value;
+		return PopulationCount<uint64_t>(u);
+	}
+
+	template<>
+	static inline size_t PopulationCount<int32_t>(const int32_t value) throw() {
+		union {
+			uint32_t u;
+			int32_t s;
+		};
+		s = value;
+		return PopulationCount<uint32_t>(u);
+	}
+
+	template<>
+	static size_t PopulationCount<int16_t>(const int16_t value) throw() {
+		union {
+			uint16_t u;
+			int16_t s;
+		};
+		s = value;
+		return PopulationCount<uint16_t>(u);
+	}
+
+	template<>
+	static inline size_t PopulationCount<int8_t>(const int8_t value) throw() {
+		union {
+			uint8_t u;
+			int8_t s;
+		};
+		s = value;
+		return PopulationCount<uint8_t>(u);
+	}
+
+	template<>
+	static inline size_t PopulationCount<float>(const float value) throw() {
+		union {
+			uint32_t u;
+			float f;
+		};
+		f = value;
+		return PopulationCount<uint32_t>(u);
+	}
+
+	template<>
+	static inline size_t PopulationCount<double>(const double value) throw() {
+		union {
+			uint64_t u;
+			double f;
+		};
+		f = value;
+		return PopulationCount<uint64_t>(u);
 	}
 }
 
