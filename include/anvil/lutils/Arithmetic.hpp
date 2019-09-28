@@ -45,6 +45,26 @@ namespace anvil {
 	template<class T>
 	static size_t PopulationCount(const T) throw();
 
+	template<class T>
+	static inline size_t CountOnes(const T value) throw() {
+		return PopulationCount<T>(value);
+	}
+
+	template<class T>
+	static inline size_t CountZeros(const T value) throw() {
+		return PopulationCount<T>(~ value);
+	}
+
+	template<class T>
+	static inline bool AllZeros(const T value) throw() {
+		return CountZeros<T>(value) == sizeof(T) * 8u;
+	}
+
+	template<class T>
+	static inline bool AllOnes(const T value) throw() {
+		return CountOnes<T>(value) == sizeof(T) * 8u;
+	}
+
 	// IsOdd
 
 	template<>
@@ -370,7 +390,7 @@ namespace anvil {
 	template<>
 	static size_t PopulationCount<uint64_t>(const uint64_t value) throw() {
 #if ANVIL_CPU_ARCHITECUTE == ANVIL_CPU_X86_64
-		// Technically POPCNT flag on Intel and ABM flag on AMD CPUs, but SSE 4.1 is a close approximation
+		// Technically POPCNT flag on Intel and ABM flag on AMD CPUs, but SSE 4.2 is a close approximation
 		if constexpr ((ASM_MINIMUM & ASM_SSE42) != 0ull) {
 			int64_t count = _mm_popcnt_u64(value);
 			ANVIL_ASSUME(count >= 0);
@@ -391,7 +411,7 @@ namespace anvil {
 	template<>
 	static size_t PopulationCount<uint32_t>(const uint32_t value) throw() {
 #if ANVIL_CPU_ARCHITECUTE == ANVIL_CPU_X86 || ANVIL_CPU_ARCHITECUTE == ANVIL_CPU_X86_64
-		// Technically POPCNT flag on Intel and ABM flag on AMD CPUs, but SSE 4.1 is a close approximation
+		// Technically POPCNT flag on Intel and ABM flag on AMD CPUs, but SSE 4.2 is a close approximation
 		if constexpr ((ASM_MINIMUM & ASM_SSE42) != 0ull) {
 			int count = _mm_popcnt_u32(value);
 			ANVIL_ASSUME(count >= 0);
@@ -481,6 +501,142 @@ namespace anvil {
 		};
 		f = value;
 		return PopulationCount<uint64_t>(u);
+	}
+
+	// CountZeros
+
+	template<>
+	static inline size_t CountZeros<float>(const float value) throw() {
+		union {
+			uint32_t u;
+			float f;
+		};
+		f = value;
+		return CountZeros<uint32_t>(u);
+	}
+
+	template<>
+	static inline size_t CountZeros<double>(const double value) throw() {
+		union {
+			uint64_t u;
+			double f;
+		};
+		f = value;
+		return CountZeros<uint64_t>(u);
+	}
+
+	// AllZeros
+
+	template<>
+	static inline bool AllZeros<uint64_t>(const uint64_t value) throw() {
+		return value == 0u;
+	}
+
+	template<>
+	static inline bool AllZeros<uint32_t>(const uint32_t value) throw() {
+		return value == 0u;
+	}
+
+	template<>
+	static inline bool AllZeros<uint16_t>(const uint16_t value) throw() {
+		return value == 0u;
+	}
+
+	template<>
+	static inline bool AllZeros<uint8_t>(const uint8_t value) throw() {
+		return value == 0u;
+	}
+
+	template<>
+	static inline bool AllZeros<int64_t>(const int64_t value) throw() {
+		return value == 0;
+	}
+
+	template<>
+	static inline bool AllZeros<int32_t>(const int32_t value) throw() {
+		return value == 0;
+	}
+
+	template<>
+	static inline bool AllZeros<int16_t>(const int16_t value) throw() {
+		return value == 0;
+	}
+
+	template<>
+	static inline bool AllZeros<int8_t>(const int8_t value) throw() {
+		return value == 0;
+	}
+
+	template<>
+	static inline bool AllZeros<float>(const float value) throw() {
+		return value == 0.f;
+	}
+
+	template<>
+	static inline bool AllZeros<double>(const double value) throw() {
+		return value == 0.0;
+	}
+
+	// AllOnes
+
+	template<>
+	static inline bool AllOnes<uint64_t>(const uint64_t value) throw() {
+		return value == UINT64_MAX;
+	}
+
+	template<>
+	static inline bool AllOnes<uint32_t>(const uint32_t value) throw() {
+		return value == UINT32_MAX;
+	}
+
+	template<>
+	static inline bool AllOnes<uint16_t>(const uint16_t value) throw() {
+		return value == UINT16_MAX;
+	}
+
+	template<>
+	static inline bool AllOnes<uint8_t>(const uint8_t value) throw() {
+		return value == UINT8_MAX;
+	}
+
+	template<>
+	static inline bool AllOnes<int64_t>(const int64_t value) throw() {
+		return value == -1;
+	}
+
+	template<>
+	static inline bool AllOnes<int32_t>(const int32_t value) throw() {
+		return value == -1;
+	}
+
+	template<>
+	static inline bool AllOnes<int16_t>(const int16_t value) throw() {
+		return value == -1;
+	}
+
+	template<>
+	static inline bool AllOnes<int8_t>(const int8_t value) throw() {
+		return value == -1;
+	}
+
+	template<>
+	static inline bool AllOnes<float>(const float value) throw() {
+		union {
+			uint32_t u;
+			float f;
+		};
+		f = value;
+		return AllOnes<uint32_t>(u);
+	}
+
+	template<>
+	static inline bool AllOnes<double>(const double value) throw() {
+		union {
+			uint64_t u;
+			double f;
+		};
+		f = value;
+		return AllOnes<uint64_t>(u);
 	}
 }
 
