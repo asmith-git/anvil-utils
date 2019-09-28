@@ -12,13 +12,13 @@
 //See the License for the specific language governing permissions and
 //limitations under the License.
 
-#ifndef ANVIL_LUTILS_BYTEPIPE_WRITER_HPP
-#define ANVIL_LUTILS_BYTEPIPE_WRITER_HPP
+#ifndef ANVILBYTEPIPE_WRITER_HPP
+#define ANVILBYTEPIPE_WRITER_HPP
 
 #include <vector>
-#include "BytePipeReader.hpp"
+#include "anvil/byte-pipe/BytePipeReader.hpp"
 
-namespace anvil { namespace lutils { namespace BytePipe {
+namespace anvil { namespace BytePipe {
 
 	class OutputPipe {
 	public:
@@ -99,6 +99,6 @@ namespace anvil { namespace lutils { namespace BytePipe {
 		void OnUserPOD(const uint32_t type, const uint32_t bytes, const void* data) final;
 	};
 
-}}}
+}}
 
 #endif

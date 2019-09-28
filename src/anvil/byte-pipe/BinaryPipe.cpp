@@ -13,10 +13,10 @@
 //limitations under the License.
 
 #include <cstddef>
-#include "anvil/lutils/BytePipeWriter.hpp"
+#include "anvil/byte-pipe/BytePipeWriter.hpp"
 #include "anvil/lutils/Assert.hpp"
 
-namespace anvil { namespace lutils { namespace BytePipe {
+namespace anvil { namespace BytePipe {
 
 	enum PrimaryID : uint8_t {
 		ID1_NULL,
@@ -1130,4 +1130,4 @@ namespace anvil { namespace lutils { namespace BytePipe {
 		// Select correct reader for pipe version
 		Read2(dst, _pipe, version);
 	}
-}}}
+}}

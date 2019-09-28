@@ -12,9 +12,9 @@
 //See the License for the specific language governing permissions and
 //limitations under the License.
 
-#include "anvil/lutils/BytePipeSTL.hpp"
+#include "anvil/byte-pipe/BytePipeSTL.hpp"
 
-namespace anvil { namespace lutils { namespace BytePipe {
+namespace anvil { namespace BytePipe {
 	// IStreamPipe
 	
 	IStreamPipe::IStreamPipe(std::istream& stream) :
@@ -51,4 +51,4 @@ namespace anvil { namespace lutils { namespace BytePipe {
 		_stream.flush();
 	}
 
-}}}
+}}

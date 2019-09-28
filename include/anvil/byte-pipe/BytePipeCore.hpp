@@ -12,17 +12,17 @@
 //See the License for the specific language governing permissions and
 //limitations under the License.
 
-#ifndef ANVIL_LUTILS_BYTEPIPE_CORE_HPP
-#define ANVIL_LUTILS_BYTEPIPE_CORE_HPP
+#ifndef ANVIL_BYTEPIPE_CORE_HPP
+#define ANVIL_BYTEPIPE_CORE_HPP
 
 #include <cstdint>
 
-namespace anvil { namespace lutils { namespace BytePipe {
+namespace anvil {namespace BytePipe {
 	enum Version : uint8_t {
 		VERSION_1 = 1,
 		VERSION_2 = 2,
 		VERSION_3 = 3
 	};
-}}}
+}}
 
 #endif

@@ -12,12 +12,12 @@
 //See the License for the specific language governing permissions and
 //limitations under the License.
 
-#ifndef ANVIL_LUTILS_BYTEPIPE_HPP
-#define ANVIL_LUTILS_BYTEPIPE_HPP
+#ifndef ANVIL_BYTEPIPE_HPP
+#define ANVIL_BYTEPIPE_HPP
 
-#include "anvil/lutils/BytePipeCore.hpp"
-#include "anvil/lutils/BytePipeReader.hpp"
-#include "anvil/lutils/BytePipeWriter.hpp"
-#include "anvil/lutils/BytePipeSTL.hpp"
+#include "anvil/byte-pipe/BytePipeCore.hpp"
+#include "anvil/byte-pipe/BytePipeReader.hpp"
+#include "anvil/byte-pipe/BytePipeWriter.hpp"
+#include "anvil/byte-pipe/BytePipeSTL.hpp"
 
 #endif

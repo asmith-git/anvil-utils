@@ -12,12 +12,12 @@
 //See the License for the specific language governing permissions and
 //limitations under the License.
 
-#ifndef ANVIL_LUTILS_BYTEPIPE_READER_HPP
-#define ANVIL_LUTILS_BYTEPIPE_READER_HPP
+#ifndef ANVIL_BYTEPIPE_READER_HPP
+#define ANVIL_BYTEPIPE_READER_HPP
 
-#include "BytePipeCore.hpp"
+#include "anvil/byte-pipe/BytePipeCore.hpp"
 
-namespace anvil { namespace lutils { namespace BytePipe {
+namespace anvil { namespace BytePipe {
 	class InputPipe {
 	public:
 		virtual ~InputPipe() {}
@@ -116,6 +116,6 @@ namespace anvil { namespace lutils { namespace BytePipe {
 		void Read(Parser& dst);
 	};
 
-}}}
+}}
 
 #endif

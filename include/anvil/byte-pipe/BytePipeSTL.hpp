@@ -16,10 +16,10 @@
 #define ANVIL_LUTILS_BYTEPIPE_STL_HPP
 
 #include <iostream>
-#include "BytePipeReader.hpp"
-#include "BytePipeWriter.hpp"
+#include "anvil/byte-pipe/BytePipeReader.hpp"
+#include "anvil/byte-pipe/BytePipeWriter.hpp"
 
-namespace anvil { namespace lutils { namespace BytePipe {
+namespace anvil { namespace BytePipe {
 
 	class IStreamPipe final : public InputPipe {
 	private:
@@ -40,6 +40,6 @@ namespace anvil { namespace lutils { namespace BytePipe {
 		void Flush() final;
 	};
 
-}}}
+}}
 
 #endif
