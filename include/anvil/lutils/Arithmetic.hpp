@@ -193,6 +193,11 @@ namespace anvil {
 		return true;
 	}
 
+	template<class T>
+	static T Blend(const T ifOne, const T ifZero, const T mask) throw() {
+		return (mask & ifOne) | ((~mask) & ifZero);
+	}
+
 	// IsOdd
 
 	template<>
@@ -765,6 +770,36 @@ namespace anvil {
 		};
 		f = value;
 		return AllOnes<uint64_t>(u);
+	}
+
+	// Blend
+
+	template<>
+	static inline float Blend<float>(const float ifOne, const float ifZero, const float mask) throw() {
+		union Union {
+			uint32_t u;
+			float f;
+		};
+		Union a, b, c;
+		a.f = ifOne;
+		b.f = ifZero;
+		c.f = mask;
+		a.u = Blend<uint32_t>(a.u, b.u, c.u);
+		return a.f;
+	}
+
+	template<>
+	static inline double Blend<double>(const double ifOne, const double ifZero, const double mask) throw() {
+		union Union {
+			uint64_t u;
+			double f;
+		};
+		Union a, b, c;
+		a.f = ifOne;
+		b.f = ifZero;
+		c.f = mask;
+		a.u = Blend<uint64_t>(a.u, b.u, c.u);
+		return a.f;
 	}
 }
 
