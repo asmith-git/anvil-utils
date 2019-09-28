@@ -21,7 +21,8 @@
 
 #if ANVIL_CPU_ARCHITECUTE == ANVIL_CPU_X86 || ANVIL_CPU_ARCHITECUTE == ANVIL_CPU_X86_64
 #include <nmmintrin.h>
-#include <smmintrin.h>
+#include <immintrin.h>
+#include <ammintrin.h>
 #endif
 
 namespace anvil {
@@ -195,8 +196,43 @@ namespace anvil {
 	}
 
 	template<class T>
+	static inline T BitAnd(const T lhs, const T rhs) throw() {
+		return lhs & rhs;
+	}
+
+	template<class T>
+	static inline T BitOr(const T lhs, const T rhs) throw() {
+		return lhs | rhs;
+	}
+
+	template<class T>
+	static inline T BitXor(const T lhs, const T rhs) throw() {
+		return lhs | rhs;
+	}
+
+	template<class T>
+	static inline T BitNot(const T value) throw() {
+		return ~value;
+	}
+
+	template<class T>
+	static inline T BitAndN(const T lhs, const T rhs) throw() {
+		return BitAnd<T>(BitNot<T>(lhs), rhs);
+	}
+
+	template<class T>
+	static inline T BitOrN(const T lhs, const T rhs) throw() {
+		return BitOr<T>(BitNot<T>(lhs), rhs);
+	}
+
+	template<class T>
+	static inline T BitXorN(const T lhs, const T rhs) throw() {
+		return BitXord<T>(BitNot<T>(lhs), rhs);
+	}
+
+	template<class T>
 	static T Blend(const T ifOne, const T ifZero, const T mask) throw() {
-		return (mask & ifOne) | ((~mask) & ifZero);
+		return BitOr<T>(BitAnd<T>(mask, ifOne),  BitAndN<T>(mask, ifZero));
 	}
 
 	// IsOdd
@@ -804,6 +840,7 @@ namespace anvil {
 #if ANVIL_CPU_ARCHITECUTE == ANVIL_CPU_X86 || ANVIL_CPU_ARCHITECUTE == ANVIL_CPU_X86_64
 		if constexpr ((ASM_MINIMUM & ASM_SSE41) != 0ull) {
 			return _mm_cvtsd_f64(_mm_blendv_pd(_mm_load_sd(&ifZero), _mm_load_sd(&ifOne), _mm_load_sd(&mask)));
+		} else if constexpr ((ASM_MINIMUM & ASM_SSE2) != 0ull) {
 			const __m128d xmm0 = _mm_load_sd(&mask);
 			return _mm_cvtsd_f64(_mm_or_pd(_mm_and_pd(xmm0, _mm_load_sd(&ifOne)), _mm_andnot_pd(xmm0, _mm_load_sd(&ifZero))));
 		}
@@ -822,6 +859,176 @@ namespace anvil {
 			return a.f;
 		}
 	}
+
+	// BitAnd
+
+	template<>
+	static inline float BitAnd(const float lhs, const float rhs) throw() {
+		union Union {
+			uint32_t u;
+			float f;
+		};
+		Union a, b;
+		a.f = lhs;
+		b.f = rhs;
+		a.u &= b.u;
+		return a.f;
+	}
+
+	template<>
+	static inline double BitAnd(const double lhs, const double rhs) throw() {
+		union Union {
+			uint64_t u;
+			double f;
+		};
+		Union a, b;
+		a.f = lhs;
+		b.f = rhs;
+		a.u &= b.u;
+		return a.f;
+	}
+
+	// BitOr
+
+	template<>
+	static inline float BitOr(const float lhs, const float rhs) throw() {
+		union Union {
+			uint32_t u;
+			float f;
+		};
+		Union a, b;
+		a.f = lhs;
+		b.f = rhs;
+		a.u |= b.u;
+		return a.f;
+	}
+
+	template<>
+	static inline double BitOr(const double lhs, const double rhs) throw() {
+		union Union {
+			uint64_t u;
+			double f;
+		};
+		Union a, b;
+		a.f = lhs;
+		b.f = rhs;
+		a.u |= b.u;
+		return a.f;
+	}
+
+	// BitXor
+
+	template<>
+	static inline float BitXor(const float lhs, const float rhs) throw() {
+		union Union {
+			uint32_t u;
+			float f;
+		};
+		Union a, b;
+		a.f = lhs;
+		b.f = rhs;
+		a.u ^= b.u;
+		return a.f;
+	}
+
+	template<>
+	static inline double BitXor(const double lhs, const double rhs) throw() {
+		union Union {
+			uint64_t u;
+			double f;
+		};
+		Union a, b;
+		a.f = lhs;
+		b.f = rhs;
+		a.u ^= b.u;
+		return a.f;
+	}
+
+	// BitNot
+
+	template<>
+	static inline float BitNot(const float value) throw() {
+		union {
+			uint32_t u;
+			float f;
+		};
+		f = value;
+		u = ~u;
+		return f;
+	}
+
+	template<>
+	static inline double BitNot(const double value) throw() {
+		union {
+			uint64_t u;
+			double f;
+		};
+		f = value;
+		u = ~u;
+		return f;
+	}
+
+	// BitAndN
+	
+#if ANVIL_CPU_ARCHITECUTE == ANVIL_CPU_X86_64
+
+	template<>
+	static inline uint64_t BitAndN(const uint64_t lhs, const uint64_t rhs) throw() {
+		//! \bug Should check for BMI1
+		if constexpr ((ASM_MINIMUM & ASM_AVX2) != 0u) {
+			return _andn_u64(lhs, rhs);
+		} else {
+			return (~lhs) & rhs;
+		}
+	}
+
+	template<>
+	static inline int64_t BitAndN(const int64_t lhs, const int64_t rhs) throw() {
+		//! \bug Should check for BMI1
+		if constexpr ((ASM_MINIMUM & ASM_AVX2) != 0u) {
+			union Union {
+				uint64_t u;
+				int64_t s;
+			};
+			Union a, b;
+			a.s = _andn_u64(a.s, b.s);
+			return a.u;
+		} else {
+			return (~lhs) & rhs;
+		}
+	}
+
+#endif
+
+#if ANVIL_CPU_ARCHITECUTE == ANVIL_CPU_X86 || ANVIL_CPU_ARCHITECUTE == ANVIL_CPU_X86_64
+
+	template<>
+	static inline uint32_t BitAndN(const uint32_t lhs, const uint32_t rhs) throw() {
+		//! \bug Should check for BMI1
+		if constexpr ((ASM_MINIMUM & ASM_AVX2) != 0u) {
+			return _andn_u32(lhs, rhs);
+		} else {
+			return (~lhs) & rhs;
+		}
+	}
+
+	template<>
+	static inline int32_t BitAndN(const int32_t lhs, const int32_t rhs) throw() {
+		//! \bug Should check for BMI1
+		if constexpr ((ASM_MINIMUM & ASM_AVX2) != 0u) {
+			union Union {
+				uint32_t u;
+				int32_t s;
+			};
+			Union a, b;
+			a.s = _andn_u32(a.s, b.s);
+			return a.u;
+		} else {
+			return (~lhs) & rhs;
+		}
+	}
+
+#endif
 }
 
 #endif
