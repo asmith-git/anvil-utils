@@ -56,13 +56,41 @@ namespace anvil {
 	}
 
 	template<class T>
-	static inline bool AllZeros(const T value) throw() {
-		return CountZeros<T>(value) == sizeof(T) * 8u;
+	static bool AllZeros(const T value) throw() {
+		enum : size_t {
+			ALIGNED_COUNT = sizeof(T) / sizeof(intptr_t),
+			UNALIGNED_COUNT = sizeof(T) % sizeof(intptr_t)
+		};
+
+		const intptr_t* const ptr = reinterpret_cast<const intptr_t*>(&value);
+		for (size_t i = 0u; i < ALIGNED_COUNT; ++i) {
+			if (ptr[i] != 0) return false;
+		}
+
+		for (size_t i = 0u; i < ALIGNED_COUNT; ++i) {
+			if (reinterpret_cast<const int8_t*>(ptr)[ALIGNED_COUNT + i] != 0) return false;
+		}
+		
+		return true;
 	}
 
 	template<class T>
-	static inline bool AllOnes(const T value) throw() {
-		return CountOnes<T>(value) == sizeof(T) * 8u;
+	static bool AllOnes(const T value) throw() {
+		enum : size_t {
+			ALIGNED_COUNT = sizeof(T) / sizeof(intptr_t),
+			UNALIGNED_COUNT = sizeof(T) % sizeof(intptr_t)
+		};
+
+		const intptr_t* const ptr = reinterpret_cast<const intptr_t*>(&value);
+		for (size_t i = 0u; i < ALIGNED_COUNT; ++i) {
+			if (ptr[i] != -1) return false;
+		}
+
+		for (size_t i = 0u; i < ALIGNED_COUNT; ++i) {
+			if (reinterpret_cast<const int8_t*>(ptr)[ALIGNED_COUNT + i] != -1) return false;
+		}
+
+		return true;
 	}
 
 	// IsOdd
