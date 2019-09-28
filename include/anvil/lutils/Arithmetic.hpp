@@ -45,14 +45,68 @@ namespace anvil {
 	template<class T>
 	static size_t PopulationCount(const T) throw();
 
+	static size_t PopulationCount(const void* src, const size_t bytes) throw() {
+		size_t count = 0u;
+
+		const size_t aligned_size = bytes / sizeof(uintptr_t);
+		const uintptr_t* src1 = static_cast<const uintptr_t*>(src);
+		const uintptr_t* const end1 = src1 + aligned_size;
+		while (src1 != end1) {
+			count += PopulationCount<uintptr_t>(*src1);
+			++src1;
+		}
+
+		const size_t aligned_size_bytes = aligned_size * sizeof(uintptr_t);
+		if (aligned_size_bytes != bytes) {
+			const size_t unaligned_size_bytes = (bytes - aligned_size_bytes);
+			const uint8_t* src2 = reinterpret_cast<const uint8_t*>(end1);
+			const uint8_t* const end2 = src2 + unaligned_size_bytes;
+			while (src2 != end2) {
+				count += PopulationCount<uint8_t>(*src2);
+				++src2;
+			}
+		}
+
+		return count;
+	}
+
 	template<class T>
 	static inline size_t CountOnes(const T value) throw() {
 		return PopulationCount<T>(value);
 	}
 
+	static size_t CountOnes(const void* src, const size_t bytes) throw() {
+		return PopulationCount(src, bytes);
+	}
+
 	template<class T>
 	static inline size_t CountZeros(const T value) throw() {
 		return PopulationCount<T>(~ value);
+	}
+
+	static size_t CountZeros(const void* src, const size_t bytes) throw() {
+		size_t count = 0u;
+
+		const size_t aligned_size = bytes / sizeof(uintptr_t);
+		const uintptr_t* src1 = static_cast<const uintptr_t*>(src);
+		const uintptr_t* const end1 = src1 + aligned_size;
+		while (src1 != end1) {
+			count += CountZeros<uintptr_t>(*src1);
+			++src1;
+		}
+
+		const size_t aligned_size_bytes = aligned_size * sizeof(uintptr_t);
+		if (aligned_size_bytes != bytes) {
+			const size_t unaligned_size_bytes = (bytes - aligned_size_bytes);
+			const uint8_t* src2 = reinterpret_cast<const uint8_t*>(end1);
+			const uint8_t* const end2 = src2 + unaligned_size_bytes;
+			while (src2 != end2) {
+				count += CountZeros<uint8_t>(*src2);
+				++src2;
+			}
+		}
+
+		return count;
 	}
 
 	template<class T>
@@ -74,6 +128,29 @@ namespace anvil {
 		return true;
 	}
 
+	static bool AllZeros(const void* src, const size_t bytes) throw() {
+		const size_t aligned_size = bytes / sizeof(uintptr_t);
+		const uintptr_t* src1 = static_cast<const uintptr_t*>(src);
+		const uintptr_t* const end1 = src1 + aligned_size;
+		while (src1 != end1) {
+			if(!AllZeros<uintptr_t>(*src1)) return false;
+			++src1;
+		}
+
+		const size_t aligned_size_bytes = aligned_size * sizeof(uintptr_t);
+		if (aligned_size_bytes != bytes) {
+			const size_t unaligned_size_bytes = (bytes - aligned_size_bytes);
+			const uint8_t* src2 = reinterpret_cast<const uint8_t*>(end1);
+			const uint8_t* const end2 = src2 + unaligned_size_bytes;
+			while (src2 != end2) {
+				if (!AllZeros<uint8_t>(*src2)) return false;
+				++src2;
+			}
+		}
+
+		return true;
+	}
+
 	template<class T>
 	static bool AllOnes(const T value) throw() {
 		enum : size_t {
@@ -88,6 +165,29 @@ namespace anvil {
 
 		for (size_t i = 0u; i < ALIGNED_COUNT; ++i) {
 			if (reinterpret_cast<const int8_t*>(ptr)[ALIGNED_COUNT + i] != -1) return false;
+		}
+
+		return true;
+	}
+
+	static bool AllOnes(const void* src, const size_t bytes) throw() {
+		const size_t aligned_size = bytes / sizeof(uintptr_t);
+		const uintptr_t* src1 = static_cast<const uintptr_t*>(src);
+		const uintptr_t* const end1 = src1 + aligned_size;
+		while (src1 != end1) {
+			if(!AllOnes<uintptr_t>(*src1)) return false;
+			++src1;
+		}
+
+		const size_t aligned_size_bytes = aligned_size * sizeof(uintptr_t);
+		if (aligned_size_bytes != bytes) {
+			const size_t unaligned_size_bytes = (bytes - aligned_size_bytes);
+			const uint8_t* src2 = reinterpret_cast<const uint8_t*>(end1);
+			const uint8_t* const end2 = src2 + unaligned_size_bytes;
+			while (src2 != end2) {
+				if (!AllOnes<uint8_t>(*src2)) return false;
+				++src2;
+			}
 		}
 
 		return true;
