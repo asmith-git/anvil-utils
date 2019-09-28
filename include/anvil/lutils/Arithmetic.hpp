@@ -21,6 +21,7 @@
 
 #if ANVIL_CPU_ARCHITECUTE == ANVIL_CPU_X86 || ANVIL_CPU_ARCHITECUTE == ANVIL_CPU_X86_64
 #include <nmmintrin.h>
+#include <smmintrin.h>
 #endif
 
 namespace anvil {
@@ -776,30 +777,50 @@ namespace anvil {
 
 	template<>
 	static inline float Blend<float>(const float ifOne, const float ifZero, const float mask) throw() {
-		union Union {
-			uint32_t u;
-			float f;
-		};
-		Union a, b, c;
-		a.f = ifOne;
-		b.f = ifZero;
-		c.f = mask;
-		a.u = Blend<uint32_t>(a.u, b.u, c.u);
-		return a.f;
+#if ANVIL_CPU_ARCHITECUTE == ANVIL_CPU_X86 || ANVIL_CPU_ARCHITECUTE == ANVIL_CPU_X86_64
+		if constexpr ((ASM_MINIMUM & ASM_SSE41) != 0ull) {
+			return _mm_cvtss_f32 (_mm_blendv_ps(_mm_load_ss(&ifZero), _mm_load_ss(&ifOne), _mm_load_ss(&mask)));
+		} else if constexpr ((ASM_MINIMUM & ASM_SSE) != 0ull) {
+			const __m128 xmm0 = _mm_load_ss(&mask);
+			return _mm_cvtss_f32 (_mm_or_ps(_mm_and_ps(xmm0, _mm_load_ss(&ifOne)), _mm_andnot_ps(xmm0, _mm_load_ss(&ifZero))));
+		} else
+#endif
+		{
+			union Union {
+				uint32_t u;
+				float f;
+			};
+			Union a, b, c;
+			a.f = ifOne;
+			b.f = ifZero;
+			c.f = mask;
+			a.u = Blend<uint32_t>(a.u, b.u, c.u);
+			return a.f;
+		}
 	}
 
 	template<>
 	static inline double Blend<double>(const double ifOne, const double ifZero, const double mask) throw() {
-		union Union {
-			uint64_t u;
-			double f;
-		};
-		Union a, b, c;
-		a.f = ifOne;
-		b.f = ifZero;
-		c.f = mask;
-		a.u = Blend<uint64_t>(a.u, b.u, c.u);
-		return a.f;
+#if ANVIL_CPU_ARCHITECUTE == ANVIL_CPU_X86 || ANVIL_CPU_ARCHITECUTE == ANVIL_CPU_X86_64
+		if constexpr ((ASM_MINIMUM & ASM_SSE41) != 0ull) {
+			return _mm_cvtsd_f64(_mm_blendv_pd(_mm_load_sd(&ifZero), _mm_load_sd(&ifOne), _mm_load_sd(&mask)));
+			const __m128d xmm0 = _mm_load_sd(&mask);
+			return _mm_cvtsd_f64(_mm_or_pd(_mm_and_pd(xmm0, _mm_load_sd(&ifOne)), _mm_andnot_pd(xmm0, _mm_load_sd(&ifZero))));
+		}
+		else
+#endif
+		{
+			union Union {
+				uint64_t u;
+				double f;
+			};
+			Union a, b, c;
+			a.f = ifOne;
+			b.f = ifZero;
+			c.f = mask;
+			a.u = Blend<uint64_t>(a.u, b.u, c.u);
+			return a.f;
+		}
 	}
 }
 
