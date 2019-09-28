@@ -370,6 +370,7 @@ namespace anvil {
 	template<>
 	static size_t PopulationCount<uint64_t>(const uint64_t value) throw() {
 #if ANVIL_CPU_ARCHITECUTE == ANVIL_CPU_X86_64
+		// Technically POPCNT flag on Intel and ABM flag on AMD CPUs, but SSE 4.1 is a close approximation
 		if constexpr ((ASM_MINIMUM & ASM_SSE42) != 0ull) {
 			int64_t count = _mm_popcnt_u64(value);
 			ANVIL_ASSUME(count >= 0);
@@ -390,6 +391,7 @@ namespace anvil {
 	template<>
 	static size_t PopulationCount<uint32_t>(const uint32_t value) throw() {
 #if ANVIL_CPU_ARCHITECUTE == ANVIL_CPU_X86 || ANVIL_CPU_ARCHITECUTE == ANVIL_CPU_X86_64
+		// Technically POPCNT flag on Intel and ABM flag on AMD CPUs, but SSE 4.1 is a close approximation
 		if constexpr ((ASM_MINIMUM & ASM_SSE42) != 0ull) {
 			int count = _mm_popcnt_u32(value);
 			ANVIL_ASSUME(count >= 0);
