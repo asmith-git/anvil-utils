@@ -27,219 +27,10 @@
 #endif
 
 namespace anvil {
-	template<class T>
-	static bool IsOdd(const T) throw();
-
-	template<class T>
-	static bool IsEven(const T) throw();
-
-	template<class T>
-	static T RoundUpOdd(const T) throw();
-
-	template<class T>
-	static T RoundDownOdd(const T) throw();
-
-	template<class T>
-	static T RoundUpEven(const T) throw();
-
-	template<class T>
-	static T RoundDownEven(const T) throw();
-
-	template<class T>
-	static size_t PopulationCount(const T) throw();
-
-	static size_t PopulationCount(const void* src, const size_t bytes) throw() {
-		size_t count = 0u;
-
-		const size_t aligned_size = bytes / sizeof(uintptr_t);
-		const uintptr_t* src1 = static_cast<const uintptr_t*>(src);
-		const uintptr_t* const end1 = src1 + aligned_size;
-		while (src1 != end1) {
-			count += PopulationCount<uintptr_t>(*src1);
-			++src1;
-		}
-
-		const size_t aligned_size_bytes = aligned_size * sizeof(uintptr_t);
-		if (aligned_size_bytes != bytes) {
-			const size_t unaligned_size_bytes = (bytes - aligned_size_bytes);
-			const uint8_t* src2 = reinterpret_cast<const uint8_t*>(end1);
-			const uint8_t* const end2 = src2 + unaligned_size_bytes;
-			while (src2 != end2) {
-				count += PopulationCount<uint8_t>(*src2);
-				++src2;
-			}
-		}
-
-		return count;
-	}
-
-	template<class T>
-	static inline size_t CountOnes(const T value) throw() {
-		return PopulationCount<T>(value);
-	}
-
-	static size_t CountOnes(const void* src, const size_t bytes) throw() {
-		return PopulationCount(src, bytes);
-	}
-
-	template<class T>
-	static inline size_t CountZeros(const T value) throw() {
-		return PopulationCount<T>(~ value);
-	}
-
-	static size_t CountZeros(const void* src, const size_t bytes) throw() {
-		size_t count = 0u;
-
-		const size_t aligned_size = bytes / sizeof(uintptr_t);
-		const uintptr_t* src1 = static_cast<const uintptr_t*>(src);
-		const uintptr_t* const end1 = src1 + aligned_size;
-		while (src1 != end1) {
-			count += CountZeros<uintptr_t>(*src1);
-			++src1;
-		}
-
-		const size_t aligned_size_bytes = aligned_size * sizeof(uintptr_t);
-		if (aligned_size_bytes != bytes) {
-			const size_t unaligned_size_bytes = (bytes - aligned_size_bytes);
-			const uint8_t* src2 = reinterpret_cast<const uint8_t*>(end1);
-			const uint8_t* const end2 = src2 + unaligned_size_bytes;
-			while (src2 != end2) {
-				count += CountZeros<uint8_t>(*src2);
-				++src2;
-			}
-		}
-
-		return count;
-	}
-
-	template<class T>
-	static bool AllZeros(const T value) throw() {
-		enum : size_t {
-			ALIGNED_COUNT = sizeof(T) / sizeof(intptr_t),
-			UNALIGNED_COUNT = sizeof(T) % sizeof(intptr_t)
-		};
-
-		const intptr_t* const ptr = reinterpret_cast<const intptr_t*>(&value);
-		for (size_t i = 0u; i < ALIGNED_COUNT; ++i) {
-			if (ptr[i] != 0) return false;
-		}
-
-		for (size_t i = 0u; i < ALIGNED_COUNT; ++i) {
-			if (reinterpret_cast<const int8_t*>(ptr)[ALIGNED_COUNT + i] != 0) return false;
-		}
-		
-		return true;
-	}
-
-	static bool AllZeros(const void* src, const size_t bytes) throw() {
-		const size_t aligned_size = bytes / sizeof(uintptr_t);
-		const uintptr_t* src1 = static_cast<const uintptr_t*>(src);
-		const uintptr_t* const end1 = src1 + aligned_size;
-		while (src1 != end1) {
-			if(!AllZeros<uintptr_t>(*src1)) return false;
-			++src1;
-		}
-
-		const size_t aligned_size_bytes = aligned_size * sizeof(uintptr_t);
-		if (aligned_size_bytes != bytes) {
-			const size_t unaligned_size_bytes = (bytes - aligned_size_bytes);
-			const uint8_t* src2 = reinterpret_cast<const uint8_t*>(end1);
-			const uint8_t* const end2 = src2 + unaligned_size_bytes;
-			while (src2 != end2) {
-				if (!AllZeros<uint8_t>(*src2)) return false;
-				++src2;
-			}
-		}
-
-		return true;
-	}
-
-	template<class T>
-	static bool AllOnes(const T value) throw() {
-		enum : size_t {
-			ALIGNED_COUNT = sizeof(T) / sizeof(intptr_t),
-			UNALIGNED_COUNT = sizeof(T) % sizeof(intptr_t)
-		};
-
-		const intptr_t* const ptr = reinterpret_cast<const intptr_t*>(&value);
-		for (size_t i = 0u; i < ALIGNED_COUNT; ++i) {
-			if (ptr[i] != -1) return false;
-		}
-
-		for (size_t i = 0u; i < ALIGNED_COUNT; ++i) {
-			if (reinterpret_cast<const int8_t*>(ptr)[ALIGNED_COUNT + i] != -1) return false;
-		}
-
-		return true;
-	}
-
-	static bool AllOnes(const void* src, const size_t bytes) throw() {
-		const size_t aligned_size = bytes / sizeof(uintptr_t);
-		const uintptr_t* src1 = static_cast<const uintptr_t*>(src);
-		const uintptr_t* const end1 = src1 + aligned_size;
-		while (src1 != end1) {
-			if(!AllOnes<uintptr_t>(*src1)) return false;
-			++src1;
-		}
-
-		const size_t aligned_size_bytes = aligned_size * sizeof(uintptr_t);
-		if (aligned_size_bytes != bytes) {
-			const size_t unaligned_size_bytes = (bytes - aligned_size_bytes);
-			const uint8_t* src2 = reinterpret_cast<const uint8_t*>(end1);
-			const uint8_t* const end2 = src2 + unaligned_size_bytes;
-			while (src2 != end2) {
-				if (!AllOnes<uint8_t>(*src2)) return false;
-				++src2;
-			}
-		}
-
-		return true;
-	}
-
-	template<class T>
-	static inline T BitAnd(const T lhs, const T rhs) throw() {
-		return lhs & rhs;
-	}
-
-	template<class T>
-	static inline T BitOr(const T lhs, const T rhs) throw() {
-		return lhs | rhs;
-	}
-
-	template<class T>
-	static inline T BitXor(const T lhs, const T rhs) throw() {
-		return lhs | rhs;
-	}
-
-	template<class T>
-	static inline T BitNot(const T value) throw() {
-		return ~value;
-	}
-
-	template<class T>
-	static inline T BitAndN(const T lhs, const T rhs) throw() {
-		return BitAnd<T>(BitNot<T>(lhs), rhs);
-	}
-
-	template<class T>
-	static inline T BitOrN(const T lhs, const T rhs) throw() {
-		return BitOr<T>(BitNot<T>(lhs), rhs);
-	}
-
-	template<class T>
-	static inline T BitXorN(const T lhs, const T rhs) throw() {
-		return BitXord<T>(BitNot<T>(lhs), rhs);
-	}
-
-	template<class T>
-	static inline T Blend(const T ifOne, const T ifZero, const T mask) throw() {
-		return BitOr<T>(BitAnd<T>(mask, ifOne),  BitAndN<T>(mask, ifZero));
-	}
-
-	template<class T>
-	static bool BitTest(const T value, const size_t index) throw();
 
 	// IsOdd
+	template<class T>
+	static bool IsOdd(const T) throw();
 
 	template<>
 	static inline bool IsOdd<uint64_t>(const uint64_t value) throw() {
@@ -293,6 +84,9 @@ namespace anvil {
 
 	// IsEven
 
+	template<class T>
+	static bool IsEven(const T) throw();
+
 	template<>
 	static inline bool IsEven<uint64_t>(const uint64_t value) throw() {
 		return (value & 1ull) == 0ull;
@@ -344,6 +138,9 @@ namespace anvil {
 	}
 
 	// RoundUpOdd
+
+	template<class T>
+	static T RoundUpOdd(const T) throw();
 
 	template<>
 	static inline uint64_t RoundUpOdd<uint64_t>(const uint64_t value) throw() {
@@ -397,6 +194,9 @@ namespace anvil {
 
 	// RoundDownOdd
 
+	template<class T>
+	static T RoundDownOdd(const T) throw();
+
 	template<>
 	static inline uint64_t RoundDownOdd<uint64_t>(const uint64_t value) throw() {
 		enum : uint64_t { MASK = ~1ull };
@@ -411,13 +211,13 @@ namespace anvil {
 
 	template<>
 	static inline uint16_t RoundDownOdd<uint16_t>(const uint16_t value) throw() {
-		enum : uint16_t { MASK = ~1u };
+		enum : uint16_t { MASK = static_cast<uint16_t>(~1u) };
 		return value & MASK;
 	}
 
 	template<>
 	static inline uint8_t RoundDownOdd<uint8_t>(const uint8_t value) throw() {
-		enum : uint8_t { MASK = ~1u };
+		enum : uint8_t { MASK = static_cast<uint8_t>(~1u) };
 		return value & MASK;
 	}
 
@@ -456,6 +256,9 @@ namespace anvil {
 	}
 
 	// RoundUpEven
+
+	template<class T>
+	static T RoundUpEven(const T) throw();
 
 	template<>
 	static inline uint64_t RoundUpEven<uint64_t>(const uint64_t value) throw() {
@@ -509,6 +312,9 @@ namespace anvil {
 
 	// RoundDownEven
 
+	template<class T>
+	static T RoundDownEven(const T) throw();
+
 	template<>
 	static inline uint64_t RoundDownEven<uint64_t>(const uint64_t value) throw() {
 		return value - (value & 1ull);
@@ -561,6 +367,9 @@ namespace anvil {
 
 	// PopulationCount
 
+	template<class T>
+	static size_t PopulationCount(const T) throw();
+
 	template<>
 	static size_t PopulationCount<uint64_t>(const uint64_t value) throw() {
 #if ANVIL_CPU_ARCHITECUTE == ANVIL_CPU_X86_64
@@ -611,7 +420,7 @@ namespace anvil {
 	}
 
 	template<>
-	static inline size_t PopulationCount(const uint8_t value) throw() {
+	static inline size_t PopulationCount<uint8_t>(const uint8_t value) throw() {
 		const size_t tmp = PopulationCount<uint32_t>(value);
 		ANVIL_ASSUME(tmp <= 8u);
 		return tmp;
@@ -677,7 +486,48 @@ namespace anvil {
 		return PopulationCount<uint64_t>(u);
 	}
 
+	static size_t PopulationCount(const void* src, const size_t bytes) throw() {
+		size_t count = 0u;
+
+		const size_t aligned_size = bytes / sizeof(uintptr_t);
+		const uintptr_t* src1 = static_cast<const uintptr_t*>(src);
+		const uintptr_t* const end1 = src1 + aligned_size;
+		while (src1 != end1) {
+			count += PopulationCount<uintptr_t>(*src1);
+			++src1;
+		}
+
+		const size_t aligned_size_bytes = aligned_size * sizeof(uintptr_t);
+		if (aligned_size_bytes != bytes) {
+			const size_t unaligned_size_bytes = (bytes - aligned_size_bytes);
+			const uint8_t* src2 = reinterpret_cast<const uint8_t*>(end1);
+			const uint8_t* const end2 = src2 + unaligned_size_bytes;
+			while (src2 != end2) {
+				count += PopulationCount<uint8_t>(*src2);
+				++src2;
+			}
+		}
+
+		return count;
+	}
+
+	// CountOnes
+
+	template<class T>
+	static inline size_t CountOnes(const T value) throw() {
+		return PopulationCount<T>(value);
+	}
+
+	static size_t CountOnes(const void* src, const size_t bytes) throw() {
+		return PopulationCount(src, bytes);
+	}
+
 	// CountZeros
+
+	template<class T>
+	static inline size_t CountZeros(const T value) throw() {
+		return PopulationCount<T>(~ value);
+	}
 
 	template<>
 	static inline size_t CountZeros<float>(const float value) throw() {
@@ -699,7 +549,51 @@ namespace anvil {
 		return CountZeros<uint64_t>(u);
 	}
 
+	static size_t CountZeros(const void* src, const size_t bytes) throw() {
+		size_t count = 0u;
+
+		const size_t aligned_size = bytes / sizeof(uintptr_t);
+		const uintptr_t* src1 = static_cast<const uintptr_t*>(src);
+		const uintptr_t* const end1 = src1 + aligned_size;
+		while (src1 != end1) {
+			count += CountZeros<uintptr_t>(*src1);
+			++src1;
+		}
+
+		const size_t aligned_size_bytes = aligned_size * sizeof(uintptr_t);
+		if (aligned_size_bytes != bytes) {
+			const size_t unaligned_size_bytes = (bytes - aligned_size_bytes);
+			const uint8_t* src2 = reinterpret_cast<const uint8_t*>(end1);
+			const uint8_t* const end2 = src2 + unaligned_size_bytes;
+			while (src2 != end2) {
+				count += CountZeros<uint8_t>(*src2);
+				++src2;
+			}
+		}
+
+		return count;
+	}
+
 	// AllZeros
+
+	template<class T>
+	static bool AllZeros(const T value) throw() {
+		enum : size_t {
+			ALIGNED_COUNT = sizeof(T) / sizeof(intptr_t),
+			UNALIGNED_COUNT = sizeof(T) % sizeof(intptr_t)
+		};
+
+		const intptr_t* const ptr = reinterpret_cast<const intptr_t*>(&value);
+		for (size_t i = 0u; i < ALIGNED_COUNT; ++i) {
+			if (ptr[i] != 0) return false;
+		}
+
+		for (size_t i = 0u; i < ALIGNED_COUNT; ++i) {
+			if (reinterpret_cast<const int8_t*>(ptr)[ALIGNED_COUNT + i] != 0) return false;
+		}
+		
+		return true;
+	}
 
 	template<>
 	static inline bool AllZeros<uint64_t>(const uint64_t value) throw() {
@@ -751,7 +645,49 @@ namespace anvil {
 		return value == 0.0;
 	}
 
+	static bool AllZeros(const void* src, const size_t bytes) throw() {
+		const size_t aligned_size = bytes / sizeof(uintptr_t);
+		const uintptr_t* src1 = static_cast<const uintptr_t*>(src);
+		const uintptr_t* const end1 = src1 + aligned_size;
+		while (src1 != end1) {
+			if(!AllZeros<uintptr_t>(*src1)) return false;
+			++src1;
+		}
+
+		const size_t aligned_size_bytes = aligned_size * sizeof(uintptr_t);
+		if (aligned_size_bytes != bytes) {
+			const size_t unaligned_size_bytes = (bytes - aligned_size_bytes);
+			const uint8_t* src2 = reinterpret_cast<const uint8_t*>(end1);
+			const uint8_t* const end2 = src2 + unaligned_size_bytes;
+			while (src2 != end2) {
+				if (!AllZeros<uint8_t>(*src2)) return false;
+				++src2;
+			}
+		}
+
+		return true;
+	}
+
 	// AllOnes
+
+	template<class T>
+	static bool AllOnes(const T value) throw() {
+		enum : size_t {
+			ALIGNED_COUNT = sizeof(T) / sizeof(intptr_t),
+			UNALIGNED_COUNT = sizeof(T) % sizeof(intptr_t)
+		};
+
+		const intptr_t* const ptr = reinterpret_cast<const intptr_t*>(&value);
+		for (size_t i = 0u; i < ALIGNED_COUNT; ++i) {
+			if (ptr[i] != -1) return false;
+		}
+
+		for (size_t i = 0u; i < ALIGNED_COUNT; ++i) {
+			if (reinterpret_cast<const int8_t*>(ptr)[ALIGNED_COUNT + i] != -1) return false;
+		}
+
+		return true;
+	}
 
 	template<>
 	static inline bool AllOnes<uint64_t>(const uint64_t value) throw() {
@@ -813,58 +749,35 @@ namespace anvil {
 		return AllOnes<uint64_t>(u);
 	}
 
-	// Blend
+	static bool AllOnes(const void* src, const size_t bytes) throw() {
+		const size_t aligned_size = bytes / sizeof(uintptr_t);
+		const uintptr_t* src1 = static_cast<const uintptr_t*>(src);
+		const uintptr_t* const end1 = src1 + aligned_size;
+		while (src1 != end1) {
+			if(!AllOnes<uintptr_t>(*src1)) return false;
+			++src1;
+		}
 
-	template<>
-	static inline float Blend<float>(const float ifOne, const float ifZero, const float mask) throw() {
-#if ANVIL_CPU_ARCHITECUTE == ANVIL_CPU_X86 || ANVIL_CPU_ARCHITECUTE == ANVIL_CPU_X86_64
-		if constexpr ((ASM_MINIMUM & ASM_SSE41) != 0ull) {
-			return _mm_cvtss_f32 (_mm_blendv_ps(_mm_load_ss(&ifZero), _mm_load_ss(&ifOne), _mm_load_ss(&mask)));
-		} else if constexpr ((ASM_MINIMUM & ASM_SSE) != 0ull) {
-			const __m128 xmm0 = _mm_load_ss(&mask);
-			return _mm_cvtss_f32 (_mm_or_ps(_mm_and_ps(xmm0, _mm_load_ss(&ifOne)), _mm_andnot_ps(xmm0, _mm_load_ss(&ifZero))));
-		} else
-#endif
-		{
-			union Union {
-				uint32_t u;
-				float f;
-			};
-			Union a, b, c;
-			a.f = ifOne;
-			b.f = ifZero;
-			c.f = mask;
-			a.u = Blend<uint32_t>(a.u, b.u, c.u);
-			return a.f;
+		const size_t aligned_size_bytes = aligned_size * sizeof(uintptr_t);
+		if (aligned_size_bytes != bytes) {
+			const size_t unaligned_size_bytes = (bytes - aligned_size_bytes);
+			const uint8_t* src2 = reinterpret_cast<const uint8_t*>(end1);
+			const uint8_t* const end2 = src2 + unaligned_size_bytes;
+			while (src2 != end2) {
+				if (!AllOnes<uint8_t>(*src2)) return false;
+				++src2;
+			}
 		}
-	}
 
-	template<>
-	static inline double Blend<double>(const double ifOne, const double ifZero, const double mask) throw() {
-#if ANVIL_CPU_ARCHITECUTE == ANVIL_CPU_X86 || ANVIL_CPU_ARCHITECUTE == ANVIL_CPU_X86_64
-		if constexpr ((ASM_MINIMUM & ASM_SSE41) != 0ull) {
-			return _mm_cvtsd_f64(_mm_blendv_pd(_mm_load_sd(&ifZero), _mm_load_sd(&ifOne), _mm_load_sd(&mask)));
-		} else if constexpr ((ASM_MINIMUM & ASM_SSE2) != 0ull) {
-			const __m128d xmm0 = _mm_load_sd(&mask);
-			return _mm_cvtsd_f64(_mm_or_pd(_mm_and_pd(xmm0, _mm_load_sd(&ifOne)), _mm_andnot_pd(xmm0, _mm_load_sd(&ifZero))));
-		}
-		else
-#endif
-		{
-			union Union {
-				uint64_t u;
-				double f;
-			};
-			Union a, b, c;
-			a.f = ifOne;
-			b.f = ifZero;
-			c.f = mask;
-			a.u = Blend<uint64_t>(a.u, b.u, c.u);
-			return a.f;
-		}
+		return true;
 	}
 
 	// BitAnd
+
+	template<class T>
+	static inline T BitAnd(const T lhs, const T rhs) throw() {
+		return lhs & rhs;
+	}
 
 	template<>
 	static inline float BitAnd(const float lhs, const float rhs) throw() {
@@ -894,6 +807,11 @@ namespace anvil {
 
 	// BitOr
 
+	template<class T>
+	static inline T BitOr(const T lhs, const T rhs) throw() {
+		return lhs | rhs;
+	}
+
 	template<>
 	static inline float BitOr(const float lhs, const float rhs) throw() {
 		union Union {
@@ -921,6 +839,11 @@ namespace anvil {
 	}
 
 	// BitXor
+
+	template<class T>
+	static inline T BitXor(const T lhs, const T rhs) throw() {
+		return lhs | rhs;
+	}
 
 	template<>
 	static inline float BitXor(const float lhs, const float rhs) throw() {
@@ -950,6 +873,11 @@ namespace anvil {
 
 	// BitNot
 
+	template<class T>
+	static inline T BitNot(const T value) throw() {
+		return ~value;
+	}
+
 	template<>
 	static inline float BitNot(const float value) throw() {
 		union {
@@ -972,7 +900,26 @@ namespace anvil {
 		return f;
 	}
 
+	// BitOrN
+
+	template<class T>
+	static inline T BitOrN(const T lhs, const T rhs) throw() {
+		return BitOr<T>(BitNot<T>(lhs), rhs);
+	}
+
+	// BitXorN
+
+	template<class T>
+	static inline T BitXorN(const T lhs, const T rhs) throw() {
+		return BitXor<T>(BitNot<T>(lhs), rhs);
+	}
+
 	// BitAndN
+
+	template<class T>
+	static inline T BitAndN(const T lhs, const T rhs) throw() {
+		return BitAnd<T>(BitNot<T>(lhs), rhs);
+	}
 	
 #if ANVIL_CPU_ARCHITECUTE == ANVIL_CPU_X86_64
 
@@ -1034,7 +981,66 @@ namespace anvil {
 
 #endif
 
+	// Blend
+
+	template<class T>
+	static inline T Blend(const T ifOne, const T ifZero, const T mask) throw() {
+		return BitOr<T>(BitAnd<T>(mask, ifOne),  BitAndN<T>(mask, ifZero));
+	}
+
+	template<>
+	static inline float Blend<float>(const float ifOne, const float ifZero, const float mask) throw() {
+#if ANVIL_CPU_ARCHITECUTE == ANVIL_CPU_X86 || ANVIL_CPU_ARCHITECUTE == ANVIL_CPU_X86_64
+		if constexpr ((ASM_MINIMUM & ASM_SSE41) != 0ull) {
+			return _mm_cvtss_f32 (_mm_blendv_ps(_mm_load_ss(&ifZero), _mm_load_ss(&ifOne), _mm_load_ss(&mask)));
+		} else if constexpr ((ASM_MINIMUM & ASM_SSE) != 0ull) {
+			const __m128 xmm0 = _mm_load_ss(&mask);
+			return _mm_cvtss_f32 (_mm_or_ps(_mm_and_ps(xmm0, _mm_load_ss(&ifOne)), _mm_andnot_ps(xmm0, _mm_load_ss(&ifZero))));
+		} else
+#endif
+		{
+			union Union {
+				uint32_t u;
+				float f;
+			};
+			Union a, b, c;
+			a.f = ifOne;
+			b.f = ifZero;
+			c.f = mask;
+			a.u = Blend<uint32_t>(a.u, b.u, c.u);
+			return a.f;
+		}
+	}
+
+	template<>
+	static inline double Blend<double>(const double ifOne, const double ifZero, const double mask) throw() {
+#if ANVIL_CPU_ARCHITECUTE == ANVIL_CPU_X86 || ANVIL_CPU_ARCHITECUTE == ANVIL_CPU_X86_64
+		if constexpr ((ASM_MINIMUM & ASM_SSE41) != 0ull) {
+			return _mm_cvtsd_f64(_mm_blendv_pd(_mm_load_sd(&ifZero), _mm_load_sd(&ifOne), _mm_load_sd(&mask)));
+		} else if constexpr ((ASM_MINIMUM & ASM_SSE2) != 0ull) {
+			const __m128d xmm0 = _mm_load_sd(&mask);
+			return _mm_cvtsd_f64(_mm_or_pd(_mm_and_pd(xmm0, _mm_load_sd(&ifOne)), _mm_andnot_pd(xmm0, _mm_load_sd(&ifZero))));
+		}
+		else
+#endif
+		{
+			union Union {
+				uint64_t u;
+				double f;
+			};
+			Union a, b, c;
+			a.f = ifOne;
+			b.f = ifZero;
+			c.f = mask;
+			a.u = Blend<uint64_t>(a.u, b.u, c.u);
+			return a.f;
+		}
+	}
+
 	// BitTest
+
+	template<class T>
+	static bool BitTest(const T value, const size_t index) throw();
 
 	template<>
 	static inline bool BitTest<uint64_t>(const uint64_t value, const size_t index) throw() {
