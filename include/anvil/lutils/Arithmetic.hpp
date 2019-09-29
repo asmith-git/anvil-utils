@@ -1400,7 +1400,7 @@ namespace anvil {
 
 	template<>
 	static inline uint8_t MaskUpToLowestBit<uint8_t>(const uint8_t value) throw() {
-		return static_cast<uint8_t>(MaskUpToLowestBit<uint8_t>(value));
+		return static_cast<uint8_t>(MaskUpToLowestBit<uint32_t>(value));
 	}
 
 	template<>
@@ -1491,7 +1491,7 @@ namespace anvil {
 
 	template<>
 	static inline uint8_t MaskBits<uint8_t>(const size_t count) throw() {
-		return static_cast<uint8_t>(MaskBits<uint8_t>(count));
+		return static_cast<uint8_t>(MaskBits<uint32_t>(count));
 	}
 
 	template<>
@@ -1541,6 +1541,121 @@ namespace anvil {
 			uint64_t u;
 		};
 		u = MaskBits<uint64_t>(count);
+		return f;
+	}
+
+	// ExtractBitField
+
+	template<class T>
+	static T ExtractBitField(const T src, const size_t start_bit, const size_t bit_count) throw();
+
+	template<>
+	static inline uint64_t ExtractBitField<uint64_t>(const uint64_t src, const size_t start_bit, const size_t bit_count) throw() {
+		ANVIL_ASSUME(start_bit <= 64u);
+		ANVIL_ASSUME(bit_count <= 64u);
+
+#if ANVIL_CPU_ARCHITECUTE == ANVIL_CPU_X86_64
+		//! \bug Should check for BMI1 flag
+		if constexpr ((ASM_MINIMUM & ASM_AVX2) != 0ull) {
+			return _bextr_u64(src, static_cast<uint64_t>(start_bit), static_cast<uint64_t>(bit_count));
+		} else
+#endif
+		return (src >> static_cast<uint64_t>(start_bit)) & ((1ull << static_cast<uint64_t>(bit_count)) - 1ull);
+	}
+
+	template<>
+	static uint32_t ExtractBitField<uint32_t>(const uint32_t src, const size_t start_bit, const size_t bit_count) throw() {
+		ANVIL_ASSUME(start_bit <= 32u);
+		ANVIL_ASSUME(bit_count <= 32u);
+
+#if ANVIL_CPU_ARCHITECUTE == ANVIL_CPU_X86 || ANVIL_CPU_ARCHITECUTE == ANVIL_CPU_X86_64
+		//! \bug Should check for BMI1 flag
+		if constexpr ((ASM_MINIMUM & ASM_AVX2) != 0ull) {
+			return _bextr_u32(src, static_cast<uint32_t>(start_bit), static_cast<uint32_t>(bit_count));
+		} else
+#endif
+		return (src >> static_cast<uint32_t>(start_bit)) & ((1u << static_cast<uint32_t>(bit_count)) - 1u);
+	}
+
+	template<>
+	static inline uint16_t ExtractBitField<uint16_t>(const uint16_t src, const size_t start_bit, const size_t bit_count) throw() {
+		ANVIL_ASSUME(start_bit <= 16u);
+		ANVIL_ASSUME(bit_count <= 16u);
+
+		return static_cast<uint16_t>(ExtractBitField<uint32_t>(src, start_bit, bit_count));
+	}
+
+	template<>
+	static inline uint8_t ExtractBitField<uint8_t>(const uint8_t src, const size_t start_bit, const size_t bit_count) throw() {
+		ANVIL_ASSUME(start_bit <= 8u);
+		ANVIL_ASSUME(bit_count <= 8u);
+
+		return static_cast<uint8_t>(ExtractBitField<uint32_t>(src, start_bit, bit_count));
+	}
+
+	template<>
+	static inline int64_t ExtractBitField<int64_t>(const int64_t src, const size_t start_bit, const size_t bit_count) throw() {
+		union {
+			uint64_t u;
+			int64_t s;
+		};
+		s = src;
+		u = ExtractBitField<uint64_t>(u, start_bit, bit_count);
+		return s;
+	}
+
+	template<>
+	static inline int32_t ExtractBitField<int32_t>(const int32_t src, const size_t start_bit, const size_t bit_count) throw() {
+		union {
+			uint32_t u;
+			int32_t s;
+		};
+		s = src;
+		u = ExtractBitField<uint32_t>(u, start_bit, bit_count);
+		return s;
+	}
+
+	template<>
+	static inline int16_t ExtractBitField<int16_t>(const int16_t src, const size_t start_bit, const size_t bit_count) throw() {
+		union {
+			uint16_t u;
+			int16_t s;
+		};
+		s = src;
+		u = ExtractBitField<uint16_t>(u, start_bit, bit_count);
+		return s;
+	}
+
+	template<>
+	static inline int8_t ExtractBitField<int8_t>(const int8_t src, const size_t start_bit, const size_t bit_count) throw() {
+		union {
+			uint8_t u;
+			int8_t s;
+		};
+		s = src;
+		u = ExtractBitField<uint8_t>(u, start_bit, bit_count);
+		return s;
+	}
+
+	template<>
+	static inline float ExtractBitField<float>(const float src, const size_t start_bit, const size_t bit_count) throw() {
+		union {
+			float f;
+			uint32_t u;
+		};
+		f = src;
+		u = ExtractBitField<uint32_t>(u, start_bit, bit_count);
+		return f;
+	}
+
+	template<>
+	static inline double ExtractBitField<double>(const double src, const size_t start_bit, const size_t bit_count) throw() {
+		union {
+			double f;
+			uint64_t u;
+		};
+		f = src;
+		u = ExtractBitField<uint64_t>(u, start_bit, bit_count);
 		return f;
 	}
 }
