@@ -1121,6 +1121,111 @@ namespace anvil {
 		f = value;
 		return BitTest<int64_t>(s, index);
 	}
+
+	template<class T>
+	static size_t CountLeadingZeros(const T value) throw();
+
+	template<>
+	static size_t CountLeadingZeros<uint32_t>(const uint32_t value) throw() {
+		// Based on implementation : https://en.wikipedia.org/wiki/Find_first_set#cite_ref-hackersdelight-clz_43-0
+		uint32_t x = value;
+		if (x == 0u) return 32u;
+		uint32_t n = 0u;
+		if ((x & 0xFFFF0000u) == 0) { n = 16u; x <<= 16u; }
+		if ((x & 0xFF000000u) == 0) { n += 8u; x <<= 8u; }
+		if ((x & 0xF0000000u) == 0) { n += 4u; x <<= 4u; }
+		if ((x & 0xC0000000u) == 0) { n += 2u; x <<= 2u; }
+		if ((x & 0x80000000u) == 0) { n += 1u; }
+		ANVIL_ASSUME(n <= 32u);
+		return n;
+	}
+
+	template<>
+	static size_t CountLeadingZeros<uint64_t>(const uint64_t value) throw() {
+		union {
+			uint64_t u64;
+			uint32_t u32[2u];
+		};
+		u64 = value;
+		size_t count = CountLeadingZeros<uint32_t>(u32[0u]);
+		if(count == 32u) count += CountLeadingZeros<uint32_t>(u32[1u]);
+		ANVIL_ASSUME(count <= 64u);
+		return count;
+	}
+
+	template<>
+	static inline size_t CountLeadingZeros<uint16_t>(const uint16_t value) throw() {
+		const size_t count = CountLeadingZeros<uint32_t>(value);
+		ANVIL_ASSUME(count <= 16u);
+		return count;
+	}
+
+	template<>
+	static inline size_t CountLeadingZeros<uint8_t>(const uint8_t value) throw() {
+		const size_t count = CountLeadingZeros<uint32_t>(value);
+		ANVIL_ASSUME(count <= 8u);
+		return count;
+	}
+
+	template<>
+	static inline size_t CountLeadingZeros<int64_t>(const int64_t value) throw() {
+		union {
+			uint64_t u;
+			int64_t s;
+		};
+		s = value;
+		return CountLeadingZeros<uint64_t>(u);
+	}
+
+	template<>
+	static inline size_t CountLeadingZeros<int32_t>(const int32_t value) throw() {
+		union {
+			uint32_t u;
+			int32_t s;
+		};
+		s = value;
+		return CountLeadingZeros<uint32_t>(u);
+	}
+
+	template<>
+	static inline size_t CountLeadingZeros<int16_t>(const int16_t value) throw() {
+		union {
+			uint16_t u;
+			int16_t s;
+		};
+		s = value;
+		return CountLeadingZeros<uint16_t>(u);
+	}
+
+	template<>
+	static inline size_t CountLeadingZeros<int8_t>(const int8_t value) throw() {
+		union {
+			uint8_t u;
+			int8_t s;
+		};
+		s = value;
+		return CountLeadingZeros<uint8_t>(u);
+	}
+
+	template<>
+	static inline size_t CountLeadingZeros<float>(const float value) throw() {
+		union {
+			float f;
+			uint32_t u;
+		};
+		f = value;
+		return CountLeadingZeros<uint32_t>(u);
+	}
+
+	template<>
+	static inline size_t CountLeadingZeros<double>(const double value) throw() {
+		union {
+			double f;
+			uint64_t u;
+		};
+		f = value;
+		return CountLeadingZeros<uint64_t>(u);
+	}
 }
 
 #endif
