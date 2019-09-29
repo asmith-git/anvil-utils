@@ -1242,6 +1242,129 @@ namespace anvil {
 		f = value;
 		return CountLeadingZeros<uint64_t>(u);
 	}
+
+	// CountTrailingZeros
+
+	template<class T>
+	static size_t CountTrailingZeros(const T value) throw();
+
+	template<>
+	static size_t CountTrailingZeros<uint32_t>(const uint32_t value) throw() {
+		uint32_t n = 0u;
+#if ANVIL_CPU_ARCHITECUTE == ANVIL_CPU_X86 || ANVIL_CPU_ARCHITECUTE == ANVIL_CPU_X86_64
+		//! \bug Should check for BMI1 flag
+		if constexpr ((ASM_MINIMUM & ASM_AVX2) != 0ull) {
+			n = _tzcnt_u32(value);
+		} else
+#endif
+		{		// Based on implementation : https://en.wikipedia.org/wiki/Find_first_set#cite_ref-hackersdelight-clz_43-0
+			uint32_t x = value;
+			if (x == 0u) return 32u;
+			if ((x & 0x0000FFFFu) == 0u) { n += 16u; x >>= 16u; }
+			if ((x & 0x000000FFu) == 0u) { n +=  8u; x >>=  8u; }
+			if ((x & 0x0000000Fu) == 0u) { n +=  4u; x >>=  4u; }
+			if ((x & 0x00000003u) == 0u) { n +=  2u; x >>=  2u; }
+			if ((x & 0x00000001u) == 0u) { n += 1u; }
+		}
+		ANVIL_ASSUME(n <= 32u);
+		return n;
+	}
+
+	template<>
+	static size_t CountTrailingZeros<uint64_t>(const uint64_t value) throw() {
+		size_t count;
+#if ANVIL_CPU_ARCHITECUTE == ANVIL_CPU_X86_64
+		//! \bug Should check for BMI1 flag
+		if constexpr ((ASM_MINIMUM & ASM_AVX2) != 0ull) {
+			count = _tzcnt_u64(value);
+		} else
+#endif
+		{
+			union {
+				uint64_t u64;
+				uint32_t u32[2u];
+			};
+			u64 = value;
+			count = CountTrailingZeros<uint32_t>(u32[0u]);
+			if (count == 32u) count += CountTrailingZeros<uint32_t>(u32[1u]);
+		}
+		ANVIL_ASSUME(count <= 64u);
+		return count;
+	}
+
+	template<>
+	static inline size_t CountTrailingZeros<uint16_t>(const uint16_t value) throw() {
+		const size_t count = CountTrailingZeros<uint32_t>(value);
+		ANVIL_ASSUME(count <= 16u);
+		return count;
+	}
+
+	template<>
+	static inline size_t CountTrailingZeros<uint8_t>(const uint8_t value) throw() {
+		const size_t count = CountTrailingZeros<uint32_t>(value);
+		ANVIL_ASSUME(count <= 8u);
+		return count;
+	}
+
+	template<>
+	static inline size_t CountTrailingZeros<int64_t>(const int64_t value) throw() {
+		union {
+			uint64_t u;
+			int64_t s;
+		};
+		s = value;
+		return CountTrailingZeros<uint64_t>(u);
+	}
+
+	template<>
+	static inline size_t CountTrailingZeros<int32_t>(const int32_t value) throw() {
+		union {
+			uint32_t u;
+			int32_t s;
+		};
+		s = value;
+		return CountTrailingZeros<uint32_t>(u);
+	}
+
+	template<>
+	static inline size_t CountTrailingZeros<int16_t>(const int16_t value) throw() {
+		union {
+			uint16_t u;
+			int16_t s;
+		};
+		s = value;
+		return CountTrailingZeros<uint16_t>(u);
+	}
+
+	template<>
+	static inline size_t CountTrailingZeros<int8_t>(const int8_t value) throw() {
+		union {
+			uint8_t u;
+			int8_t s;
+		};
+		s = value;
+		return CountTrailingZeros<uint8_t>(u);
+	}
+
+	template<>
+	static inline size_t CountTrailingZeros<float>(const float value) throw() {
+		union {
+			float f;
+			uint32_t u;
+		};
+		f = value;
+		return CountTrailingZeros<uint32_t>(u);
+	}
+
+	template<>
+	static inline size_t CountTrailingZeros<double>(const double value) throw() {
+		union {
+			double f;
+			uint64_t u;
+		};
+		f = value;
+		return CountTrailingZeros<uint64_t>(u);
+	}
 }
 
 #endif
