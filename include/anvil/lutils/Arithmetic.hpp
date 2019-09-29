@@ -1365,6 +1365,184 @@ namespace anvil {
 		f = value;
 		return CountTrailingZeros<uint64_t>(u);
 	}
+
+	// MaskUpToLowestBit
+
+	template<class T>
+	static T MaskUpToLowestBit(const T value) throw();
+
+	template<>
+	static inline uint64_t MaskUpToLowestBit<uint64_t>(const uint64_t value) throw() {
+#if ANVIL_CPU_ARCHITECUTE == ANVIL_CPU_X86_64
+		//! \bug Should check for BMI1 flag
+		if constexpr ((ASM_MINIMUM & ASM_AVX2) != 0ull) {
+			return _blsmsk_u64(value);
+		} else
+#endif
+		return value ^ (value - 1u);
+	}
+
+	template<>
+	static uint32_t MaskUpToLowestBit<uint32_t>(const uint32_t value) throw() {
+#if ANVIL_CPU_ARCHITECUTE == ANVIL_CPU_X86 || ANVIL_CPU_ARCHITECUTE == ANVIL_CPU_X86_64
+		//! \bug Should check for BMI1 flag
+		if constexpr ((ASM_MINIMUM & ASM_AVX2) != 0ull) {
+			return _blsmsk_u32(value);
+		} else
+#endif
+		return value ^ (value - 1u);
+	}
+
+	template<>
+	static inline uint16_t MaskUpToLowestBit<uint16_t>(const uint16_t value) throw() {
+		return static_cast<uint16_t>(MaskUpToLowestBit<uint32_t>(value));
+	}
+
+	template<>
+	static inline uint8_t MaskUpToLowestBit<uint8_t>(const uint8_t value) throw() {
+		return static_cast<uint8_t>(MaskUpToLowestBit<uint8_t>(value));
+	}
+
+	template<>
+	static inline int64_t MaskUpToLowestBit<int64_t>(const int64_t value) throw() {
+		union {
+			uint64_t u;
+			int64_t s;
+		};
+		s = value;
+		u = MaskUpToLowestBit<uint64_t>(u);
+		return s;
+	}
+
+	template<>
+	static inline int32_t MaskUpToLowestBit<int32_t>(const int32_t value) throw() {
+		union {
+			uint32_t u;
+			int32_t s;
+		};
+		s = value;
+		u = MaskUpToLowestBit<uint32_t>(u);
+		return s;
+	}
+
+	template<>
+	static inline int16_t MaskUpToLowestBit<int16_t>(const int16_t value) throw() {
+		union {
+			uint16_t u;
+			int16_t s;
+		};
+		s = value;
+		u = MaskUpToLowestBit<uint16_t>(u);
+		return s;
+	}
+
+	template<>
+	static inline int8_t MaskUpToLowestBit<int8_t>(const int8_t value) throw() {
+		union {
+			uint8_t u;
+			int8_t s;
+		};
+		s = value;
+		u = MaskUpToLowestBit<uint8_t>(u);
+		return s;
+	}
+
+	template<>
+	static inline float MaskUpToLowestBit<float>(const float value) throw() {
+		union {
+			float f;
+			uint32_t u;
+		};
+		f = value;
+		u = MaskUpToLowestBit<uint32_t>(u);
+		return f;
+	}
+
+	template<>
+	static inline double MaskUpToLowestBit<double>(const double value) throw() {
+		union {
+			double f;
+			uint64_t u;
+		};
+		f = value;
+		u = MaskUpToLowestBit<uint64_t>(u);
+		return f;
+	}
+
+	// MaskBits
+
+	template<class T>
+	static T MaskBits(const size_t count) throw();
+
+	template<>
+	static inline uint64_t MaskBits<uint64_t>(const size_t count) throw() {
+		return MaskUpToLowestBit<uint64_t>(1ull << static_cast<uint64_t>(count));
+	}
+
+	template<>
+	static uint32_t MaskBits<uint32_t>(const size_t count) throw() {
+		return MaskUpToLowestBit<uint64_t>(1u << static_cast<uint32_t>(count));
+	}
+
+	template<>
+	static inline uint16_t MaskBits<uint16_t>(const size_t count) throw() {
+		return static_cast<uint16_t>(MaskBits<uint32_t>(count));
+	}
+
+	template<>
+	static inline uint8_t MaskBits<uint8_t>(const size_t count) throw() {
+		return static_cast<uint8_t>(MaskBits<uint8_t>(count));
+	}
+
+	template<>
+	static inline int64_t MaskBits<int64_t>(const size_t count) throw() {
+		return MaskUpToLowestBit<int64_t>(1ll << static_cast<int64_t>(count));
+	}
+
+	template<>
+	static inline int32_t MaskBits<int32_t>(const size_t count) throw() {
+		return MaskUpToLowestBit<int32_t>(1 << static_cast<int32_t>(count));
+	}
+
+	template<>
+	static inline int16_t MaskBits<int16_t>(const size_t count) throw() {
+		union {
+			uint16_t u;
+			int16_t s;
+		};
+		u = MaskBits<uint16_t>(count);
+		return s;
+	}
+
+	template<>
+	static inline int8_t MaskBits<int8_t>(const size_t count) throw() {
+		union {
+			uint8_t u;
+			int8_t s;
+		};
+		u = MaskBits<uint8_t>(count);
+		return s;
+	}
+
+	template<>
+	static inline float MaskBits<float>(const size_t count) throw() {
+		union {
+			float f;
+			uint32_t u;
+		};
+		u = MaskBits<uint32_t>(count);
+		return f;
+	}
+
+	template<>
+	static inline double MaskBits<double>(const size_t count) throw() {
+		union {
+			double f;
+			uint64_t u;
+		};
+		u = MaskBits<uint64_t>(count);
+		return f;
+	}
 }
 
 #endif
