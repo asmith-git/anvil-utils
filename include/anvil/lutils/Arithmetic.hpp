@@ -1127,28 +1127,44 @@ namespace anvil {
 
 	template<>
 	static size_t CountLeadingZeros<uint32_t>(const uint32_t value) throw() {
-		// Based on implementation : https://en.wikipedia.org/wiki/Find_first_set#cite_ref-hackersdelight-clz_43-0
-		uint32_t x = value;
-		if (x == 0u) return 32u;
 		uint32_t n = 0u;
-		if ((x & 0xFFFF0000u) == 0) { n = 16u; x <<= 16u; }
-		if ((x & 0xFF000000u) == 0) { n += 8u; x <<= 8u; }
-		if ((x & 0xF0000000u) == 0) { n += 4u; x <<= 4u; }
-		if ((x & 0xC0000000u) == 0) { n += 2u; x <<= 2u; }
-		if ((x & 0x80000000u) == 0) { n += 1u; }
+#if ANVIL_CPU_ARCHITECUTE == ANVIL_CPU_X86 || ANVIL_CPU_ARCHITECUTE == ANVIL_CPU_X86_64
+		//! \bug Should check for LZCNT, BMI1 or ABM flags
+		if constexpr ((ASM_MINIMUM & ASM_SSE42) != 0ull) {
+			n = _lzcnt_u32(value);
+		} else
+#endif
+		{		// Based on implementation : https://en.wikipedia.org/wiki/Find_first_set#cite_ref-hackersdelight-clz_43-0
+			uint32_t x = value;
+			if (x == 0u) return 32u;
+			if ((x & 0xFFFF0000u) == 0) { n = 16u; x <<= 16u; }
+			if ((x & 0xFF000000u) == 0) { n += 8u; x <<= 8u; }
+			if ((x & 0xF0000000u) == 0) { n += 4u; x <<= 4u; }
+			if ((x & 0xC0000000u) == 0) { n += 2u; x <<= 2u; }
+			if ((x & 0x80000000u) == 0) { n += 1u; }
+		}
 		ANVIL_ASSUME(n <= 32u);
 		return n;
 	}
 
 	template<>
 	static size_t CountLeadingZeros<uint64_t>(const uint64_t value) throw() {
-		union {
-			uint64_t u64;
-			uint32_t u32[2u];
-		};
-		u64 = value;
-		size_t count = CountLeadingZeros<uint32_t>(u32[0u]);
-		if(count == 32u) count += CountLeadingZeros<uint32_t>(u32[1u]);
+		size_t count;
+#if ANVIL_CPU_ARCHITECUTE == ANVIL_CPU_X86_64
+		//! \bug Should check for LZCNT, BMI1 or ABM flags
+		if constexpr ((ASM_MINIMUM & ASM_SSE42) != 0ull) {
+			count = _lzcnt_u64(value);
+		} else
+#endif
+		{
+			union {
+				uint64_t u64;
+				uint32_t u32[2u];
+			};
+			u64 = value;
+			count = CountLeadingZeros<uint32_t>(u32[0u]);
+			if (count == 32u) count += CountLeadingZeros<uint32_t>(u32[1u]);
+		}
 		ANVIL_ASSUME(count <= 64u);
 		return count;
 	}
