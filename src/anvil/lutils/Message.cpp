@@ -72,15 +72,15 @@ namespace anvil { namespace lutils { namespace msg {
 		if (exception) std::rethrow_exception(exception);
 	}
 
-	void Queue::Produce(Producer& producer, Message* const msgs, const size_t count, const bool blocking) {
-		{
-			const Message* const end = msgs + count;
-			for (Message* m = msgs; m < end; ++m) {
-				m->id = _base_id++;
-				m->producer = &producer;
-			}
+	void Queue::Initialise(Producer& producer, Message* const msgs, const size_t count) {
+		const Message* const end = msgs + count;
+		for (Message* m = msgs; m < end; ++m) {
+			m->id = _base_id++;
+			m->producer = &producer;
 		}
+	}
 
+	void Queue::Produce(Message* const msgs, const size_t count, const bool blocking) {
 		if (blocking) {
 			// If the buffer guarantees ordering of messages
 			if (_in_order) {

@@ -65,7 +65,8 @@ namespace anvil { namespace lutils { namespace msg {
 		void Add(CommonBase&);
 		void Remove(CommonBase&);
 		void ProduceImplementation(Message* const msgs, const size_t count);
-		void Produce(Producer& producer, Message* const msgs, const size_t count, const bool blocking);
+		void Initialise(Producer& producer, Message* const msgs, const size_t count);
+		void Produce(Message* const msgs, const size_t count, const bool blocking);
 	public:
 		friend CommonBase;
 		friend Consumer;
@@ -94,7 +95,8 @@ namespace anvil { namespace lutils { namespace msg {
 		virtual void Cleanup(Message&) = 0;
 
 		void Produce(Message* const msgs, const size_t count, const bool blocking = true) {
-			_queue.Produce(*this, msgs, count, blocking);
+			_queue.Initialise(*this, msgs, count);
+			_queue.Produce(msgs, count, blocking);
 		}
 	public:
 		friend Queue;
