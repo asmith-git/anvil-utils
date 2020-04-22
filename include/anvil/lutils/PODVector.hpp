@@ -318,6 +318,24 @@ namespace anvil { namespace lutils {
 				return true;
 			}
 
+			inline void push_back_many_noreserve_nobounds(const void* src, const size_t count) throw() {
+				const size_t total_bytes = BYTES * count;
+				std::memcpy(_core.head, src, total_bytes);
+				_core.head = static_cast<int8_t*>(_core.head) + total_bytes;
+			}
+
+			bool push_back_many_noreserve(const void* src, const size_t count) throw() {
+				if (_core.size() + count > _core.capacity()) return false;
+				push_back_many_noreserve_nobounds(src, count);
+				return true;
+			}
+
+			bool push_back_many(const void* src, const size_t count) {
+				if (!reserve(_core.size() + 1u)) return false;
+				push_back_many_noreserve_nobounds(src, count);
+				return true;
+			}
+
 			void erase_nobounds(const void* begin, const void* end) {
 				const uint32_t count = static_cast<uint32_t>(static_cast<const int8_t*>(end) - static_cast<const int8_t*>(begin)) / BYTES;
 				void* new_head = static_cast<int8_t*>(_core.head) - (count * BYTES);
@@ -461,6 +479,24 @@ namespace anvil { namespace lutils {
 
 		inline bool push_back(const T& src) {
 			return push_back<0u>(src);
+		}
+
+		template<uint32_t optimisation_flags>
+		inline bool push_back_many(const T* src, const size_t count) {
+			if constexpr ((optimisation_flags & NO_MEMORY_RESERVE) != 0u) {
+				if constexpr ((optimisation_flags & NO_BOUNDARY_CHECKS) != 0u) {
+					_vector.push_back_many_noreserve_nobounds(src, count);
+					return true;
+				} else {
+					return _vector.push_back_many_noreserve(src, count);
+				}
+			} else {
+				return _vector.push_back_many(src, count);
+			}
+		}
+
+		inline bool push_back_many(const T* src, const size_t count) {
+			return push_back_many<0u>(src, count);
 		}
 
 		template<uint32_t optimisation_flags>
