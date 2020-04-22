@@ -56,7 +56,7 @@ namespace anvil { namespace lutils { namespace msg {
 	class Queue {
 	private:
 		std::atomic_uint32_t _recursion_counter;
-		IDGenerator<std::atomic_uint64_t, false, false> _id_generator;
+		IDGenerator<std::atomic_uint64_t, false, false, false> _id_generator;
 		std::recursive_mutex _consumer_mutex;
 		std::recursive_mutex _message_mutex;
 		PODVectorDynamic<Consumer*> _consumers;

@@ -15,15 +15,53 @@
 #ifndef ANVIL_LUTILS_ID_GENERATOR_HPP
 #define ANVIL_LUTILS_ID_GENERATOR_HPP
 
+#include <mutex>
 #include "anvil/lutils/PODVector.hpp"
 
 namespace anvil { namespace lutils {
-	template<class T, bool REUSE, bool RESERVE>
+
+	namespace detail {
+		template<bool ENABLED, class MUTEX>
+		class IDGeneratorMutex {
+		private:
+			MUTEX _lock;
+		public:
+			inline void lock() {
+				_lock.lock();
+			}
+
+			inline void unlock() {
+				_lock.unlock();
+			}
+
+			inline bool try_lock() {
+				return _lock.try_lock();
+			}
+		};
+		template<class MUTEX>
+		class IDGeneratorMutex<false, MUTEX> {
+		public:
+			inline void lock() {
+
+			}
+
+			inline void unlock() {
+
+			}
+
+			inline bool try_lock() {
+
+			}
+		};
+	}
+
+	template<class T, bool REUSE, bool RESERVE, bool USE_MUTEX>
 	class IDGenerator;
 
-	template<class T>
-	class IDGenerator<T, false, false> {
+	template<class T, bool USE_MUTEX>
+	class IDGenerator<T, false, false, USE_MUTEX> {
 	private:
+		detail::IDGeneratorMutex<USE_MUTEX, std::recursive_mutex> _lock;
 		T _base;
 	public:
 		IDGenerator() :
@@ -31,6 +69,7 @@ namespace anvil { namespace lutils {
 		{}
 
 		inline T Generate() {
+			std::lock_guard<decltype(_lock)> lock(_lock);
 			if (_base == std::numeric_limits<T>::max()) throw std::runtime_error("All IDs generated");
 			return _base++;
 		}
@@ -42,11 +81,24 @@ namespace anvil { namespace lutils {
 		inline bool Reserve(const T base, const size_t count) {
 			return false;
 		}
+
+		inline void lock() {
+			_lock.lock();
+		}
+
+		inline void unlock() {
+			_lock.unlock();
+		}
+
+		inline bool try_lock() {
+			return _lock.try_lock();
+		}
 	};
 
-	template<class T>
-	class IDGenerator<T, false, true> {
+	template<class T, bool USE_MUTEX>
+	class IDGenerator<T, false, true, USE_MUTEX> {
 	private:
+		detail::IDGeneratorMutex<USE_MUTEX, std::recursive_mutex> _lock;
 		PODVectorDynamic<std::pair<T, T>> _reserved_ranges;
 		T _base;
 	public:
@@ -55,6 +107,7 @@ namespace anvil { namespace lutils {
 		{}
 
 		T Generate() {
+			std::lock_guard<decltype(_lock)> lock(_lock);
 			if (_base == std::numeric_limits<T>::max()) {
 	ALL_GENERATED:
 				throw std::runtime_error("All IDs generated");
@@ -82,23 +135,37 @@ namespace anvil { namespace lutils {
 		}
 
 		inline bool Reserve(const T base, const size_t count) {
+			std::lock_guard<decltype(_lock)> lock(_lock);
 			//! \todo Check if base + count is outside the range of values that T can represent
 			_reserved_ranges.push_back({ base, base + static_cast<T>(count) });
 			return true;
 		}
+
+		inline void lock() {
+			_lock.lock();
+		}
+
+		inline void unlock() {
+			_lock.unlock();
+		}
+
+		inline bool try_lock() {
+			return _lock.try_lock();
+		}
 	};
 
-	template<class T, bool RESERVE>
-	class IDGenerator<T, true, RESERVE>{
+	template<class T, bool RESERVE, bool USE_MUTEX>
+	class IDGenerator<T, true, RESERVE, USE_MUTEX>{
 	private:
 		PODVectorDynamic<T> _free_ids;
-		IDGenerator<T, false, RESERVE> _generator;
+		IDGenerator<T, false, RESERVE, USE_MUTEX> _generator;
 	public:
 		IDGenerator() :
 			_generator()
 		{}
 
 		inline T Generate() {
+			std::lock_guard<decltype(_generator)> lock(_generator);
 			if (! _free_ids.empty()) {
 				T id;
 				_free_ids.pop_back<NO_BOUNDARY_CHECKS>(id);
@@ -108,11 +175,24 @@ namespace anvil { namespace lutils {
 		}
 
 		inline void Release(const T id) {
+			std::lock_guard<decltype(_generator)> lock(_generator);
 			_free_ids.push_back(id);
 		}
 
 		inline bool Reserve(const T base, const size_t count) {
 			return _generator.Reserve(base, count);
+		}
+
+		inline void lock() {
+			_generator.lock();
+		}
+
+		inline void unlock() {
+			_generator.unlock();
+		}
+
+		inline bool try_lock() {
+			return _generator.try_lock();
 		}
 	};
 }}
