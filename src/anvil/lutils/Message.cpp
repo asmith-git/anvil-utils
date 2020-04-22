@@ -9,7 +9,7 @@ namespace anvil { namespace lutils { namespace msg {
 	{}
 
 	Queue::~Queue() {
-
+		Flush();
 	}
 
 	void Queue::Add(CommonBase& base) {
