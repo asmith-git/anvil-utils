@@ -6,7 +6,6 @@ namespace anvil { namespace lutils { namespace msg {
 
 	Queue::Queue(const bool in_order) :
 		_recursion_counter(0u),
-		_base_id(0u),
 		_in_order(in_order)
 	{}
 
@@ -56,6 +55,7 @@ namespace anvil { namespace lutils { namespace msg {
 					if (m->cleanup_flag) {
 						try {
 							m->producer->Cleanup(*m);
+							_id_generator.Release(m->id);
 						} catch (...) {
 							exception = std::current_exception();
 						}
@@ -75,7 +75,7 @@ namespace anvil { namespace lutils { namespace msg {
 	void Queue::Initialise(Producer& producer, Message* const msgs, const size_t count) {
 		const Message* const end = msgs + count;
 		for (Message* m = msgs; m < end; ++m) {
-			m->id = _base_id++;
+			m->id = _id_generator.Generate();
 			m->producer = &producer;
 		}
 	}
