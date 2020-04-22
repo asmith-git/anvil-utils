@@ -29,24 +29,24 @@ namespace anvil { namespace msg {
 	}
 
 	void Queue::ForceProduce(Message* msgs, const size_t count) {
-		std::lock_guard<decltype(_consumer_mutex)> lock(_consumer_mutex);
-
-		const Message* const end = msgs + count;
-		for (Message* m = msgs; m < end; ++m) {
-			std::exception_ptr exception;
-			for (Consumer* c : _consumers) {
-				try {
-					c->Consume(*m);
-				} catch (...) {
-					exception = std::current_exception();
+		std::exception_ptr exception;
+		{
+			std::lock_guard<decltype(_consumer_mutex)> lock(_consumer_mutex);
+			const Message* const end = msgs + count;
+			for (Message* m = msgs; m < end; ++m) {
+				for (Consumer* c : _consumers) {
+					try {
+						c->Consume(*m);
+					} catch (...) {
+						exception = std::current_exception();
+					}
 				}
+
+				if (m->cleanup_flag) m->producer->Cleanup(*m);
 			}
-
-			if (m->cleanup_flag) m->producer->Cleanup(*m);
-
-			if (exception) std::rethrow_exception(exception);
 		}
 
+		if (exception) std::rethrow_exception(exception);
 	}
 
 	void Queue::Produce(Message& message, const bool blocking) {
