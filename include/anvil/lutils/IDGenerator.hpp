@@ -23,11 +23,12 @@ namespace anvil { namespace lutils {
 	template<class T>
 	class IDGenerator {
 	public:
+		typedef T type;
 		virtual ~IDGenerator() {}
 
-		virtual T Generate() = 0;
-		virtual void Release(const T id) = 0;
-		virtual bool Reserve(const T base, const size_t count) = 0;
+		virtual type Generate() = 0;
+		virtual void Release(const type id) = 0;
+		virtual bool Reserve(const type base, const size_t count) = 0;
 	};
 
 	template<class T>
@@ -105,11 +106,14 @@ namespace anvil { namespace lutils {
 		}
 	};
 
-	template<class T, class GENERATOR>
+	template<class GENERATOR>
 	class IDGeneratorReuseAdapter : public GENERATOR {
-	private:
-		PODVectorDynamic<T> _free_ids;
 	public:
+		typedef typename GENERATOR::type type;
+	private:
+		PODVectorDynamic<type> _free_ids;
+	public:
+
 		IDGeneratorReuseAdapter() :
 			GENERATOR()
 		{}
@@ -118,25 +122,27 @@ namespace anvil { namespace lutils {
 
 		}
 
-		T Generate() override {
+		type Generate() override {
 			if (! _free_ids.empty()) {
-				T id;
+				type id;
 				_free_ids.pop_back<NO_BOUNDARY_CHECKS>(id);
 				return id;
 			}
 			return GENERATOR::Generate();
 		}
 
-		void Release(const T id) override {
+		void Release(const type id) override {
 			_free_ids.push_back(id);
 		}
 	};
 
-	template<class T, class GENERATOR, class MUTEX>
+	template<class GENERATOR, class MUTEX>
 	class IDGeneratorMutexAdapter : public GENERATOR {
 	private:
 		MUTEX _mutex;
 	public:
+		typedef typename GENERATOR::type type;
+
 		IDGeneratorMutexAdapter() :
 			GENERATOR()
 		{}
@@ -145,17 +151,17 @@ namespace anvil { namespace lutils {
 
 		}
 
-		T Generate() override {
+		type Generate() override {
 			std::lock_guard<MUTEX> lock(_mutex);
 			return GENERATOR::Generate();
 		}
 
-		void Release(const T id) override {
+		void Release(const type id) override {
 			std::lock_guard<MUTEX> lock(_mutex);
 			GENERATOR::Release();
 		}
 
-		bool Reserve(const T base, const size_t count) override {
+		bool Reserve(const type base, const size_t count) override {
 			std::lock_guard<MUTEX> lock(_mutex);
 			return GENERATOR::Reserve(base, count);
 		}
@@ -177,12 +183,12 @@ namespace anvil { namespace lutils {
 
 		template<class T, bool RESERVE>
 		struct _IDGeneratorSelector<T, true, RESERVE, false> {
-			typedef IDGeneratorReuseAdapter<T, typename _IDGeneratorSelector<T, false, RESERVE, false>::type> type;
+			typedef IDGeneratorReuseAdapter<typename _IDGeneratorSelector<T, false, RESERVE, false>::type> type;
 		};
 
 		template<class T, bool REUSE, bool RESERVE>
 		struct _IDGeneratorSelector<T, REUSE, RESERVE, true> {
-			typedef IDGeneratorMutexAdapter<T, typename _IDGeneratorSelector<T, REUSE, RESERVE, false>::type, std::recursive_mutex> type;
+			typedef IDGeneratorMutexAdapter<typename _IDGeneratorSelector<T, REUSE, RESERVE, false>::type, std::recursive_mutex> type;
 		};
 	}
 
