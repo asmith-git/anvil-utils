@@ -38,6 +38,7 @@ namespace anvil { namespace lutils {
 				return _lock.try_lock();
 			}
 		};
+
 		template<class MUTEX>
 		class IDGeneratorMutex<false, MUTEX> {
 		public:
@@ -50,35 +51,46 @@ namespace anvil { namespace lutils {
 			}
 
 			inline bool try_lock() {
-
+				return true;
 			}
 		};
 	}
 
-	template<class T, bool REUSE, bool RESERVE, bool USE_MUTEX>
-	class IDGenerator;
+	template<class T>
+	class IDGenerator {
+	public:
+		virtual ~IDGenerator() {}
+
+		virtual T Generate() = 0;
+		virtual void Release(const T id) = 0;
+		virtual bool Reserve(const T base, const size_t count) = 0;
+	};
 
 	template<class T, bool USE_MUTEX>
-	class IDGenerator<T, false, false, USE_MUTEX> {
+	class IDGeneratorBasic : public IDGenerator<T> {
 	private:
 		detail::IDGeneratorMutex<USE_MUTEX, std::recursive_mutex> _lock;
 		T _base;
 	public:
-		IDGenerator() :
+		IDGeneratorBasic() :
 			_base(static_cast<T>(0))
 		{}
 
-		inline T Generate() {
+		virtual ~IDGeneratorBasic() {
+
+		}
+
+		T Generate() override {
 			std::lock_guard<decltype(_lock)> lock(_lock);
 			if (_base == std::numeric_limits<T>::max()) throw std::runtime_error("All IDs generated");
 			return _base++;
 		}
 
-		inline void Release(const T id) {
+		void Release(const T id) override {
 
 		}
 
-		inline bool Reserve(const T base, const size_t count) {
+		bool Reserve(const T base, const size_t count) override {
 			return false;
 		}
 
@@ -96,17 +108,21 @@ namespace anvil { namespace lutils {
 	};
 
 	template<class T, bool USE_MUTEX>
-	class IDGenerator<T, false, true, USE_MUTEX> {
+	class IDGeneratorBasicReserve : public IDGenerator<T> {
 	private:
 		detail::IDGeneratorMutex<USE_MUTEX, std::recursive_mutex> _lock;
 		PODVectorDynamic<std::pair<T, T>> _reserved_ranges;
 		T _base;
 	public:
-		IDGenerator() :
+		IDGeneratorBasicReserve() :
 			_base(static_cast<T>(0))
 		{}
 
-		T Generate() {
+		virtual ~IDGeneratorBasicReserve() {
+
+		}
+
+		T Generate() override {
 			std::lock_guard<decltype(_lock)> lock(_lock);
 			if (_base == std::numeric_limits<T>::max()) {
 	ALL_GENERATED:
@@ -130,11 +146,11 @@ namespace anvil { namespace lutils {
 			return _base++;
 		}
 
-		inline void Release(const T id) {
+		void Release(const T id) override {
 
 		}
 
-		inline bool Reserve(const T base, const size_t count) {
+		bool Reserve(const T base, const size_t count) override {
 			std::lock_guard<decltype(_lock)> lock(_lock);
 			//! \todo Check if base + count is outside the range of values that T can represent
 			_reserved_ranges.push_back({ base, base + static_cast<T>(count) });
@@ -154,47 +170,58 @@ namespace anvil { namespace lutils {
 		}
 	};
 
-	template<class T, bool RESERVE, bool USE_MUTEX>
-	class IDGenerator<T, true, RESERVE, USE_MUTEX>{
+	template<class T, class GENERATOR>
+	class IDGeneratorReuseAdapter : public GENERATOR {
 	private:
 		PODVectorDynamic<T> _free_ids;
-		IDGenerator<T, false, RESERVE, USE_MUTEX> _generator;
 	public:
-		IDGenerator() :
-			_generator()
+		IDGeneratorReuseAdapter() :
+			GENERATOR()
 		{}
 
-		inline T Generate() {
-			std::lock_guard<decltype(_generator)> lock(_generator);
+		virtual ~IDGeneratorReuseAdapter() {
+
+		}
+
+		T Generate() override {
+			std::lock_guard<GENERATOR> lock(*this);
 			if (! _free_ids.empty()) {
 				T id;
 				_free_ids.pop_back<NO_BOUNDARY_CHECKS>(id);
 				return id;
 			}
-			return _generator.Generate();
+			return GENERATOR::Generate();
 		}
 
-		inline void Release(const T id) {
-			std::lock_guard<decltype(_generator)> lock(_generator);
+		inline void Release(const T id) override {
+			std::lock_guard<GENERATOR> lock(*this);
 			_free_ids.push_back(id);
 		}
-
-		inline bool Reserve(const T base, const size_t count) {
-			return _generator.Reserve(base, count);
-		}
-
-		inline void lock() {
-			_generator.lock();
-		}
-
-		inline void unlock() {
-			_generator.unlock();
-		}
-
-		inline bool try_lock() {
-			return _generator.try_lock();
-		}
 	};
+
+	namespace detail {
+		template<class T, bool RESUSE, bool RESERVE, bool USE_MUTEX>
+		struct _IDGeneratorSelector;
+
+		template<class T, bool USE_MUTEX>
+		struct _IDGeneratorSelector<T, false, false, USE_MUTEX> {
+			typedef IDGeneratorBasic<T, USE_MUTEX> type;
+		};
+
+		template<class T, bool USE_MUTEX>
+		struct _IDGeneratorSelector<T, false, true, USE_MUTEX> {
+			typedef IDGeneratorBasicReserve<T, USE_MUTEX> type;
+		};
+
+		template<class T, bool RESERVE, bool USE_MUTEX>
+		struct _IDGeneratorSelector<T, true, RESERVE, USE_MUTEX> {
+			typedef IDGeneratorReuseAdapter<T, typename _IDGeneratorSelector<T, false, RESERVE, USE_MUTEX>::type> type;
+		};
+	}
+
+	template<class T, bool RESUSE, bool RESERVE, bool USE_MUTEX>
+	using IDGeneratorSelector = typename detail::_IDGeneratorSelector<T, RESUSE, RESERVE, USE_MUTEX>::type;
+
 }}
 
 #endif
