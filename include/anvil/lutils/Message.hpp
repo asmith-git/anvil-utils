@@ -18,6 +18,7 @@
 #include <cstdint>
 #include <vector>
 #include <mutex>
+#include <atomic>
 
 namespace anvil { namespace msg {
 
@@ -28,13 +29,16 @@ namespace anvil { namespace msg {
 
 	class Queue {
 	private:
-		uint64_t _base_id;
-		std::recursive_mutex _mutex;
+		std::atomic_uint64_t _base_id;
+		std::recursive_mutex _consumer_mutex;
+		std::recursive_mutex _message_mutex;
 		std::vector<Consumer*> _consumers;
+		std::vector<Message> _messages;
 
 		void Add(CommonBase&);
 		void Remove(CommonBase&);
-		void Produce(Message&);
+		void ForceProduce(Message* msgs, const size_t count);
+		void Produce(Message& msg, const bool blocking);
 	public:
 		friend CommonBase;
 		friend Consumer;
@@ -42,6 +46,8 @@ namespace anvil { namespace msg {
 
 		Queue();
 		~Queue();
+
+		void Flush();
 	};
 
 	enum : uint32_t {
@@ -84,9 +90,9 @@ namespace anvil { namespace msg {
 	protected:
 		virtual void Cleanup(Message&) = 0;
 
-		inline void Produce(Message& message) {
-			message.producer = this;
-			_queue.Produce(message);
+		inline void Produce(Message& msg, const bool blocking = true) {
+			msg.producer = this;
+			_queue.Produce(msg, blocking);
 		}
 	public:
 		friend Queue;
