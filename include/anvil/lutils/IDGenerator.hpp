@@ -99,7 +99,7 @@ namespace anvil { namespace lutils {
 		{}
 
 		inline T Generate() {
-			if (_free_ids.size() > 0u) {
+			if (! _free_ids.empty()) {
 				T id;
 				_free_ids.pop_back<NO_BOUNDARY_CHECKS>(id);
 				return id;
