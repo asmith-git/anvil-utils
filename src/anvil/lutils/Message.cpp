@@ -28,36 +28,62 @@ namespace anvil { namespace lutils { namespace msg {
 		}
 	}
 
-	void Queue::ForceProduce(Message* msgs, const size_t count) {
+	void Queue::ProduceImplementation(Message* msgs, const size_t count) {
+		if (count == 0u) return;
+
 		std::exception_ptr exception;
+		// Consume messages
 		{
 			std::lock_guard<decltype(_consumer_mutex)> lock(_consumer_mutex);
+			for (Consumer* c : _consumers) {
+				try {
+					c->Consume(msgs, count);
+				} catch (...) {
+					exception = std::current_exception();
+				}
+			}
+
+		}
+
+		// Cleanup messages
+		{
 			const Message* const end = msgs + count;
 			for (Message* m = msgs; m < end; ++m) {
-				for (Consumer* c : _consumers) {
+				if (m->cleanup_flag) {
 					try {
-						c->Consume(*m);
+						m->producer->Cleanup(*m);
 					} catch (...) {
 						exception = std::current_exception();
 					}
 				}
-
-				if (m->cleanup_flag) m->producer->Cleanup(*m);
 			}
 		}
 
+		// If an exception was caught then throw it
 		if (exception) std::rethrow_exception(exception);
 	}
 
-	void Queue::Produce(Message& message, const bool blocking) {
-		message.id = _base_id++;
+	void Queue::Produce(Producer& producer, Message* const msgs, const size_t count, const bool blocking) {
+		{
+			const Message* const end = msgs + count;
+			for (Message* m = msgs; m < end; ++m) {
+				m->id = _base_id++;
+				m->producer = &producer;
+			}
+		}
 
 		if (blocking) {
 			Flush();
-			ForceProduce(&message, 1u);
+			ProduceImplementation(msgs, count);
 		} else {
 			std::lock_guard<decltype(_message_mutex)> lock(_message_mutex);
-			_messages.push_back(message);
+			_messages.reserve(_messages.size() + count);
+			{
+				const Message* const end = msgs + count;
+				for (Message* m = msgs; m < end; ++m) {
+					_messages.push_back(*m);
+				}
+			}
 		}
 	}
 
@@ -69,7 +95,7 @@ namespace anvil { namespace lutils { namespace msg {
 			std::lock_guard<decltype(_message_mutex)> lock(_message_mutex);
 			messages.swap(_messages);
 		}
-		ForceProduce(messages.data(), messages.size());
+		ProduceImplementation(messages.data(), messages.size());
 	}
 
 	// CommonBase
