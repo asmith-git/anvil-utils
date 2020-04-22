@@ -100,7 +100,7 @@ namespace anvil { namespace lutils { namespace msg {
 	NON_BLOCKING:
 			// Push to the queue of tasks waiting to be flushed
 			std::lock_guard<decltype(_message_mutex)> lock(_message_mutex);
-			_messages.push_back_many(msgs, count);
+			if(!_messages.push_back_many(msgs, count)) throw std::runtime_error("Failed to push messages to buffer");
 		}
 	}
 
