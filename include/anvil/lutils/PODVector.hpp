@@ -331,7 +331,7 @@ namespace anvil { namespace lutils {
 			}
 
 			bool push_back_many(const void* src, const size_t count) {
-				if (!reserve(_core.size() + 1u)) return false;
+				if (!reserve(_core.size() + count)) return false;
 				push_back_many_noreserve_nobounds(src, count);
 				return true;
 			}
