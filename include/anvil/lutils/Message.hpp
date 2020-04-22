@@ -19,21 +19,46 @@
 #include <vector>
 #include <mutex>
 #include <atomic>
+#include "anvil/lutils/PODVector.hpp"
 
-namespace anvil { namespace msg {
+namespace anvil { namespace lutils { namespace msg {
 
 	class Producer;
 	class Consumer;
 	class CommonBase;
-	struct Message;
+
+	enum : uint32_t {
+		MSG_NULL = 0u						//!< Default message type
+	};
+
+	struct Message {
+		Producer* producer;					//!< The msg::Producer that created this message
+		void* data;							//!< Additional data that the producer appended to this message
+		uint64_t id;						//!< An ID number unique to each message instance
+		uint32_t type;						//!< Identifies which type of message this is
+		uint16_t sub_type;					//!< Indentifies a message subtype
+		struct {
+			uint16_t cleanup_flag : 1;		//!< Set to true if the producer should cleanup data after all consumers have acknowledged the message
+			uint16_t unused_flags : 15;		//!< Memory reserved for future use
+		};
+
+		Message() :
+			producer(nullptr),
+			data(nullptr),
+			id(0u),
+			type(MSG_NULL),
+			cleanup_flag(0u),
+			unused_flags(0u)
+		{}
+	};
 
 	class Queue {
 	private:
 		std::atomic_uint64_t _base_id;
 		std::recursive_mutex _consumer_mutex;
 		std::recursive_mutex _message_mutex;
-		std::vector<Consumer*> _consumers;
-		std::vector<Message> _messages;
+		PODVectorDynamic<Consumer*> _consumers;
+		PODVectorDynamic<Message> _messages;
 
 		void Add(CommonBase&);
 		void Remove(CommonBase&);
@@ -48,30 +73,6 @@ namespace anvil { namespace msg {
 		~Queue();
 
 		void Flush();
-	};
-
-	enum : uint32_t {
-		MSG_NULL = 0u						//!< Default message type
-	};
-
-	struct Message {
-		Producer* producer;					//!< The msg::Producer that created this message
-		void* data;							//!< Additional data that the producer appended to this message
-		uint64_t id;						//!< An ID number unique to each message instance
-		uint32_t type;						//!< Identifies which type of message this is
-		struct {
-			uint32_t cleanup_flag : 1;		//!< Set to true if the producer should cleanup data after all consumers have acknowledged the message
-			uint32_t unused_flags : 31;		//!< Memory reserved for future use
-		};
-
-		Message() :
-			producer(nullptr),
-			data(nullptr),
-			id(0u),
-			type(MSG_NULL),
-			cleanup_flag(0u),
-			unused_flags(0u)
-		{}
 	};
 
 	class CommonBase {
@@ -108,6 +109,6 @@ namespace anvil { namespace msg {
 		Consumer(Queue&);
 		virtual ~Consumer();
 	};
-}}
+}}}
 
 #endif

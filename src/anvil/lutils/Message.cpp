@@ -1,7 +1,7 @@
 #include "anvil/lutils/Message.hpp"
 
 
-namespace anvil { namespace msg {
+namespace anvil { namespace lutils { namespace msg {
 	// Queue
 
 	Queue::Queue() :
@@ -64,7 +64,7 @@ namespace anvil { namespace msg {
 	void Queue::Flush() {
 		if (_messages.empty()) return;
 
-		std::vector<Message> messages;
+		PODVectorDynamic<Message> messages;
 		{
 			std::lock_guard<decltype(_message_mutex)> lock(_message_mutex);
 			messages.swap(_messages);
@@ -103,4 +103,4 @@ namespace anvil { namespace msg {
 	Consumer::~Consumer() {
 
 	}
-}}
+}}}
