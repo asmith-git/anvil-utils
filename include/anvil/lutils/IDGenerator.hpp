@@ -193,7 +193,7 @@ namespace anvil { namespace lutils {
 			return GENERATOR::Generate();
 		}
 
-		inline void Release(const T id) override {
+		void Release(const T id) override {
 			std::lock_guard<GENERATOR> lock(*this);
 			_free_ids.push_back(id);
 		}
