@@ -32,16 +32,17 @@ namespace anvil { namespace lutils { namespace experimental {
 	template<Operator OP, class T, const uint64_t MASK = DefaultMask<T>::value, InstructionSets IS = MinInstructionSet<T>::value>
 	struct Operator2 {
 	private:
-		Blend<T, MASK, IS> _blend;
+		const Blend<T, MASK, IS> _blend;
+		const Operator2Primative<OP, T, IS> _op;
 	public:
 		inline T operator()(const T src, const T lhs, const T rhs) const throw() {
 			enum : uint64_t { MASK_BOUND = MASK & DefaultMask<T>::value };
 			if constexpr (MASK_BOUND == 0u) {
 				return src;
 			} else if (MASK_BOUND == DefaultMask<T>::value) {
-				return Operator2Primative<OP, T, IS>()(lhs, rhs);
+				return _op(lhs, rhs);
 			} else {
-				return _blend(src, Operator2Primative<OP, T, IS>()(lhs, rhs));
+				return _blend(src, _op(lhs, rhs));
 			}
 		}
 	};
@@ -49,14 +50,16 @@ namespace anvil { namespace lutils { namespace experimental {
 	template<Operator OP, class T, InstructionSets IS = MinInstructionSet<T>::value>
 	struct Operator2RT {
 	private:
-		BlendRT<T, IS> _blend;
+		const BlendRT<T, IS> _blend;
+		const Operator2Primative<OP, T, IS> _op;
 	public:
 		Operator2RT(const uint64_t mask) :
-			_blend(mask)
+			_blend(mask),
+			_op()
 		{}
 
 		inline T operator()(const T src, const T lhs, const T rhs) const throw() {
-			return _blend(src, Operator2Primative<OP, T, IS>()(lhs, rhs));
+			return _blend(src, _op(lhs, rhs));
 		}
 	};
 

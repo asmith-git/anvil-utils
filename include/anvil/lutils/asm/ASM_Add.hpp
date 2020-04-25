@@ -33,7 +33,7 @@ namespace anvil { namespace lutils { namespace experimental {
 
 	template<InstructionSets IS>
 	struct Operator2Primative<OPERATOR_ADD, float, IS> {
-		inline float operator()(const float lhs, const float rhs) {
+		inline float operator()(const float lhs, const float rhs) const throw() {
 			return lhs + rhs;
 		}
 	};
@@ -45,7 +45,7 @@ namespace anvil { namespace lutils { namespace experimental {
 
 	template<InstructionSets IS>
 	struct Operator2Primative<OPERATOR_ADD, __m128, IS> {
-		inline __m128 operator()(const __m128 lhs, const __m128 rhs) {
+		inline __m128 operator()(const __m128 lhs, const __m128 rhs) const throw() {
 			return _mm_add_ps(lhs, rhs);
 		}
 	};
