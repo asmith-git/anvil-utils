@@ -237,6 +237,55 @@ namespace anvil { namespace lutils { namespace experimental {
 				return _mm_blend_ps(src, other, MASK2);
 			}
 		};
+
+		template<InstructionSets IS, bool AVX512 = (IS & ANVIL_AVX512F) != 0ull>
+		struct BlendRTF32SSE;
+
+		template<InstructionSets IS>
+		struct BlendRTF32SSE<IS, false> {
+		private:
+			const __m128 _mask;
+
+			static inline __m128 GeneratorMask(const uint64_t mask) {
+				int32_t tmp[4u];
+				MaskHelperRT32<4u>()(tmp, mask);
+				return _mm_loadu_ps(reinterpret_cast<float*>(tmp));
+			}
+
+			inline __m128 sse(const __m128 src, const __m128 other) const throw() {
+				return _mm_or_ps(_mm_andnot_ps(_mask, src), _mm_and_ps(_mask, other));
+			}
+
+			inline __m128 sse41(const __m128 src, const __m128 other) const throw() {
+				return _mm_blendv_ps(src, other, _mask);
+			}
+		public:
+			BlendRTF32SSE(const uint64_t mask) :
+				_mask(GeneratorMask(mask))
+			{}
+
+			inline __m128 operator()(const __m128 src, const __m128 other) const throw() {
+				if constexpr (UsingSSE41(IS)) {
+					return sse41(src, other);
+				} else {
+					return sse(src, other);
+				}
+			}
+		};
+
+		template<InstructionSets IS>
+		struct BlendRTF32SSE<IS, true> {
+		private:
+			const __mmask8 _mask;
+		public:
+			BlendRTF32SSE(const uint64_t mask) :
+				_mask(static_cast<__mmask8>(mask))
+			{}
+
+			inline __m128 operator()(const __m128 src, const __m128 other) const throw() {
+				return _mm_mask_blend_ps(_mask, src, other);
+			}
+		};
 	}
 #endif
 	
@@ -264,32 +313,14 @@ namespace anvil { namespace lutils { namespace experimental {
 	template<InstructionSets IS>
 	struct BlendRT<__m128, IS> {
 	private:
-		const __m128 _mask;
-
-		static inline __m128 GeneratorMask(const uint64_t mask) {
-			int32_t tmp[4u];
-			detail::MaskHelperRT32<4u>()(tmp, mask);
-			return _mm_loadu_ps(reinterpret_cast<float*>(tmp));
-		}
-
-		inline __m128 sse(const __m128 src, const __m128 other) const throw() {
-			return _mm_or_ps(_mm_andnot_ps(_mask, src), _mm_and_ps(_mask, other));
-		}
-
-		inline __m128 sse41(const __m128 src, const __m128 other) const throw() {
-			return _mm_blendv_ps(src, other, _mask);
-		}
+		const detail::BlendRTF32SSE<IS> _blend;
 	public:
 		BlendRT(const uint64_t mask) :
-			_mask(GeneratorMask(mask))
+			_blend(mask)
 		{}
 
 		inline __m128 operator()(const __m128 src, const __m128 other) const throw() {
-			if constexpr (detail::UsingSSE41(IS)) {
-				return sse41(src, other);
-			} else {
-				return sse(src, other);
-			}
+			return _blend(src, other);
 		}
 	};
 
