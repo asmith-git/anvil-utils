@@ -17,161 +17,24 @@
 
 #include "anvil/lutils/asm/ASM_Base.hpp"
 #include "anvil/lutils/asm/ASM_Blend.hpp"
+#include "anvil/lutils/asm/ASM_Operator2.hpp"
 
 namespace anvil { namespace lutils { namespace experimental {
 
-	// Default Implementations
-	template<class T, InstructionSets IS = MinInstructionSet<T>::value>
-	struct AddRT;
+	// Typedefs
 
 	template<const uint64_t MASK, class T, InstructionSets IS = MinInstructionSet<T>::value>
-	struct Add {
-	private:
-		const AddRT<T, IS> _add;
-	public:
-		Add() :
-			_add(MASK)
-		{}
+	using Add = Operator2<OPERATOR_ADD, MASK, T, IS>;
 
-		inline T operator()(const T src, const T lhs, const T rhs) const throw() {
-			return _add(src, lhs, rhs);
-		}
-	};
-
-	template<class T, const uint64_t MASK, InstructionSets IS>
-	struct Add<MASK, std::pair<T, T>, IS> {
-	private:
-		enum : uint64_t { MASK2 = MASK >> VectorLength<T>::value };
-		const Add<MASK2, T, IS> _lhs;
-		const Add<MASK2, T, IS> _rhs;
-	public:
-		inline std::pair<T, T> operator()(const std::pair<T, T>& src, const std::pair<T, T>& lhs, const std::pair<T, T>& rhs) const throw() {
-			return {
-				_lhs(src.first, lhs.first, rhs.first),
-				_rhs(src.second, lhs.second, rhs.second)
-			};
-		}
-	};
-
-	template<class T, InstructionSets IS>
-	struct AddRT<std::pair<T, T>, IS> {
-	private:
-		const AddRT<T, IS> _lhs;
-		const AddRT<T, IS> _rhs;
-	public:
-		AddRT(uint64_t mask) :
-			_lhs(mask),
-			_rhs(mask >> VectorLength<T>::value)
-		{}
-
-		inline std::pair<T, T> operator()(const std::pair<T, T>& src, const std::pair<T, T>& lhs, const std::pair<T, T>& rhs) const throw() {
-			return {
-				_lhs(src.first, lhs.first, rhs.first),
-				_rhs(src.second, lhs.second, rhs.second)
-			};
-		}
-	};
-
-	template<class T, size_t S, const uint64_t MASK, InstructionSets IS>
-	struct Add<MASK, std::array<T, S>, IS> {
-	private:
-		template<size_t I>
-		static inline void Execute(const std::array<T, S>& src, const std::array<T, S>& lhs, const std::array<T, S>& rhs, std::array<T, S>& out) throw() {
-			enum : uint64_t { MASK2 = MASK >> (VectorLength<T>::value * I) };
-			out[I] = Add<MASK2, T, IS>()(src[I], lhs[I], rhs[I]);
-			Execute<I + 1u>(src, lhs, rhs, out);
-		}
-
-		template<>
-		static inline void Execute<S>(const std::array<T, S>& src, const std::array<T, S>& lhs, const std::array<T, S>& rhs, std::array<T, S>& out) throw() {
-			// Do nothing
-		}
-	public:
-		std::array<T, S> operator()(const std::array<T, S>& src, const std::array<T, S>& lhs, const std::array<T, S>& rhs) const throw() {
-			std::array<T, S> tmp;
-			Execute<0u>(src, lhs, rhs, tmp);
-			return tmp;
-		}
-	};
-
-	template<class T, size_t S, InstructionSets IS>
-	struct AddRT<std::array<T, S>, IS> {
-	private:
-		enum {
-			IS_CPP_PRIMATIVE = std::is_integral<T>::value || std::is_floating_point<T>::value
-		};
-
-		typedef AddRT<T, IS> AddFn;
-		union {
-			uint8_t _adds[IS_CPP_PRIMATIVE ? 1u : sizeof(AddFn) * S];
-			uint64_t _mask;
-		};
-	public:
-		AddRT(uint64_t mask) {
-			if constexpr (IS_CPP_PRIMATIVE) {
-				_mask = mask;
-			} else {
-				AddFn* const blends = reinterpret_cast<AddFn*>(_adds);
-				for (size_t i = 0u; i < S; ++i) {
-					new(blends + i) AddFn(mask);
-					mask >>= VectorLength<T>::value;
-				}
-			}
-		}
-
-		~AddRT() {
-			if constexpr(! (std::is_trivially_destructible<AddFn>::value || IS_CPP_PRIMATIVE)) {
-				AddFn* const blends = reinterpret_cast<AddFn*>(_adds);
-				for (size_t i = 0u; i < S; ++i) {
-					blends[i].~AddRT();
-				}
-			}
-		}
-
-		std::array<T, S> operator()(const std::array<T, S>& src, const std::array<T, S>& lhs, const std::array<T, S>& rhs) const throw() {
-			std::array<T, S> tmp;
-			if constexpr (IS_CPP_PRIMATIVE) {
-				uint64_t mask = _mask;
-				for (size_t i = 0u; i < S; ++i) {
-					tmp[i] = AddFn(mask)(src[i], lhs[i], rhs[i]);
-					mask >>= VectorLength<T>::value;
-				}
-			} else {
-				const AddFn* const blends = reinterpret_cast<const AddFn*>(_adds);
-				for (size_t i = 0u; i < S; ++i) {
-					tmp[i] = blends[i](src[i], lhs[i], rhs[i]);
-				}
-			}
-			return tmp;
-		}
-	};
+	template<class T, InstructionSets IS = MinInstructionSet<T>::value>
+	using AddRT = Operator2RT<OPERATOR_ADD, T, IS>;
 
 	// Primative Implementations
 
-	template<const uint64_t MASK, InstructionSets IS>
-	struct Add<MASK, float, IS> {
-		inline float operator()(const float src, const float lhs, const float rhs) const throw() {
-			enum : uint64_t { MASK_BOUND = MASK & 1ull };
-
-			if constexpr (MASK_BOUND == 0u) {
-				return src;
-			} else {
-				return lhs + rhs;
-			}
-		}
-	};
-
 	template<InstructionSets IS>
-	struct AddRT<float, IS> {
-	private:
-		const bool _condition;
-	public:
-		AddRT(uint64_t mask) :
-			_condition((mask & 1ull) == 0u)
-		{}
-
-		inline float operator()(const float src, const float lhs, const float rhs) const throw() {
-			return _condition ? src : lhs + rhs;
+	struct Operator2Primative<OPERATOR_ADD, float, IS> {
+		inline float operator()(const float lhs, const float rhs) {
+			return lhs + rhs;
 		}
 	};
 
@@ -180,29 +43,13 @@ namespace anvil { namespace lutils { namespace experimental {
 #if ANVIL_EXPERIMENTAL_X86
 	//! \todo Optimise for AVX512
 
-	template<const uint64_t MASK, InstructionSets IS>
-	struct Add<MASK, __m128, IS> {
-	private:
-		Blend<MASK, __m128, IS> _blend;
-	public:
-		inline __m128 operator()(const __m128 src, const __m128 lhs, const __m128 rhs) const throw() {
-			return _blend(src, _mm_add_ps(lhs, rhs));
-		}
-	};
-
 	template<InstructionSets IS>
-	struct AddRT<__m128, IS> {
-	private:
-		BlendRT<__m128, IS> _blend;
-	public:
-		AddRT(uint64_t mask) :
-			_blend(mask)
-		{}
-
-		inline __m128 operator()(const __m128 src, const __m128 lhs, const __m128 rhs) const throw() {
-			return _blend(src, _mm_add_ps(lhs, rhs));
+	struct Operator2Primative<OPERATOR_ADD, __m128, IS> {
+		inline __m128 operator()(const __m128 lhs, const __m128 rhs) {
+			return _mm_add_ps(lhs, rhs);
 		}
 	};
+
 #endif
 
 }}}
