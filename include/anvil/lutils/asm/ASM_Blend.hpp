@@ -93,19 +93,30 @@ namespace anvil { namespace lutils { namespace experimental {
 	template<class T, size_t S, InstructionSets IS>
 	struct BlendRT<std::array<T, S>, IS> {
 	private:
+		enum {
+			IS_CPP_PRIMATIVE = std::is_integral<T>::value || std::is_floating_point<T>::value
+		};
+
 		typedef BlendRT<T, IS> BlendFn;
-		uint8_t _blends[sizeof(BlendFn) * S];
+		union {
+			uint8_t _blends[IS_CPP_PRIMATIVE ? 1u : sizeof(BlendFn) * S];
+			uint64_t _mask;
+		};
 	public:
 		BlendRT(uint64_t mask) {
-			BlendFn* const blends = reinterpret_cast<BlendFn*>(_blends);
-			for (size_t i = 0u; i < S; ++i) {
-				new(blends + i) BlendFn(mask);
-				mask >>= VectorLength<T>::value;
+			if constexpr (IS_CPP_PRIMATIVE) {
+				_mask = mask;
+			} else {
+				BlendFn* const blends = reinterpret_cast<BlendFn*>(_blends);
+				for (size_t i = 0u; i < S; ++i) {
+					new(blends + i) BlendFn(mask);
+					mask >>= VectorLength<T>::value;
+				}
 			}
 		}
 
 		~BlendRT() {
-			if constexpr(! std::is_trivially_destructible<BlendFn>::value) {
+			if constexpr(! (std::is_trivially_destructible<BlendFn>::value || IS_CPP_PRIMATIVE)) {
 				BlendFn* const blends = reinterpret_cast<BlendFn*>(_blends);
 				for (size_t i = 0u; i < S; ++i) {
 					blends[i].~BlendRT();
@@ -114,10 +125,18 @@ namespace anvil { namespace lutils { namespace experimental {
 		}
 
 		std::array<T, S> operator()(const std::array<T, S>& src, const std::array<T, S>& other) const throw() {
-			const BlendFn* const blends = reinterpret_cast<const BlendFn*>(_blends);
 			std::array<T, S> tmp;
-			for (size_t i = 0u; i < S; ++i) {
-				tmp[i] = blends[i](src[i], other[i]);
+			if constexpr (IS_CPP_PRIMATIVE) {
+				uint64_t mask = _mask;
+				for (size_t i = 0u; i < S; ++i) {
+					tmp[i] = BlendFn(mask)(src[i], other[i]);
+					mask >>= VectorLength<T>::value;
+				}
+			} else {
+				const BlendFn* const blends = reinterpret_cast<const BlendFn*>(_blends);
+				for (size_t i = 0u; i < S; ++i) {
+					tmp[i] = blends[i](src[i], other[i]);
+				}
 			}
 			return tmp;
 		}
@@ -141,14 +160,14 @@ namespace anvil { namespace lutils { namespace experimental {
 	template<InstructionSets IS>
 	struct BlendRT<float, IS> {
 	private:
-		const uint64_t _mask;
+		const bool _condition;
 	public:
 		BlendRT(uint64_t mask) :
-			_mask(mask)
+			_condition((mask & 1ull) == 0u)
 		{}
 
 		inline float operator()(const float src, const float other) const throw() {
-			return (_mask & 1ull) == 0u ? src : other;
+			return _condition ? src : other;
 		}
 	};
 
