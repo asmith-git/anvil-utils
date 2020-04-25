@@ -33,6 +33,11 @@ namespace anvil { namespace lutils { namespace experimental {
 
 	template<InstructionSets IS>
 	struct Operator2Primative<OPERATOR_ADD, float, IS> {
+		enum { 
+			optimised_blend_ct = false,
+			optimised_blend_rt = false
+		};
+
 		inline float operator()(const float lhs, const float rhs) const throw() {
 			return lhs + rhs;
 		}
@@ -41,12 +46,25 @@ namespace anvil { namespace lutils { namespace experimental {
 	// x86 Implementation
 
 #if ANVIL_EXPERIMENTAL_X86
-	//! \todo Optimise for AVX512
 
 	template<InstructionSets IS>
 	struct Operator2Primative<OPERATOR_ADD, __m128, IS> {
+		enum {
+			optimised_blend_ct = (IS & ANVIL_AVX512VL) != 0ull,
+			optimised_blend_rt = (IS & ANVIL_AVX512VL) != 0ull
+		};
+
 		inline __m128 operator()(const __m128 lhs, const __m128 rhs) const throw() {
 			return _mm_add_ps(lhs, rhs);
+		}
+
+		template<uint64_t MASK>
+		inline __m128 OptimisedBlendCT(const __m128 src, const __m128 lhs, const __m128 rhs) const throw() {
+			return _mm_mask_add_ps(src, static_cast<__mmask8>(MASK), lhs, rhs);
+		}
+
+		inline __m128 OptimisedBlendRT(const __m128 src, const __m128 lhs, const __m128 rhs, const uint64_t mask) const throw() {
+			return _mm_mask_add_ps(src, static_cast<__mmask8>(mask), lhs, rhs);
 		}
 	};
 

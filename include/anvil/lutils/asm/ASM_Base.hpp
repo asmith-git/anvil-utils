@@ -130,7 +130,8 @@ namespace anvil { namespace lutils { namespace experimental {
 		ANVIL_AVX =				1ull << 6ull,
 		ANVIL_AVX2 =			1ull << 7ull,
 		ANVIL_FMA3 =			1ull << 8ull,
-		ANVIL_AVX512F =			1ull << 9ull
+		ANVIL_AVX512F =			1ull << 9ull,
+		ANVIL_AVX512VL =		1ull << 10ull
 	};
 
 
