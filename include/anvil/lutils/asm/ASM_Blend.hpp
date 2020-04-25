@@ -236,7 +236,16 @@ namespace anvil { namespace lutils { namespace experimental {
 		const detail::BlendF32SSE<MASK, IS> _blend;
 	public:
 		inline __m128 operator()(const __m128 src, const __m128 other) const throw() {
-			return _blend(src, other);
+			enum : uint64_t { MASK_BOUND = MASK & DefaultMask<__m128>::value };
+			if constexpr (MASK_BOUND == 0ull) {
+				return src;
+			} else if constexpr (MASK_BOUND == DefaultMask<__m128>::value) {
+				return other;
+			} else if constexpr (MASK_BOUND == 1ull) {
+				return _mm_move_ss(src, other);
+			} else {
+				return _blend(src, other);
+			}
 		}
 	};
 
