@@ -29,44 +29,96 @@ namespace anvil { namespace lutils { namespace experimental {
 	template<Operator OP, class T, InstructionSets IS = MinInstructionSet<T>::value>
 	struct Operator2Primative;
 
+	namespace detail {
+		template<class OP, class T, uint64_t MASK, InstructionSets IS, bool OPTIMISED = OP::optimised_blend_ct>
+		struct Operator2_;
+
+		template<class OP, class T, uint64_t MASK, InstructionSets IS>
+		struct Operator2_<OP, T, MASK, IS, false> {
+		private:
+			const Blend<T, MASK, IS> _blend;
+		public:
+			const OP op;
+
+			inline T operator()(const T src, const T lhs, const T rhs) const throw() {
+				return _blend(src, op(lhs, rhs));
+			}
+		};
+
+		template<class OP, class T, uint64_t MASK, InstructionSets IS>
+		struct Operator2_<OP, T, MASK, IS, true> {
+			const OP op;
+
+			inline T operator()(const T src, const T lhs, const T rhs) const throw() {
+				return op.OptimisedBlendCT<MASK>(src, lhs, rhs);
+			}
+		};
+	}
+
 	template<Operator OP, class T, const uint64_t MASK = DefaultMask<T>::value, InstructionSets IS = MinInstructionSet<T>::value>
 	struct Operator2 {
 	private:
-		const Blend<T, MASK, IS> _blend;
-		const Operator2Primative<OP, T, IS> _op;
+		detail::Operator2_<Operator2Primative<OP, T, IS>, T, MASK, IS> _op;
 	public:
 		inline T operator()(const T src, const T lhs, const T rhs) const throw() {
 			enum : uint64_t { MASK_BOUND = MASK & DefaultMask<T>::value };
 			if constexpr (MASK_BOUND == 0u) {
 				return src;
 			} else if constexpr (MASK_BOUND == DefaultMask<T>::value) {
-				return _op(lhs, rhs);
-			} else if constexpr(Operator2Primative<OP, T, IS>::optimised_blend_ct) {
-				return _op.OptimisedBlendCT<MASK_BOUND>(src, lhs, rhs);
+				return _op.op(lhs, rhs);
 			} else {
-				return _blend(src, _op(lhs, rhs));
+				return _op(src, lhs, rhs);
 			}
+
 		}
 	};
+
+	namespace detail {
+		template<class OP, class T, InstructionSets IS, bool OPTIMISED = OP::optimised_blend_rt>
+		struct Operator2RT_;
+
+		template<class OP, class T, InstructionSets IS>
+		struct Operator2RT_<OP, T, IS, false> {
+		private:
+			const BlendRT<T, IS> _blend;
+			const OP _op;
+		public:
+			Operator2RT_(const uint64_t mask) :
+				_blend(mask)
+			{}
+
+			inline T operator()(const T src, const T lhs, const T rhs) const throw() {
+				return _blend(src, _op(lhs, rhs));
+			}
+		};
+
+		template<class OP, class T, InstructionSets IS>
+		struct Operator2RT_<OP, T, IS, true> {
+		private:
+			const OP _op;
+			const uint64_t _mask;
+		public:
+			Operator2RT_(const uint64_t mask) :
+				_mask(mask)
+			{}
+
+			inline T operator()(const T src, const T lhs, const T rhs) const throw() {
+				return _op.OptimisedBlendRT(src, lhs, rhs, _mask);
+			}
+		};
+	}
 
 	template<Operator OP, class T, InstructionSets IS = MinInstructionSet<T>::value>
 	struct Operator2RT {
 	private:
-		const BlendRT<T, IS> _blend;
-		const Operator2Primative<OP, T, IS> _op;
-		const uint64_t _mask;
+		detail::Operator2RT_<Operator2Primative<OP, T, IS>, T, IS> _op;
 	public:
 		Operator2RT(const uint64_t mask) :
-			_blend(mask),
-			_mask(mask)
+			_op(mask)
 		{}
 
 		inline T operator()(const T src, const T lhs, const T rhs) const throw() {
-			if constexpr(Operator2Primative<OP, T, IS>::optimised_blend_rt) {
-				return _op.OptimisedBlendRT(src, lhs, rhs, _mask);
-			} else {
-				return _blend(src, _op(lhs, rhs));
-			}
+			return _op(src, lhs, rhs);
 		}
 	};
 
