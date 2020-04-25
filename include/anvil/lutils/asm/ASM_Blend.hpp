@@ -180,6 +180,9 @@ namespace anvil { namespace lutils { namespace experimental {
 		template<uint64_t MASK, size_t S>
 		struct MaskHelper32;
 
+		template<size_t S>
+		struct MaskHelperRT32;
+
 		template<uint64_t MASK>
 		struct MaskHelper32<MASK, 4u> {
 			enum : int {
@@ -192,14 +195,22 @@ namespace anvil { namespace lutils { namespace experimental {
 			static constexpr const int32_t g_mask[4u] = { M0, M1, M2, M3 };
 		};
 
+		template<>
+		struct MaskHelperRT32<4u> {
+			inline void operator()(int* const out, const uint64_t mask) {
+				out[0u] = (mask & 1ull) == 0ull ? 0 : -1;
+				out[1u] = (mask & 2ull) == 0ull ? 0 : -1;
+				out[2u] = (mask & 4ull) == 0ull ? 0 : -1;
+				out[3u] = (mask & 8ull) == 0ull ? 0 : -1;
+			}
+		};
+
 		static constexpr bool UsingSSE41(InstructionSets is) {
 			enum : InstructionSets {
 				MASK = ~(ANVIL_SSE | ANVIL_SSE2 | ANVIL_SSE3 | ANVIL_SSSE3)
 			};
 			return (is & MASK) != 0ull;
 		}
-
-		
 
 		template<uint64_t MASK, InstructionSets IS, bool = UsingSSE41(IS)>
 		struct BlendF32SSE;
@@ -245,6 +256,39 @@ namespace anvil { namespace lutils { namespace experimental {
 				return _mm_move_ss(src, other);
 			} else {
 				return _blend(src, other);
+			}
+		}
+	};
+	
+
+	template<InstructionSets IS>
+	struct BlendRT<__m128, IS> {
+	private:
+		const __m128 _mask;
+
+		static inline __m128 GeneratorMask(const uint64_t mask) {
+			int32_t tmp[4u];
+			detail::MaskHelperRT32<4u>()(tmp, mask);
+			return _mm_loadu_ps(reinterpret_cast<float*>(tmp));
+		}
+
+		inline __m128 sse(const __m128 src, const __m128 other) const throw() {
+			return _mm_or_ps(_mm_andnot_ps(_mask, src), _mm_and_ps(_mask, other));
+		}
+
+		inline __m128 sse41(const __m128 src, const __m128 other) const throw() {
+			return _mm_blendv_ps(src, other, _mask);
+		}
+	public:
+		BlendRT(const uint64_t mask) :
+			_mask(GeneratorMask(mask))
+		{}
+
+		inline __m128 operator()(const __m128 src, const __m128 other) const throw() {
+			if constexpr (detail::UsingSSE41(IS)) {
+				return sse41(src, other);
+			} else {
+				return sse(src, other);
 			}
 		}
 	};
