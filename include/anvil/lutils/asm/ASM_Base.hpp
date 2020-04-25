@@ -151,7 +151,7 @@ namespace anvil { namespace lutils { namespace experimental {
 		};
 	}
 
-	template<InstructionSets IS>
+	template<InstructionSets IS = INSTRUCTION_SETS_DEFAULT>
 	using Float32x4 = typename detail::Float32x4_Selector<IS>::type;
 
 	template<>
@@ -170,7 +170,7 @@ namespace anvil { namespace lutils { namespace experimental {
 		INSTRUCTION_SETS_DEFAULT = 0ull 
 	};
 
-	template<InstructionSets IS>
+	template<InstructionSets IS = INSTRUCTION_SETS_DEFAULT>
 	using Float32x4 = std::array<float, 4>;
 #endif
 
