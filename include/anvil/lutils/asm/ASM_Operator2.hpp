@@ -29,17 +29,17 @@ namespace anvil { namespace lutils { namespace experimental {
 	template<Operator OP, class T, InstructionSets IS = MinInstructionSet<T>::value>
 	struct Operator2Primative;
 
-	template<Operator OP, const uint64_t MASK, class T, InstructionSets IS>
+	template<Operator OP, class T, const uint64_t MASK = DefaultMask<T>::value, InstructionSets IS = MinInstructionSet<T>::value>
 	struct Operator2 {
 	private:
-		Blend<MASK, T, IS> _blend;
+		Blend<T, MASK, IS> _blend;
 	public:
 		inline T operator()(const T src, const T lhs, const T rhs) const throw() {
 			return _blend(src, Operator2Primative<OP, T, IS>()(lhs, rhs));
 		}
 	};
 
-	template<Operator OP, class T, InstructionSets IS>
+	template<Operator OP, class T, InstructionSets IS = MinInstructionSet<T>::value>
 	struct Operator2RT {
 	private:
 		BlendRT<T, IS> _blend;
@@ -54,11 +54,11 @@ namespace anvil { namespace lutils { namespace experimental {
 	};
 
 	template<Operator OP, class T, const uint64_t MASK, InstructionSets IS>
-	struct Operator2<OP, MASK, std::pair<T, T>, IS> {
+	struct Operator2<OP, std::pair<T, T>, MASK, IS> {
 	private:
 		enum : uint64_t { MASK2 = MASK >> VectorLength<T>::value };
-		const Operator2<OP, MASK2, T, IS> _lhs;
-		const Operator2<OP, MASK2, T, IS> _rhs;
+		const Operator2<OP, T, MASK, IS> _lhs;
+		const Operator2<OP, T, MASK2, IS> _rhs;
 	public:
 		inline std::pair<T, T> operator()(const std::pair<T, T>& src, const std::pair<T, T>& lhs, const std::pair<T, T>& rhs) const throw() {
 			return {
@@ -88,12 +88,12 @@ namespace anvil { namespace lutils { namespace experimental {
 	};
 
 	template<Operator OP, class T, size_t S, const uint64_t MASK, InstructionSets IS>
-	struct Operator2<OP, MASK, std::array<T, S>, IS> {
+	struct Operator2<OP, std::array<T, S>, MASK, IS> {
 	private:
 		template<size_t I>
 		static inline void Execute(const std::array<T, S>& src, const std::array<T, S>& lhs, const std::array<T, S>& rhs, std::array<T, S>& out) throw() {
 			enum : uint64_t { MASK2 = MASK >> (VectorLength<T>::value * I) };
-			out[I] = Operator2<OP, MASK2, T, IS>()(src[I], lhs[I], rhs[I]);
+			out[I] = Operator2<OP, T, MASK2, IS>()(src[I], lhs[I], rhs[I]);
 			Execute<I + 1u>(src, lhs, rhs, out);
 		}
 

@@ -23,7 +23,7 @@ namespace anvil { namespace lutils { namespace experimental {
 	template<class T, InstructionSets IS = MinInstructionSet<T>::value>
 	struct BlendRT;
 
-	template<const uint64_t MASK, class T, InstructionSets IS = MinInstructionSet<T>::value>
+	template<class T, const uint64_t MASK = DefaultMask<T>::value, InstructionSets IS = MinInstructionSet<T>::value>
 	struct Blend {
 	private:
 		const BlendRT<T, IS> _blend;
@@ -38,11 +38,11 @@ namespace anvil { namespace lutils { namespace experimental {
 	};
 
 	template<class T, const uint64_t MASK, InstructionSets IS>
-	struct Blend<MASK, std::pair<T, T>, IS> {
+	struct Blend<std::pair<T, T>, MASK, IS> {
 	private:
 		enum : uint64_t { MASK2 = MASK >> VectorLength<T>::value };
-		const Blend<MASK2, T, IS> _lhs;
-		const Blend<MASK2, T, IS> _rhs;
+		const Blend<T, MASK, IS> _lhs;
+		const Blend<T, MASK2, IS> _rhs;
 	public:
 		inline std::pair<T, T> operator()(const std::pair<T, T>& src, const std::pair<T, T>& other) const throw() {
 			return {
@@ -72,12 +72,12 @@ namespace anvil { namespace lutils { namespace experimental {
 	};
 
 	template<class T, size_t S, const uint64_t MASK, InstructionSets IS>
-	struct Blend<MASK, std::array<T, S>, IS> {
+	struct Blend<std::array<T, S>, MASK, IS> {
 	private:
 		template<size_t I>
 		static inline void Execute(const std::array<T, S>& src, const std::array<T, S>& other, std::array<T, S>& out) throw() {
 			enum : uint64_t { MASK2 = MASK >> (VectorLength<T>::value * I) };
-			out[I] = Blend<MASK2, T, IS>()(src[I], other[I]);
+			out[I] = Blend<T, MASK2, IS>()(src[I], other[I]);
 			Execute<I + 1u>(src, other, out);
 		}
 
@@ -148,7 +148,7 @@ namespace anvil { namespace lutils { namespace experimental {
 	// Primative Implementations
 
 	template<const uint64_t MASK, InstructionSets IS>
-	struct Blend<MASK, float, IS> {
+	struct Blend<float, MASK, IS> {
 		inline float operator()(const float src, const float other) const throw() {
 			enum : uint64_t { MASK_BOUND = MASK & 1ull };
 
@@ -294,7 +294,7 @@ namespace anvil { namespace lutils { namespace experimental {
 	
 
 	template<const uint64_t MASK, InstructionSets IS>
-	struct Blend<MASK, __m128, IS> {
+	struct Blend<__m128, MASK, IS> {
 	private:
 		const detail::BlendF32SSE<MASK, IS> _blend;
 	public:
