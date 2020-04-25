@@ -35,7 +35,14 @@ namespace anvil { namespace lutils { namespace experimental {
 		Blend<T, MASK, IS> _blend;
 	public:
 		inline T operator()(const T src, const T lhs, const T rhs) const throw() {
-			return _blend(src, Operator2Primative<OP, T, IS>()(lhs, rhs));
+			enum : uint64_t { MASK_BOUND = MASK & DefaultMask<T>::value };
+			if constexpr (MASK_BOUND == 0u) {
+				return src;
+			} else if (MASK_BOUND == DefaultMask<T>::value) {
+				return Operator2Primative<OP, T, IS>()(lhs, rhs);
+			} else {
+				return _blend(src, Operator2Primative<OP, T, IS>()(lhs, rhs));
+			}
 		}
 	};
 
@@ -44,7 +51,7 @@ namespace anvil { namespace lutils { namespace experimental {
 	private:
 		BlendRT<T, IS> _blend;
 	public:
-		Operator2RT(uint64_t mask) :
+		Operator2RT(const uint64_t mask) :
 			_blend(mask)
 		{}
 
@@ -74,7 +81,7 @@ namespace anvil { namespace lutils { namespace experimental {
 		const Operator2RT<OP, T, IS> _lhs;
 		const Operator2RT<OP, T, IS> _rhs;
 	public:
-		Operator2RT(uint64_t mask) :
+		Operator2RT(const uint64_t mask) :
 			_lhs(mask),
 			_rhs(mask >> VectorLength<T>::value)
 		{}
