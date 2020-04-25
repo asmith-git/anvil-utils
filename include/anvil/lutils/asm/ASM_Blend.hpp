@@ -12,8 +12,8 @@
 //See the License for the specific language governing permissions and
 //limitations under the License.
 
-#ifndef ANVIL_LUTILS_ASM_FLOAT32_HPP
-#define ANVIL_LUTILS_ASM_FLOAT32_HPP
+#ifndef ANVIL_LUTILS_ASM_BLEND_HPP
+#define ANVIL_LUTILS_ASM_BLEND_HPP
 
 #include "anvil/lutils/asm/ASM_Base.hpp"
 
@@ -39,12 +39,15 @@ namespace anvil { namespace lutils { namespace experimental {
 
 	template<class T, const uint64_t MASK, InstructionSets IS>
 	struct Blend<MASK, std::pair<T, T>, IS> {
-
+	private:
+		enum : uint64_t { MASK2 = MASK >> VectorLength<T>::value };
+		const Blend<MASK2, T, IS> _lhs;
+		const Blend<MASK2, T, IS> _rhs;
+	public:
 		inline std::pair<T, T> operator()(const std::pair<T, T>& src, const std::pair<T, T>& other) const throw() {
-			enum : uint64_t { MASK2 = MASK >> VectorLength<T>::value };
 			return {
-				Blend<MASK, T, IS>()(src.first, other.first),
-				Blend<MASK2, T, IS>()(src.second, other.second)
+				_lhs(src.first, other.first),
+				_rhs(src.second, other.second)
 			};
 		}
 	};
