@@ -31,20 +31,6 @@ namespace anvil { namespace lutils { namespace experimental {
 
 	typedef uint64_t InstructionSets;
 
-	// Primative Types
-
-	typedef int8_t Signed8x1;
-	typedef int16_t Signed16x1;
-	typedef int32_t Signed32x1;
-	typedef int64_t Signed64x1;
-	typedef uint8_t Unsigned8x1;
-	typedef uint16_t Unsigned16x1;
-	typedef uint32_t Unsigned32x1;
-	typedef uint64_t Unsigned64x1;
-	//typedef half Float16x1;
-	typedef float Float32x1;
-	typedef double Float64x1;
-
 	// Helpers for determining vector implementation
 
 	template<class T, size_t S, InstructionSets IS>
@@ -59,57 +45,52 @@ namespace anvil { namespace lutils { namespace experimental {
 	struct VectorLength;
 
 	template<>
-	struct VectorLength<Signed8x1> {
+	struct VectorLength<int8_t> {
 		enum : size_t { value = 1u };
 	};
 
 	template<>
-	struct VectorLength<Signed16x1> {
+	struct VectorLength<int16_t> {
 		enum : size_t { value = 1u };
 	};
 
 	template<>
-	struct VectorLength<Signed32x1> {
+	struct VectorLength<int32_t> {
 		enum : size_t { value = 1u };
 	};
 
 	template<>
-	struct VectorLength<Signed64x1> {
+	struct VectorLength<int64_t> {
 		enum : size_t { value = 1u };
 	};
 
 	template<>
-	struct VectorLength<Unsigned8x1> {
+	struct VectorLength<uint8_t> {
 		enum : size_t { value = 1u };
 	};
 
 	template<>
-	struct VectorLength<Unsigned16x1> {
+	struct VectorLength<uint16_t> {
 		enum : size_t { value = 1u };
 	};
 
 	template<>
-	struct VectorLength<Unsigned32x1> {
+	struct VectorLength<uint32_t> {
 		enum : size_t { value = 1u };
 	};
 
 	template<>
-	struct VectorLength<Unsigned64x1> {
-		enum : size_t { value = 1u };
-	};
-
-	//template<>
-	//struct VectorLength<Float16x1> {
-	//	enum : size_t { value = 1u };
-	//};
-
-	template<>
-	struct VectorLength<Float32x1> {
+	struct VectorLength<uint64_t> {
 		enum : size_t { value = 1u };
 	};
 
 	template<>
-	struct VectorLength<Float64x1> {
+	struct VectorLength<float> {
+		enum : size_t { value = 1u };
+	};
+
+	template<>
+	struct VectorLength<double> {
 		enum : size_t { value = 1u };
 	};
 
@@ -274,14 +255,192 @@ namespace anvil { namespace lutils { namespace experimental {
 			//! \todo Compound vector out of smaller optimised types
 			typedef std::array<T, S> type;
 		};
+
+		template<class T, InstructionSets IS>
+		struct VectorType_<T, 1u, IS, false> {
+			typedef T type;
+		};
 	}
+
+
+
+	// Vector Types
 
 	template<class T, size_t S, InstructionSets IS = INSTRUCTION_SETS_DEFAULT>
 	using VectorType = typename detail::VectorType_<T, S, IS>::type;
 
+	// 8-bit types
 
 	template<InstructionSets IS = INSTRUCTION_SETS_DEFAULT>
-	using Float32x4 = VectorType<float, 4u, IS>;
+	using S8x1 = VectorType<int8_t, 1u, IS>;
+
+	template<InstructionSets IS = INSTRUCTION_SETS_DEFAULT>
+	using S8x2 = VectorType<int8_t, 2u, IS>;
+
+	template<InstructionSets IS = INSTRUCTION_SETS_DEFAULT>
+	using S8x4 = VectorType<int8_t, 4u, IS>;
+
+	template<InstructionSets IS = INSTRUCTION_SETS_DEFAULT>
+	using S8x8 = VectorType<int8_t, 8u, IS>;
+
+	template<InstructionSets IS = INSTRUCTION_SETS_DEFAULT>
+	using S8x16 = VectorType<int8_t, 16u, IS>;
+
+	template<InstructionSets IS = INSTRUCTION_SETS_DEFAULT>
+	using S8x32 = VectorType<int8_t, 32u, IS>;
+
+	template<InstructionSets IS = INSTRUCTION_SETS_DEFAULT>
+	using S8x64 = VectorType<int8_t, 64u, IS>;
+
+	template<InstructionSets IS = INSTRUCTION_SETS_DEFAULT>
+	using U8x1 = VectorType<uint8_t, 1u, IS>;
+
+	template<InstructionSets IS = INSTRUCTION_SETS_DEFAULT>
+	using U8x2 = VectorType<uint8_t, 2u, IS>;
+
+	template<InstructionSets IS = INSTRUCTION_SETS_DEFAULT>
+	using U8x4 = VectorType<uint8_t, 4u, IS>;
+
+	template<InstructionSets IS = INSTRUCTION_SETS_DEFAULT>
+	using U8x8 = VectorType<uint8_t, 8u, IS>;
+
+	template<InstructionSets IS = INSTRUCTION_SETS_DEFAULT>
+	using U8x16 = VectorType<uint8_t, 16u, IS>;
+
+	template<InstructionSets IS = INSTRUCTION_SETS_DEFAULT>
+	using U8x32 = VectorType<uint8_t, 32u, IS>;
+
+	// 16-bit types
+
+	template<InstructionSets IS = INSTRUCTION_SETS_DEFAULT>
+	using S16x1 = VectorType<int16_t, 1u, IS>;
+
+	template<InstructionSets IS = INSTRUCTION_SETS_DEFAULT>
+	using S16x2 = VectorType<int16_t, 2u, IS>;
+
+	template<InstructionSets IS = INSTRUCTION_SETS_DEFAULT>
+	using S16x4 = VectorType<int16_t, 4u, IS>;
+
+	template<InstructionSets IS = INSTRUCTION_SETS_DEFAULT>
+	using S16x8 = VectorType<int16_t, 8u, IS>;
+
+	template<InstructionSets IS = INSTRUCTION_SETS_DEFAULT>
+	using S16x16 = VectorType<int16_t, 16u, IS>;
+
+	template<InstructionSets IS = INSTRUCTION_SETS_DEFAULT>
+	using S16x32 = VectorType<int16_t, 32u, IS>;
+
+	template<InstructionSets IS = INSTRUCTION_SETS_DEFAULT>
+	using U16x1 = VectorType<uint16_t, 1u, IS>;
+
+	template<InstructionSets IS = INSTRUCTION_SETS_DEFAULT>
+	using U16x2 = VectorType<uint16_t, 2u, IS>;
+
+	template<InstructionSets IS = INSTRUCTION_SETS_DEFAULT>
+	using U16x4 = VectorType<uint16_t, 4u, IS>;
+
+	template<InstructionSets IS = INSTRUCTION_SETS_DEFAULT>
+	using U16x8 = VectorType<uint16_t, 8u, IS>;
+
+	template<InstructionSets IS = INSTRUCTION_SETS_DEFAULT>
+	using U16x16 = VectorType<uint16_t, 16u, IS>;
+
+	template<InstructionSets IS = INSTRUCTION_SETS_DEFAULT>
+	using U16x32 = VectorType<uint16_t, 32u, IS>;
+
+	// 32-bit types
+
+	template<InstructionSets IS = INSTRUCTION_SETS_DEFAULT>
+	using S32x1 = VectorType<int32_t, 1u, IS>;
+
+	template<InstructionSets IS = INSTRUCTION_SETS_DEFAULT>
+	using S32x2 = VectorType<int32_t, 2u, IS>;
+
+	template<InstructionSets IS = INSTRUCTION_SETS_DEFAULT>
+	using S32x4 = VectorType<int32_t, 4u, IS>;
+
+	template<InstructionSets IS = INSTRUCTION_SETS_DEFAULT>
+	using S32x8 = VectorType<int32_t, 8u, IS>;
+
+	template<InstructionSets IS = INSTRUCTION_SETS_DEFAULT>
+	using S32x16 = VectorType<int32_t, 16u, IS>;
+
+	template<InstructionSets IS = INSTRUCTION_SETS_DEFAULT>
+	using U32x1 = VectorType<uint32_t, 1u, IS>;
+
+	template<InstructionSets IS = INSTRUCTION_SETS_DEFAULT>
+	using U32x2 = VectorType<uint32_t, 2u, IS>;
+
+	template<InstructionSets IS = INSTRUCTION_SETS_DEFAULT>
+	using U32x4 = VectorType<uint32_t, 4u, IS>;
+
+	template<InstructionSets IS = INSTRUCTION_SETS_DEFAULT>
+	using U32x8 = VectorType<uint32_t, 8u, IS>;
+
+	template<InstructionSets IS = INSTRUCTION_SETS_DEFAULT>
+	using U32x16 = VectorType<uint32_t, 16u, IS>;
+
+	template<InstructionSets IS = INSTRUCTION_SETS_DEFAULT>
+	using F32x1 = VectorType<float, 1u, IS>;
+
+	template<InstructionSets IS = INSTRUCTION_SETS_DEFAULT>
+	using F32x2 = VectorType<float, 2u, IS>;
+
+	template<InstructionSets IS = INSTRUCTION_SETS_DEFAULT>
+	using F32x4 = VectorType<float, 4u, IS>;
+
+	template<InstructionSets IS = INSTRUCTION_SETS_DEFAULT>
+	using F32x8 = VectorType<float, 8u, IS>;
+
+	template<InstructionSets IS = INSTRUCTION_SETS_DEFAULT>
+	using F32x16 = VectorType<float, 16u, IS>;
+
+	// 64-bit types
+
+	template<InstructionSets IS = INSTRUCTION_SETS_DEFAULT>
+	using S64x1 = VectorType<int64_t, 1u, IS>;
+
+	template<InstructionSets IS = INSTRUCTION_SETS_DEFAULT>
+	using S64x2 = VectorType<int64_t, 2u, IS>;
+
+	template<InstructionSets IS = INSTRUCTION_SETS_DEFAULT>
+	using S64x4 = VectorType<int64_t, 4u, IS>;
+
+	template<InstructionSets IS = INSTRUCTION_SETS_DEFAULT>
+	using S64x8 = VectorType<int64_t, 8u, IS>;
+
+	template<InstructionSets IS = INSTRUCTION_SETS_DEFAULT>
+	using S64x16 = VectorType<int64_t, 16u, IS>;
+
+	template<InstructionSets IS = INSTRUCTION_SETS_DEFAULT>
+	using U64x1 = VectorType<uint64_t, 1u, IS>;
+
+	template<InstructionSets IS = INSTRUCTION_SETS_DEFAULT>
+	using U64x2 = VectorType<uint64_t, 2u, IS>;
+
+	template<InstructionSets IS = INSTRUCTION_SETS_DEFAULT>
+	using U64x4 = VectorType<uint64_t, 4u, IS>;
+
+	template<InstructionSets IS = INSTRUCTION_SETS_DEFAULT>
+	using U64x8 = VectorType<uint64_t, 8u, IS>;
+
+	template<InstructionSets IS = INSTRUCTION_SETS_DEFAULT>
+	using U64x16 = VectorType<uint64_t, 16u, IS>;
+
+	template<InstructionSets IS = INSTRUCTION_SETS_DEFAULT>
+	using F64x1 = VectorType<double, 1u, IS>;
+
+	template<InstructionSets IS = INSTRUCTION_SETS_DEFAULT>
+	using F64x2 = VectorType<double, 2u, IS>;
+
+	template<InstructionSets IS = INSTRUCTION_SETS_DEFAULT>
+	using F64x4 = VectorType<double, 4u, IS>;
+
+	template<InstructionSets IS = INSTRUCTION_SETS_DEFAULT>
+	using F64x8 = VectorType<double, 8u, IS>;
+
+	template<InstructionSets IS = INSTRUCTION_SETS_DEFAULT>
+	using F64x16 = VectorType<double, 16u, IS>;
 }}}
 
 #endif
