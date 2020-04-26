@@ -20,10 +20,10 @@
 namespace anvil { namespace lutils { namespace experimental {
 
 	// Default Implementations
-	template<class T, InstructionSets IS = MinInstructionSet<T>::value>
+	template<class T, InstructionSets IS = VectorTypeProperties<T>::min_instruction_set>
 	struct BlendRT;
 
-	template<class T, const uint64_t MASK = DefaultMask<T>::value, InstructionSets IS = MinInstructionSet<T>::value>
+	template<class T, const uint64_t MASK = DefaultMask<T>::value, InstructionSets IS = VectorTypeProperties<T>::min_instruction_set>
 	struct Blend {
 	private:
 		const BlendRT<T, IS> _blend;
@@ -40,7 +40,7 @@ namespace anvil { namespace lutils { namespace experimental {
 	template<class T, const uint64_t MASK, InstructionSets IS>
 	struct Blend<std::pair<T, T>, MASK, IS> {
 	private:
-		enum : uint64_t { MASK2 = MASK >> VectorLength<T>::value };
+		enum : uint64_t { MASK2 = MASK >> VectorTypeProperties<T>::length };
 		const Blend<T, MASK, IS> _lhs;
 		const Blend<T, MASK2, IS> _rhs;
 	public:
@@ -60,7 +60,7 @@ namespace anvil { namespace lutils { namespace experimental {
 	public:
 		BlendRT(uint64_t mask) :
 			_lhs(mask),
-			_rhs(mask >> VectorLength<T>::value)
+			_rhs(mask >> VectorTypeProperties<T>::length)
 		{}
 
 		inline std::pair<T, T> operator()(const std::pair<T, T>& src, const std::pair<T, T>& other) const throw() {
@@ -76,7 +76,7 @@ namespace anvil { namespace lutils { namespace experimental {
 	private:
 		template<size_t I>
 		static inline void Execute(const std::array<T, S>& src, const std::array<T, S>& other, std::array<T, S>& out) throw() {
-			enum : uint64_t { MASK2 = MASK >> (VectorLength<T>::value * I) };
+			enum : uint64_t { MASK2 = MASK >> (VectorTypeProperties<T>::length * I) };
 			out[I] = Blend<T, MASK2, IS>()(src[I], other[I]);
 			Execute<I + 1u>(src, other, out);
 		}
@@ -113,7 +113,7 @@ namespace anvil { namespace lutils { namespace experimental {
 				BlendFn* const blends = reinterpret_cast<BlendFn*>(_blends);
 				for (size_t i = 0u; i < S; ++i) {
 					new(blends + i) BlendFn(mask);
-					mask >>= VectorLength<T>::value;
+					mask >>= VectorTypeProperties<T>::length;
 				}
 			}
 		}
@@ -133,7 +133,7 @@ namespace anvil { namespace lutils { namespace experimental {
 				uint64_t mask = _mask;
 				for (size_t i = 0u; i < S; ++i) {
 					tmp[i] = BlendFn(mask)(src[i], other[i]);
-					mask >>= VectorLength<T>::value;
+					mask >>= VectorTypeProperties<T>::length;
 				}
 			} else {
 				const BlendFn* const blends = reinterpret_cast<const BlendFn*>(_blends);

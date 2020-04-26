@@ -23,10 +23,10 @@ namespace anvil { namespace lutils { namespace experimental {
 
 	// Typedefs
 
-	template<class T, const uint64_t MASK = DefaultMask<T>::value, InstructionSets IS = MinInstructionSet<T>::value>
+	template<class T, const uint64_t MASK = DefaultMask<T>::value, InstructionSets IS = VectorTypeProperties<T>::min_instruction_set>
 	using Add = Operator2<OPERATOR_ADD, T, MASK, IS>;
 
-	template<class T, InstructionSets IS = MinInstructionSet<T>::value>
+	template<class T, InstructionSets IS = VectorTypeProperties<T>::min_instruction_set>
 	using AddRT = Operator2RT<OPERATOR_ADD, T, IS>;
 
 	// Primative Implementations

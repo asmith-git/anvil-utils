@@ -26,7 +26,7 @@ namespace anvil { namespace lutils { namespace experimental {
 
 	// Default Implementations
 
-	template<Operator OP, class T, InstructionSets IS = MinInstructionSet<T>::value>
+	template<Operator OP, class T, InstructionSets IS = VectorTypeProperties<T>::min_instruction_set>
 	struct Operator2Primative;
 
 	namespace detail {
@@ -55,7 +55,7 @@ namespace anvil { namespace lutils { namespace experimental {
 		};
 	}
 
-	template<Operator OP, class T, const uint64_t MASK = DefaultMask<T>::value, InstructionSets IS = MinInstructionSet<T>::value>
+	template<Operator OP, class T, const uint64_t MASK = DefaultMask<T>::value, InstructionSets IS = VectorTypeProperties<T>::min_instruction_set>
 	struct Operator2 {
 	private:
 		detail::Operator2_<Operator2Primative<OP, T, IS>, T, MASK, IS> _op;
@@ -108,7 +108,7 @@ namespace anvil { namespace lutils { namespace experimental {
 		};
 	}
 
-	template<Operator OP, class T, InstructionSets IS = MinInstructionSet<T>::value>
+	template<Operator OP, class T, InstructionSets IS = VectorTypeProperties<T>::min_instruction_set>
 	struct Operator2RT {
 	private:
 		detail::Operator2RT_<Operator2Primative<OP, T, IS>, T, IS> _op;
@@ -125,7 +125,7 @@ namespace anvil { namespace lutils { namespace experimental {
 	template<Operator OP, class T, const uint64_t MASK, InstructionSets IS>
 	struct Operator2<OP, std::pair<T, T>, MASK, IS> {
 	private:
-		enum : uint64_t { MASK2 = MASK >> VectorLength<T>::value };
+		enum : uint64_t { MASK2 = MASK >> VectorTypeProperties<T>::length };
 		const Operator2<OP, T, MASK, IS> _lhs;
 		const Operator2<OP, T, MASK2, IS> _rhs;
 	public:
@@ -145,7 +145,7 @@ namespace anvil { namespace lutils { namespace experimental {
 	public:
 		Operator2RT(const uint64_t mask) :
 			_lhs(mask),
-			_rhs(mask >> VectorLength<T>::value)
+			_rhs(mask >> VectorTypeProperties<T>::length)
 		{}
 
 		inline std::pair<T, T> operator()(const std::pair<T, T>& src, const std::pair<T, T>& lhs, const std::pair<T, T>& rhs) const throw() {
@@ -161,7 +161,7 @@ namespace anvil { namespace lutils { namespace experimental {
 	private:
 		template<size_t I>
 		static inline void Execute(const std::array<T, S>& src, const std::array<T, S>& lhs, const std::array<T, S>& rhs, std::array<T, S>& out) throw() {
-			enum : uint64_t { MASK2 = MASK >> (VectorLength<T>::value * I) };
+			enum : uint64_t { MASK2 = MASK >> (VectorTypeProperties<T>::length * I) };
 			out[I] = Operator2<OP, T, MASK2, IS>()(src[I], lhs[I], rhs[I]);
 			Execute<I + 1u>(src, lhs, rhs, out);
 		}
@@ -198,7 +198,7 @@ namespace anvil { namespace lutils { namespace experimental {
 				Operator2Fn* const blends = reinterpret_cast<Operator2Fn*>(_operators);
 				for (size_t i = 0u; i < S; ++i) {
 					new(blends + i) Operator2Fn(mask);
-					mask >>= VectorLength<T>::value;
+					mask >>= VectorTypeProperties<T>::length;
 				}
 			}
 		}
@@ -218,7 +218,7 @@ namespace anvil { namespace lutils { namespace experimental {
 				uint64_t mask = _mask;
 				for (size_t i = 0u; i < S; ++i) {
 					tmp[i] = Operator2Fn(mask)(src[i], lhs[i], rhs[i]);
-					mask >>= VectorLength<T>::value;
+					mask >>= VectorTypeProperties<T>::length;
 				}
 			} else {
 				const Operator2Fn* const blends = reinterpret_cast<const Operator2Fn*>(_operators);

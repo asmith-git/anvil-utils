@@ -39,77 +39,118 @@ namespace anvil { namespace lutils { namespace experimental {
 		enum { value = false };
 	};
 
-	// Helper for determining vector length
+	// Helper for determining vector properties
 
 	template<class T>
-	struct VectorLength;
+	struct VectorTypeProperties;
 
 	template<>
-	struct VectorLength<int8_t> {
-		enum : size_t { value = 1u };
+	struct VectorTypeProperties<int8_t> {
+		typedef int8_t type;
+		typedef type element_type;
+		enum : bool { optimised = false };
+		enum : size_t { length = 1u };
+		enum : InstructionSets { min_instruction_set = 0u };
 	};
 
 	template<>
-	struct VectorLength<int16_t> {
-		enum : size_t { value = 1u };
+	struct VectorTypeProperties<int16_t> {
+		typedef int16_t type;
+		typedef type element_type;
+		enum : bool { optimised = false };
+		enum : size_t { length = 1u };
+		enum : InstructionSets { min_instruction_set = 0u };
 	};
 
 	template<>
-	struct VectorLength<int32_t> {
-		enum : size_t { value = 1u };
+	struct VectorTypeProperties<int32_t> {
+		typedef int32_t type;
+		typedef type element_type;
+		enum : bool { optimised = false };
+		enum : size_t { length = 1u };
+		enum : InstructionSets { min_instruction_set = 0u };
 	};
 
 	template<>
-	struct VectorLength<int64_t> {
-		enum : size_t { value = 1u };
+	struct VectorTypeProperties<int64_t> {
+		typedef int64_t type;
+		typedef type element_type;
+		enum : bool { optimised = false };
+		enum : size_t { length = 1u };
+		enum : InstructionSets { min_instruction_set = 0u };
 	};
 
 	template<>
-	struct VectorLength<uint8_t> {
-		enum : size_t { value = 1u };
+	struct VectorTypeProperties<uint8_t> {
+		typedef uint8_t type;
+		typedef type element_type;
+		enum : bool { optimised = false };
+		enum : size_t { length = 1u };
+		enum : InstructionSets { min_instruction_set = 0u };
 	};
 
 	template<>
-	struct VectorLength<uint16_t> {
-		enum : size_t { value = 1u };
+	struct VectorTypeProperties<uint16_t> {
+		typedef uint16_t type;
+		typedef type element_type;
+		enum : bool { optimised = false };
+		enum : size_t { length = 1u };
+		enum : InstructionSets { min_instruction_set = 0u };
 	};
 
 	template<>
-	struct VectorLength<uint32_t> {
-		enum : size_t { value = 1u };
+	struct VectorTypeProperties<uint32_t> {
+		typedef uint32_t type;
+		typedef type element_type;
+		enum : bool { optimised = false };
+		enum : size_t { length = 1u };
+		enum : InstructionSets { min_instruction_set = 0u };
 	};
 
 	template<>
-	struct VectorLength<uint64_t> {
-		enum : size_t { value = 1u };
+	struct VectorTypeProperties<uint64_t> {
+		typedef uint64_t type;
+		typedef type element_type;
+		enum : bool { optimised = false };
+		enum : size_t { length = 1u };
+		enum : InstructionSets { min_instruction_set = 0u };
 	};
 
 	template<>
-	struct VectorLength<float> {
-		enum : size_t { value = 1u };
+	struct VectorTypeProperties<float> {
+		typedef float type;
+		typedef type element_type;
+		enum : bool { optimised = false };
+		enum : size_t { length = 1u };
+		enum : InstructionSets { min_instruction_set = 0u };
 	};
 
 	template<>
-	struct VectorLength<double> {
-		enum : size_t { value = 1u };
+	struct VectorTypeProperties<double> {
+		typedef double type;
+		typedef type element_type;
+		enum : bool { optimised = false };
+		enum : size_t { length = 1u };
+		enum : InstructionSets { min_instruction_set = 0u };
 	};
 
-	template<class T>
-	struct VectorLength<std::pair<T, T>> {
-		enum : size_t { value = VectorLength<T>::value * 2u };
+	template<class T, class T2>
+	struct VectorTypeProperties<std::pair<T, T2>> {
+		typedef std::pair<T, T2> type;
+		enum : bool { optimised = VectorTypeProperties<T>::optimised || VectorTypeProperties<2T>::optimised  };
+		enum : size_t { length = VectorTypeProperties<T>::length + VectorTypeProperties<T2>::length };
+		enum : InstructionSets { min_instruction_set = VectorTypeProperties<T>::min_instruction_set | VectorTypeProperties<T2>::min_instruction_set };
 	};
 
 	template<class T, size_t S>
-	struct VectorLength<std::array<T, S>> {
-		enum : size_t { value = VectorLength<T>::value * S };
+	struct VectorTypeProperties<std::array<T, S>> {
+		typedef std::array<T, S> type;
+		enum : bool { optimised = false };
+		enum : size_t { length = VectorTypeProperties<T>::length * S };
+		enum : InstructionSets { min_instruction_set = VectorTypeProperties<T>::min_instruction_set };
 	};
 
-	template<class T>
-	struct MinInstructionSet {
-		enum : InstructionSets {
-			value = INSTRUCTION_SETS_DEFAULT
-		};
-	};
+	// x86 Optimisations
 
 #if ANVIL_EXPERIMENTAL_X86
 	// MMX isn't supported currently
@@ -170,43 +211,149 @@ namespace anvil { namespace lutils { namespace experimental {
 		enum { value = (IS & ANVIL_AVX512VL) != 0ull };
 	};
 
-	// Vector length definitions
+	namespace detail {
+		template<class T>
+		class __m128iT {
+		private:
+			__m128i _value;
+		public:
+			inline __m128iT() throw() :
+				_value()
+			{}
 
-	template<>
-	struct VectorLength<__m128> {
-		enum : size_t { value = 4u };
-	};
+			inline __m128iT(const __m128i value) throw() :
+				_value(value)
+			{}
 
-	template<>
-	struct VectorLength<__m256> {
-		enum : size_t { value = 8u };
-	};
-
-	template<>
-	struct VectorLength<__m512> {
-		enum : size_t { value = 16u };
-	};
-
-	template<>
-	struct VectorLength<__m128d> {
-		enum : size_t { value = 2u };
-	};
-
-	template<>
-	struct VectorLength<__m256d> {
-		enum : size_t { value = 4u };
-	};
-
-	template<>
-	struct VectorLength<__m512d> {
-		enum : size_t { value = 8u };
-	};
-
-	template<>
-	struct MinInstructionSet<__m128> {
-		enum : InstructionSets {
-			value = INSTRUCTION_SETS_DEFAULT | ANVIL_SSE
+			inline operator __m128i() const throw() {
+				return _value;
+			}
 		};
+
+		template<class T>
+		class __m256iT {
+		private:
+			__m256i _value;
+		public:
+			inline __m256iT() throw() :
+				_value()
+			{}
+
+			inline __m256iT(const __m256i value) throw() :
+				_value(value)
+			{}
+
+			inline operator __m256i() const throw() {
+				return _value;
+			}
+		};
+
+		template<class T>
+		class __m512iT {
+		private:
+			__m512i _value;
+		public:
+			inline __m512iT() throw() :
+				_value()
+			{}
+
+			inline __m512iT(const __m512i value) throw() :
+				_value(value)
+			{}
+
+			inline operator __m512i() const throw() {
+				return _value;
+			}
+		};
+	}
+
+	//template<class T, InstructionSets IS>
+	//struct OptimisedVectorType<detail::__m128iT<T>, 16u / sizeof(T), IS> {
+	//	typedef detail::__m128iT<T> type;
+	//	enum { value = (IS & ANVIL_SSE2) != 0ull };
+	//};
+
+	// Vector properties definitions
+
+	template<>
+	struct VectorTypeProperties<__m128> {
+		typedef __m128 type;
+		typedef float element_type;
+		enum : bool { optimised = true };
+		enum : size_t { length = sizeof(type) / sizeof(element_type) };
+		enum : InstructionSets { min_instruction_set = ANVIL_SSE };
+	};
+
+	template<>
+	struct VectorTypeProperties<__m256> {
+		typedef __m256 type;
+		typedef float element_type;
+		enum : bool { optimised = true };
+		enum : size_t { length = sizeof(type) / sizeof(element_type) };
+		enum : InstructionSets { min_instruction_set = ANVIL_AVX };
+	};
+
+	template<>
+	struct VectorTypeProperties<__m512> {
+		typedef __m512 type;
+		typedef float element_type;
+		enum : bool { optimised = true };
+		enum : size_t { length = sizeof(type) / sizeof(element_type) };
+		enum : InstructionSets { min_instruction_set = ANVIL_AVX512F | ANVIL_AVX512VL };
+	};
+
+	template<>
+	struct VectorTypeProperties<__m128d> {
+		typedef __m128d type;
+		typedef double element_type;
+		enum : bool { optimised = true };
+		enum : size_t { length = sizeof(type) / sizeof(element_type) };
+		enum : InstructionSets { min_instruction_set = ANVIL_SSE2 };
+	};
+
+	template<>
+	struct VectorTypeProperties<__m256d> {
+		typedef __m256d type;
+		typedef double element_type;
+		enum : bool { optimised = true };
+		enum : size_t { length = sizeof(type) / sizeof(element_type) };
+		enum : InstructionSets { min_instruction_set = ANVIL_AVX };
+	};
+
+	template<>
+	struct VectorTypeProperties<__m512d> {
+		typedef __m512d type;
+		typedef double element_type;
+		enum : bool { optimised = true };
+		enum : size_t { length = sizeof(type) / sizeof(element_type) };
+		enum : InstructionSets { min_instruction_set = ANVIL_AVX512F | ANVIL_AVX512VL };
+	};
+
+	template<class T>
+	struct VectorTypeProperties<detail::__m128iT<T>> {
+		typedef detail::__m128iT<T> type;
+		typedef T element_type;
+		enum : bool { optimised = true };
+		enum : size_t { length = sizeof(type) / sizeof(element_type) };
+		enum : InstructionSets { min_instruction_set = ANVIL_SSE2 };
+	};
+
+	template<class T>
+	struct VectorTypeProperties<detail::__m256iT<T>> {
+		typedef detail::__m256iT<T> type;
+		typedef T element_type;
+		enum : bool { optimised = true };
+		enum : size_t { length = sizeof(type) / sizeof(element_type) };
+		enum : InstructionSets { min_instruction_set = ANVIL_AVX2 };
+	};
+
+	template<class T>
+	struct VectorTypeProperties<detail::__m512iT<T>> {
+		typedef detail::__m512iT<T> type;
+		typedef T element_type;
+		enum : bool { optimised = true };
+		enum : size_t { length = sizeof(type) / sizeof(element_type) };
+		enum : InstructionSets { min_instruction_set = ANVIL_AVX512F | ANVIL_AVX512VL };
 	};
 #else
 	enum : InstructionSets { 
@@ -235,7 +382,7 @@ namespace anvil { namespace lutils { namespace experimental {
 
 	template<class T>
 	struct DefaultMask {
-		enum : uint64_t { value = detail::DefaultMask_<VectorLength<T>::value>::value };
+		enum : uint64_t { value = detail::DefaultMask_<VectorTypeProperties<T>::length>::value };
 	};
 
 	// Vector implementation selection
