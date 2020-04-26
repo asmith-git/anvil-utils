@@ -39,6 +39,12 @@ namespace anvil { namespace lutils { namespace experimental {
 		enum { value = false };
 	};
 
+	template<size_t S, class WRAPPER>
+	struct VectorWrapper {
+		enum { length = S };
+		WRAPPER wrapper;
+	};
+
 	// Helper for determining vector properties
 
 	template<class T>
@@ -137,6 +143,7 @@ namespace anvil { namespace lutils { namespace experimental {
 	template<class T, class T2>
 	struct VectorTypeProperties<std::pair<T, T2>> {
 		typedef std::pair<T, T2> type;
+		typedef typename VectorTypeProperties<T>::element_type element_type;
 		enum : bool { optimised = VectorTypeProperties<T>::optimised || VectorTypeProperties<2T>::optimised  };
 		enum : size_t { length = VectorTypeProperties<T>::length + VectorTypeProperties<T2>::length };
 		enum : InstructionSets { min_instruction_set = VectorTypeProperties<T>::min_instruction_set | VectorTypeProperties<T2>::min_instruction_set };
@@ -145,9 +152,19 @@ namespace anvil { namespace lutils { namespace experimental {
 	template<class T, size_t S>
 	struct VectorTypeProperties<std::array<T, S>> {
 		typedef std::array<T, S> type;
+		typedef typename VectorTypeProperties<T>::element_type element_type;
 		enum : bool { optimised = false };
 		enum : size_t { length = VectorTypeProperties<T>::length * S };
 		enum : InstructionSets { min_instruction_set = VectorTypeProperties<T>::min_instruction_set };
+	};
+
+	template<size_t S, class WRAPPER>
+	struct VectorTypeProperties<VectorWrapper<S, WRAPPER>> {
+		typedef VectorWrapper<S, WRAPPER> type;
+		typedef typename VectorTypeProperties<WRAPPER>::element_type element_type;
+		enum : bool { optimised = VectorTypeProperties<WRAPPER>::optimised };
+		enum : size_t { length = S };
+		enum : InstructionSets { min_instruction_set = VectorTypeProperties<WRAPPER>::min_instruction_set };
 	};
 
 	// x86 Optimisations
@@ -393,7 +410,6 @@ namespace anvil { namespace lutils { namespace experimental {
 
 		template<class T, size_t S, InstructionSets IS>
 		struct VectorType_<T, S, IS, true> {
-			//! \todo Compound vector out of smaller optimised types
 			typedef typename OptimisedVectorType<T, S, IS>::type type;
 		};
 

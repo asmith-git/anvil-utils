@@ -230,6 +230,30 @@ namespace anvil { namespace lutils { namespace experimental {
 		}
 	};
 
+	template<Operator OP, size_t S, class WRAPPER, const uint64_t MASK, InstructionSets IS>
+	struct Operator2<OP, VectorWrapper<S, WRAPPER>, MASK, IS> {
+	private:
+		const Operator2<OP, WRAPPER, MASK, IS> _op;
+	public:
+		inline VectorWrapper<S, WRAPPER> operator()(const VectorWrapper<S, WRAPPER>& src, const VectorWrapper<S, WRAPPER>& lhs, const VectorWrapper<S, WRAPPER>& rhs) const throw() {
+			return { _op(src.wrapper, lhs.wrapper, rhs.wrapper) };
+		}
+	};
+
+	template<Operator OP, size_t S, class WRAPPER, InstructionSets IS>
+	struct Operator2RT<OP, VectorWrapper<S, WRAPPER>, IS> {
+	private:
+		const Operator2RT<OP, WRAPPER, IS> _op;
+	public:
+		Operator2RT(const uint64_t mask) :
+			_op(mask)
+		{}
+
+		inline VectorWrapper<S, WRAPPER> operator()(const VectorWrapper<S, WRAPPER>& src, const VectorWrapper<S, WRAPPER>& lhs, const VectorWrapper<S, WRAPPER>& rhs) const throw() {
+			return { _op(src.wrapper, lhs.wrapper, rhs.wrapper) };
+		}
+	};
+
 }}}
 
 #endif
