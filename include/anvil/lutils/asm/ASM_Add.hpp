@@ -47,6 +47,8 @@ namespace anvil { namespace lutils { namespace experimental {
 
 #if ANVIL_EXPERIMENTAL_X86
 
+	// Float32
+
 	template<InstructionSets IS>
 	struct Operator2Primative<OPERATOR_ADD, __m128, IS> {
 		enum {
@@ -65,6 +67,115 @@ namespace anvil { namespace lutils { namespace experimental {
 
 		inline __m128 OptimisedBlendRT(const __m128 src, const __m128 lhs, const __m128 rhs, const uint64_t mask) const throw() {
 			return _mm_mask_add_ps(src, static_cast<__mmask8>(mask), lhs, rhs);
+		}
+	};
+
+	template<InstructionSets IS>
+	struct Operator2Primative<OPERATOR_ADD, __m256, IS> {
+		enum {
+			optimised_blend_ct = (IS & ANVIL_AVX512VL) != 0ull,
+			optimised_blend_rt = (IS & ANVIL_AVX512VL) != 0ull
+		};
+
+		inline __m256 operator()(const __m256 lhs, const __m256 rhs) const throw() {
+			return _mm256_add_ps(lhs, rhs);
+		}
+
+		template<uint64_t MASK>
+		inline __m256 OptimisedBlendCT(const __m256 src, const __m256 lhs, const __m256 rhs) const throw() {
+			return _mm256_mask_add_ps(src, static_cast<__mmask8>(MASK), lhs, rhs);
+		}
+
+		inline __m256 OptimisedBlendRT(const __m256 src, const __m256 lhs, const __m256 rhs, const uint64_t mask) const throw() {
+			return _mm256_mask_add_ps(src, static_cast<__mmask8>(mask), lhs, rhs);
+		}
+	};
+
+	template<InstructionSets IS>
+	struct Operator2Primative<OPERATOR_ADD, __m512, IS> {
+		enum {
+			optimised_blend_ct = true,
+			optimised_blend_rt = true
+		};
+
+		inline __m512 operator()(const __m512 lhs, const __m512 rhs) const throw() {
+			return _mm512_add_ps(lhs, rhs);
+		}
+
+		template<uint64_t MASK>
+		inline __m512 OptimisedBlendCT(const __m512 src, const __m512 lhs, const __m512 rhs) const throw() {
+			return _mm512_mask_add_ps(src, static_cast<__mmask8>(MASK), lhs, rhs);
+		}
+
+		inline __m512 OptimisedBlendRT(const __m512 src, const __m512 lhs, const __m512 rhs, const uint64_t mask) const throw() {
+			return _mm512_mask_add_ps(src, static_cast<__mmask8>(mask), lhs, rhs);
+		}
+	};
+
+	// Float64
+
+
+
+	template<InstructionSets IS>
+	struct Operator2Primative<OPERATOR_ADD, __m128d, IS> {
+		enum {
+			optimised_blend_ct = (IS & ANVIL_AVX512VL) != 0ull,
+			optimised_blend_rt = (IS & ANVIL_AVX512VL) != 0ull
+		};
+
+		inline __m128d operator()(const __m128d lhs, const __m128d rhs) const throw() {
+			return _mm_add_pd(lhs, rhs);
+		}
+
+		template<uint64_t MASK>
+		inline __m128d OptimisedBlendCT(const __m128d src, const __m128d lhs, const __m128d rhs) const throw() {
+			return _mm_mask_add_pd(src, static_cast<__mmask8>(MASK), lhs, rhs);
+		}
+
+		inline __m128d OptimisedBlendRT(const __m128d src, const __m128d lhs, const __m128d rhs, const uint64_t mask) const throw() {
+			return _mm_mask_add_pd(src, static_cast<__mmask8>(mask), lhs, rhs);
+		}
+	};
+
+	template<InstructionSets IS>
+	struct Operator2Primative<OPERATOR_ADD, __m256d, IS> {
+		enum {
+			optimised_blend_ct = (IS & ANVIL_AVX512VL) != 0ull,
+			optimised_blend_rt = (IS & ANVIL_AVX512VL) != 0ull
+		};
+
+		inline __m256d operator()(const __m256 lhs, const __m256 rhs) const throw() {
+			return _mm256_add_pd(lhs, rhs);
+		}
+
+		template<uint64_t MASK>
+		inline __m256d OptimisedBlendCT(const __m256d src, const __m256d lhs, const __m256d rhs) const throw() {
+			return _mm256_mask_add_pd(src, static_cast<__mmask8>(MASK), lhs, rhs);
+		}
+
+		inline __m256d OptimisedBlendRT(const __m256d src, const __m256d lhs, const __m256d rhs, const uint64_t mask) const throw() {
+			return _mm256_mask_add_pd(src, static_cast<__mmask8>(mask), lhs, rhs);
+		}
+	};
+
+	template<InstructionSets IS>
+	struct Operator2Primative<OPERATOR_ADD, __m512d, IS> {
+		enum {
+			optimised_blend_ct = true,
+			optimised_blend_rt = true
+		};
+
+		inline __m512d operator()(const __m512d lhs, const __m512d rhs) const throw() {
+			return _mm512_add_pd(lhs, rhs);
+		}
+
+		template<uint64_t MASK>
+		inline __m512d OptimisedBlendCT(const __m512d src, const __m512d lhs, const __m512d rhs) const throw() {
+			return _mm512_mask_add_pd(src, static_cast<__mmask8>(MASK), lhs, rhs);
+		}
+
+		inline __m512d OptimisedBlendRT(const __m512d src, const __m512d lhs, const __m512d rhs, const uint64_t mask) const throw() {
+			return _mm512_mask_add_pd(src, static_cast<__mmask8>(mask), lhs, rhs);
 		}
 	};
 

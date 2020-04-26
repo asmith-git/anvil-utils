@@ -31,6 +31,8 @@ namespace anvil { namespace lutils { namespace experimental {
 
 	typedef uint64_t InstructionSets;
 
+	// Primative Types
+
 	typedef int8_t Signed8x1;
 	typedef int16_t Signed16x1;
 	typedef int32_t Signed32x1;
@@ -42,6 +44,8 @@ namespace anvil { namespace lutils { namespace experimental {
 	//typedef half Float16x1;
 	typedef float Float32x1;
 	typedef double Float64x1;
+
+	// Helper for determining vector length
 
 	template<class T>
 	struct VectorLength;
@@ -157,6 +161,31 @@ namespace anvil { namespace lutils { namespace experimental {
 	template<>
 	struct VectorLength<__m128> {
 		enum : size_t { value = 4u };
+	};
+
+	template<>
+	struct VectorLength<__m256> {
+		enum : size_t { value = 8u };
+	};
+
+	template<>
+	struct VectorLength<__m512> {
+		enum : size_t { value = 16u };
+	};
+
+	template<>
+	struct VectorLength<__m128d> {
+		enum : size_t { value = 2u };
+	};
+
+	template<>
+	struct VectorLength<__m256d> {
+		enum : size_t { value = 4u };
+	};
+
+	template<>
+	struct VectorLength<__m512d> {
+		enum : size_t { value = 8u };
 	};
 
 	template<>
