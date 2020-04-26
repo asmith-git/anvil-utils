@@ -24,10 +24,10 @@ namespace anvil { namespace lutils { namespace experimental {
 		OPERATOR_ADD
 	};
 
-	// Default Implementations
-
 	template<Operator OP, class T, InstructionSets IS = VectorTypeProperties<T>::min_instruction_set>
 	struct Operator2Primative;
+
+	// Default
 
 	namespace detail {
 		template<class OP, class T, uint64_t MASK, InstructionSets IS, bool OPTIMISED = OP::optimised_blend_ct>
@@ -122,6 +122,8 @@ namespace anvil { namespace lutils { namespace experimental {
 		}
 	};
 
+	// std::pair
+
 	template<Operator OP, class T, const uint64_t MASK, InstructionSets IS>
 	struct Operator2<OP, std::pair<T, T>, MASK, IS> {
 	private:
@@ -156,6 +158,8 @@ namespace anvil { namespace lutils { namespace experimental {
 		}
 	};
 
+	// std::array
+
 	template<Operator OP, class T, size_t S, const uint64_t MASK, InstructionSets IS>
 	struct Operator2<OP, std::array<T, S>, MASK, IS> {
 	private:
@@ -178,57 +182,80 @@ namespace anvil { namespace lutils { namespace experimental {
 		}
 	};
 
-	template<Operator OP, class T, size_t S, InstructionSets IS>
-	struct Operator2RT<OP, std::array<T, S>, IS> {
-	private:
-		enum {
-			IS_CPP_PRIMATIVE = std::is_integral<T>::value || std::is_floating_point<T>::value
-		};
+	namespace detail {
+		template<Operator OP, class T, size_t S, InstructionSets IS , bool TRIVIAL>
+		struct Operator2RT_array;
 
-		typedef Operator2RT<OP, T, IS> Operator2Fn;
-		union {
-			uint8_t _operators[IS_CPP_PRIMATIVE ? 1u : sizeof(Operator2Fn) * S];
-			uint64_t _mask;
-		};
-	public:
-		Operator2RT(uint64_t mask) {
-			if constexpr (IS_CPP_PRIMATIVE) {
-				_mask = mask;
-			} else {
+		template<Operator OP, class T, size_t S, InstructionSets IS>
+		struct Operator2RT_array<OP, T, S, IS, false> {
+		private:
+			typedef Operator2RT<OP, T, IS> Operator2Fn;
+			uint8_t _operators[sizeof(Operator2Fn) * S];
+		public:
+			Operator2RT_array(uint64_t mask) {
 				Operator2Fn* const blends = reinterpret_cast<Operator2Fn*>(_operators);
 				for (size_t i = 0u; i < S; ++i) {
 					new(blends + i) Operator2Fn(mask);
 					mask >>= VectorTypeProperties<T>::length;
 				}
 			}
-		}
 
-		~Operator2RT() {
-			if constexpr(! (std::is_trivially_destructible<Operator2Fn>::value || IS_CPP_PRIMATIVE)) {
-				Operator2Fn* const blends = reinterpret_cast<Operator2Fn*>(_operators);
-				for (size_t i = 0u; i < S; ++i) {
-					blends[i].~Operator2RT();
+			~Operator2RT_array() {
+				if constexpr(! std::is_trivially_destructible<Operator2Fn>::value) {
+					Operator2Fn* const blends = reinterpret_cast<Operator2Fn*>(_operators);
+					for (size_t i = 0u; i < S; ++i) {
+						blends[i].~Operator2RT();
+					}
 				}
 			}
-		}
 
-		std::array<T, S> operator()(const std::array<T, S>& src, const std::array<T, S>& lhs, const std::array<T, S>& rhs) const throw() {
-			std::array<T, S> tmp;
-			if constexpr (IS_CPP_PRIMATIVE) {
+			std::array<T, S> operator()(const std::array<T, S>& src, const std::array<T, S>& lhs, const std::array<T, S>& rhs) const throw() {
+				std::array<T, S> tmp;
+				const Operator2Fn* const blends = reinterpret_cast<const Operator2Fn*>(_operators);
+				for (size_t i = 0u; i < S; ++i) {
+					tmp[i] = blends[i](src[i], lhs[i], rhs[i]);
+				}
+				return tmp;
+			}
+		};
+
+		template<Operator OP, class T, size_t S, InstructionSets IS>
+		struct Operator2RT_array<OP, T, S, IS, true> {
+		private:
+			typedef Operator2RT<OP, T, IS> Operator2Fn;
+			const uint64_t _mask;
+		public:
+			Operator2RT_array(uint64_t mask) :
+				_mask(mask)
+			{}
+
+			std::array<T, S> operator()(const std::array<T, S>& src, const std::array<T, S>& lhs, const std::array<T, S>& rhs) const throw() {
+				std::array<T, S> tmp;
 				uint64_t mask = _mask;
 				for (size_t i = 0u; i < S; ++i) {
 					tmp[i] = Operator2Fn(mask)(src[i], lhs[i], rhs[i]);
 					mask >>= VectorTypeProperties<T>::length;
 				}
-			} else {
-				const Operator2Fn* const blends = reinterpret_cast<const Operator2Fn*>(_operators);
-				for (size_t i = 0u; i < S; ++i) {
-					tmp[i] = blends[i](src[i], lhs[i], rhs[i]);
-				}
+				return tmp;
 			}
-			return tmp;
+		};
+	}
+
+	template<Operator OP, class T, size_t S, InstructionSets IS>
+	struct Operator2RT<OP, std::array<T, S>, IS> {
+	private:
+		detail::Operator2RT_array<OP, T, S, IS, std::is_integral<T>::value || std::is_floating_point<T>::value> _op;
+	public:
+		Operator2RT(uint64_t mask) :
+			_op(mask)
+		{}
+
+		inline std::array<T, S> operator()(const std::array<T, S>& src, const std::array<T, S>& lhs, const std::array<T, S>& rhs) const throw() {
+			return _op(src, lhs, rhs);
 		}
 	};
+
+	// VectorWrapper
 
 	template<Operator OP, size_t S, class WRAPPER, const uint64_t MASK, InstructionSets IS>
 	struct Operator2<OP, VectorWrapper<S, WRAPPER>, MASK, IS> {
