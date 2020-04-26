@@ -45,6 +45,14 @@ namespace anvil { namespace lutils { namespace experimental {
 	typedef float Float32x1;
 	typedef double Float64x1;
 
+	// Helpers for determining vector implementation
+
+	template<class T, size_t S, InstructionSets IS>
+	struct OptimisedVectorType {
+		typedef void type;
+		enum { value = false };
+	};
+
 	// Helper for determining vector length
 
 	template<class T>
@@ -143,20 +151,45 @@ namespace anvil { namespace lutils { namespace experimental {
 		INSTRUCTION_SETS_DEFAULT = ANVIL_SSE | ANVIL_SSE2 | ANVIL_SSE3 | ANVIL_SSSE3
 	};
 
-	namespace detail {
-		template<InstructionSets IS>
-		struct Float32x4_Selector {
-			typedef __m128 type;
-		};
+	// Vector type definitions
 
-		template<>
-		struct Float32x4_Selector<0u> {
-			typedef std::array<float, 4> type;
-		};
-	}
+	template<InstructionSets IS>
+	struct OptimisedVectorType<float, 4u, IS> {
+		typedef __m128 type;
+		enum { value = (IS & ANVIL_SSE) != 0ull };
+	};
 
-	template<InstructionSets IS = INSTRUCTION_SETS_DEFAULT>
-	using Float32x4 = typename detail::Float32x4_Selector<IS>::type;
+	template<InstructionSets IS>
+	struct OptimisedVectorType<float, 8u, IS> {
+		typedef __m256 type;
+		enum { value = (IS & ANVIL_AVX) != 0ull };
+	};
+
+	template<InstructionSets IS>
+	struct OptimisedVectorType<float, 16u, IS> {
+		typedef __m512 type;
+		enum { value = (IS & ANVIL_AVX512VL) != 0ull };
+	};
+
+	template<InstructionSets IS>
+	struct OptimisedVectorType<double, 2u, IS> {
+		typedef __m128d type;
+		enum { value = (IS & ANVIL_SSE2) != 0ull };
+	};
+
+	template<InstructionSets IS>
+	struct OptimisedVectorType<double, 4u, IS> {
+		typedef __m256d type;
+		enum { value = (IS & ANVIL_AVX) != 0ull };
+	};
+
+	template<InstructionSets IS>
+	struct OptimisedVectorType<double, 8u, IS> {
+		typedef __m512d type;
+		enum { value = (IS & ANVIL_AVX512VL) != 0ull };
+	};
+
+	// Vector length definitions
 
 	template<>
 	struct VectorLength<__m128> {
@@ -198,10 +231,9 @@ namespace anvil { namespace lutils { namespace experimental {
 	enum : InstructionSets { 
 		INSTRUCTION_SETS_DEFAULT = 0ull 
 	};
-
-	template<InstructionSets IS = INSTRUCTION_SETS_DEFAULT>
-	using Float32x4 = std::array<float, 4>;
 #endif
+
+	// Mask Helper
 
 	namespace detail {
 		template<size_t LEN>
@@ -225,6 +257,31 @@ namespace anvil { namespace lutils { namespace experimental {
 		enum : uint64_t { value = detail::DefaultMask_<VectorLength<T>::value>::value };
 	};
 
+	// Vector implementation selection
+
+	namespace detail {
+		template<class T, size_t S, InstructionSets IS, bool OPTIMISED = OptimisedVectorType<T,S,IS>::value>
+		struct VectorType_;
+
+		template<class T, size_t S, InstructionSets IS>
+		struct VectorType_<T, S, IS, true> {
+			//! \todo Compound vector out of smaller optimised types
+			typedef typename OptimisedVectorType<T, S, IS>::type type;
+		};
+
+		template<class T, size_t S, InstructionSets IS>
+		struct VectorType_<T, S, IS, false> {
+			//! \todo Compound vector out of smaller optimised types
+			typedef std::array<T, S> type;
+		};
+	}
+
+	template<class T, size_t S, InstructionSets IS = INSTRUCTION_SETS_DEFAULT>
+	using VectorType = typename detail::VectorType_<T, S, IS>::type;
+
+
+	template<InstructionSets IS = INSTRUCTION_SETS_DEFAULT>
+	using Float32x4 = VectorType<float, 4u, IS>;
 }}}
 
 #endif
