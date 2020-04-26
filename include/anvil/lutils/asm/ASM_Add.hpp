@@ -35,7 +35,8 @@ namespace anvil { namespace lutils { namespace experimental {
 	struct Operator2Primative<OPERATOR_ADD, float, IS> {
 		enum { 
 			optimised_blend_ct = false,
-			optimised_blend_rt = false
+			optimised_blend_rt = false,
+			has_context = false
 		};
 
 		inline float operator()(const float lhs, const float rhs) const throw() {
@@ -53,7 +54,8 @@ namespace anvil { namespace lutils { namespace experimental {
 	struct Operator2Primative<OPERATOR_ADD, __m128, IS> {
 		enum {
 			optimised_blend_ct = (IS & ANVIL_AVX512VL) != 0ull,
-			optimised_blend_rt = (IS & ANVIL_AVX512VL) != 0ull
+			optimised_blend_rt = (IS & ANVIL_AVX512VL) != 0ull,
+			has_context = false
 		};
 
 		inline __m128 operator()(const __m128 lhs, const __m128 rhs) const throw() {
@@ -74,7 +76,8 @@ namespace anvil { namespace lutils { namespace experimental {
 	struct Operator2Primative<OPERATOR_ADD, __m256, IS> {
 		enum {
 			optimised_blend_ct = (IS & ANVIL_AVX512VL) != 0ull,
-			optimised_blend_rt = (IS & ANVIL_AVX512VL) != 0ull
+			optimised_blend_rt = (IS & ANVIL_AVX512VL) != 0ull,
+			has_context = false
 		};
 
 		inline __m256 operator()(const __m256 lhs, const __m256 rhs) const throw() {
@@ -95,7 +98,8 @@ namespace anvil { namespace lutils { namespace experimental {
 	struct Operator2Primative<OPERATOR_ADD, __m512, IS> {
 		enum {
 			optimised_blend_ct = true,
-			optimised_blend_rt = true
+			optimised_blend_rt = true,
+			has_context = false
 		};
 
 		inline __m512 operator()(const __m512 lhs, const __m512 rhs) const throw() {
@@ -120,7 +124,8 @@ namespace anvil { namespace lutils { namespace experimental {
 	struct Operator2Primative<OPERATOR_ADD, __m128d, IS> {
 		enum {
 			optimised_blend_ct = (IS & ANVIL_AVX512VL) != 0ull,
-			optimised_blend_rt = (IS & ANVIL_AVX512VL) != 0ull
+			optimised_blend_rt = (IS & ANVIL_AVX512VL) != 0ull,
+			has_context = false
 		};
 
 		inline __m128d operator()(const __m128d lhs, const __m128d rhs) const throw() {
@@ -141,7 +146,8 @@ namespace anvil { namespace lutils { namespace experimental {
 	struct Operator2Primative<OPERATOR_ADD, __m256d, IS> {
 		enum {
 			optimised_blend_ct = (IS & ANVIL_AVX512VL) != 0ull,
-			optimised_blend_rt = (IS & ANVIL_AVX512VL) != 0ull
+			optimised_blend_rt = (IS & ANVIL_AVX512VL) != 0ull,
+			has_context = false
 		};
 
 		inline __m256d operator()(const __m256 lhs, const __m256 rhs) const throw() {
@@ -162,7 +168,8 @@ namespace anvil { namespace lutils { namespace experimental {
 	struct Operator2Primative<OPERATOR_ADD, __m512d, IS> {
 		enum {
 			optimised_blend_ct = true,
-			optimised_blend_rt = true
+			optimised_blend_rt = true,
+			has_context = false
 		};
 
 		inline __m512d operator()(const __m512d lhs, const __m512d rhs) const throw() {

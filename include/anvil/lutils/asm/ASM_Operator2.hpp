@@ -38,6 +38,7 @@ namespace anvil { namespace lutils { namespace experimental {
 		private:
 			const Blend<T, MASK, IS> _blend;
 		public:
+			enum : bool { has_context = OP::has_context || Blend<T, MASK, IS>::has_context };
 			const OP op;
 
 			inline T operator()(const T src, const T lhs, const T rhs) const throw() {
@@ -47,6 +48,7 @@ namespace anvil { namespace lutils { namespace experimental {
 
 		template<class OP, class T, uint64_t MASK, InstructionSets IS>
 		struct Operator2_<OP, T, MASK, IS, true> {
+			enum : bool { has_context = OP::has_context };
 			const OP op;
 
 			inline T operator()(const T src, const T lhs, const T rhs) const throw() {
@@ -60,6 +62,8 @@ namespace anvil { namespace lutils { namespace experimental {
 	private:
 		detail::Operator2_<Operator2Primative<OP, T, IS>, T, MASK, IS> _op;
 	public:
+		enum : bool { has_context = detail::Operator2_<Operator2Primative<OP, T, IS>, T, MASK, IS>::has_context };
+
 		inline T operator()(const T src, const T lhs, const T rhs) const throw() {
 			enum : uint64_t { MASK_BOUND = MASK & DefaultMask<T>::value };
 			if constexpr (MASK_BOUND == 0u) {
@@ -83,6 +87,8 @@ namespace anvil { namespace lutils { namespace experimental {
 			const BlendRT<T, IS> _blend;
 			const OP _op;
 		public:
+			enum : bool { has_context = OP::has_context || BlendRT<T, IS>::has_context };
+
 			Operator2RT_(const uint64_t mask) :
 				_blend(mask)
 			{}
@@ -98,6 +104,8 @@ namespace anvil { namespace lutils { namespace experimental {
 			const OP _op;
 			const uint64_t _mask;
 		public:
+			enum : bool { has_context = OP::has_context };
+
 			Operator2RT_(const uint64_t mask) :
 				_mask(mask)
 			{}
@@ -113,6 +121,8 @@ namespace anvil { namespace lutils { namespace experimental {
 	private:
 		detail::Operator2RT_<Operator2Primative<OP, T, IS>, T, IS> _op;
 	public:
+		enum : bool { has_context = detail::Operator2RT_<Operator2Primative<OP, T, IS>, T, IS>::has_context };
+
 		Operator2RT(const uint64_t mask) :
 			_op(mask)
 		{}
@@ -131,6 +141,8 @@ namespace anvil { namespace lutils { namespace experimental {
 		const Operator2<OP, T, MASK, IS> _lhs;
 		const Operator2<OP, T, MASK2, IS> _rhs;
 	public:
+		enum : bool { has_context = Operator2<OP, T, MASK, IS>::has_context || Operator2<OP, T, MASK2, IS>::has_context };
+
 		inline std::pair<T, T> operator()(const std::pair<T, T>& src, const std::pair<T, T>& lhs, const std::pair<T, T>& rhs) const throw() {
 			return {
 				_lhs(src.first, lhs.first, rhs.first),
@@ -145,6 +157,8 @@ namespace anvil { namespace lutils { namespace experimental {
 		const Operator2RT<OP, T, IS> _lhs;
 		const Operator2RT<OP, T, IS> _rhs;
 	public:
+		enum : bool { has_context = Operator2RT<OP, T, IS>::has_context };
+
 		Operator2RT(const uint64_t mask) :
 			_lhs(mask),
 			_rhs(mask >> VectorTypeProperties<T>::length)
@@ -175,6 +189,8 @@ namespace anvil { namespace lutils { namespace experimental {
 			// Do nothing
 		}
 	public:
+		enum : bool { has_context = false };
+
 		std::array<T, S> operator()(const std::array<T, S>& src, const std::array<T, S>& lhs, const std::array<T, S>& rhs) const throw() {
 			std::array<T, S> tmp;
 			Execute<0u>(src, lhs, rhs, tmp);
@@ -183,15 +199,16 @@ namespace anvil { namespace lutils { namespace experimental {
 	};
 
 	namespace detail {
-		template<Operator OP, class T, size_t S, InstructionSets IS , bool TRIVIAL>
+		template<class Operator2Fn, class T, size_t S, bool TRIVIAL>
 		struct Operator2RT_array;
 
-		template<Operator OP, class T, size_t S, InstructionSets IS>
-		struct Operator2RT_array<OP, T, S, IS, false> {
+		template<class Operator2Fn, class T, size_t S>
+		struct Operator2RT_array<Operator2Fn, T, S, false> {
 		private:
-			typedef Operator2RT<OP, T, IS> Operator2Fn;
 			uint8_t _operators[sizeof(Operator2Fn) * S];
 		public:
+			enum : bool { has_context = Operator2Fn::has_context };
+
 			Operator2RT_array(uint64_t mask) {
 				Operator2Fn* const blends = reinterpret_cast<Operator2Fn*>(_operators);
 				for (size_t i = 0u; i < S; ++i) {
@@ -219,12 +236,13 @@ namespace anvil { namespace lutils { namespace experimental {
 			}
 		};
 
-		template<Operator OP, class T, size_t S, InstructionSets IS>
-		struct Operator2RT_array<OP, T, S, IS, true> {
+		template<class Operator2Fn, class T, size_t S>
+		struct Operator2RT_array<Operator2Fn, T, S, true> {
 		private:
-			typedef Operator2RT<OP, T, IS> Operator2Fn;
 			const uint64_t _mask;
 		public:
+			enum : bool { has_context = false };
+
 			Operator2RT_array(uint64_t mask) :
 				_mask(mask)
 			{}
@@ -244,8 +262,12 @@ namespace anvil { namespace lutils { namespace experimental {
 	template<Operator OP, class T, size_t S, InstructionSets IS>
 	struct Operator2RT<OP, std::array<T, S>, IS> {
 	private:
-		detail::Operator2RT_array<OP, T, S, IS, std::is_integral<T>::value || std::is_floating_point<T>::value> _op;
+		typedef  Operator2RT<OP, T, IS> Operator2Fn;
+		enum : bool { use_trivial_implementation = ! Operator2Fn::has_context };
+		detail::Operator2RT_array<Operator2Fn, T, S, use_trivial_implementation> _op;
 	public:
+		enum : bool { has_context = detail::Operator2RT_array<Operator2Fn, T, S, use_trivial_implementation>::has_context };
+
 		Operator2RT(uint64_t mask) :
 			_op(mask)
 		{}
@@ -262,6 +284,8 @@ namespace anvil { namespace lutils { namespace experimental {
 	private:
 		const Operator2<OP, WRAPPER, MASK, IS> _op;
 	public:
+		enum : bool { has_context = Operator2<OP, WRAPPER, MASK, IS>::has_context };
+
 		inline VectorWrapper<S, WRAPPER> operator()(const VectorWrapper<S, WRAPPER>& src, const VectorWrapper<S, WRAPPER>& lhs, const VectorWrapper<S, WRAPPER>& rhs) const throw() {
 			return { _op(src.wrapper, lhs.wrapper, rhs.wrapper) };
 		}
@@ -272,6 +296,8 @@ namespace anvil { namespace lutils { namespace experimental {
 	private:
 		const Operator2RT<OP, WRAPPER, IS> _op;
 	public:
+		enum : bool { has_context = Operator2RT<OP, WRAPPER, IS>::has_context };
+
 		Operator2RT(const uint64_t mask) :
 			_op(mask)
 		{}

@@ -28,6 +28,7 @@ namespace anvil { namespace lutils { namespace experimental {
 	private:
 		const BlendRT<T, IS> _blend;
 	public:
+		enum : bool { has_context = BlendRT<T, IS>::has_context };
 		Blend() :
 			_blend(MASK)
 		{}
@@ -44,6 +45,7 @@ namespace anvil { namespace lutils { namespace experimental {
 		const Blend<T, MASK, IS> _lhs;
 		const Blend<T, MASK2, IS> _rhs;
 	public:
+		enum : bool { has_context = Blend<T, MASK2, IS>::has_context };
 		inline std::pair<T, T> operator()(const std::pair<T, T>& src, const std::pair<T, T>& other) const throw() {
 			return {
 				_lhs(src.first, other.first),
@@ -58,6 +60,8 @@ namespace anvil { namespace lutils { namespace experimental {
 		const BlendRT<T, IS> _lhs;
 		const BlendRT<T, IS> _rhs;
 	public:
+		enum : bool { has_context = BlendRT<T, IS>::has_context };
+
 		BlendRT(uint64_t mask) :
 			_lhs(mask),
 			_rhs(mask >> VectorTypeProperties<T>::length)
@@ -86,6 +90,8 @@ namespace anvil { namespace lutils { namespace experimental {
 			// Do nothing
 		}
 	public:
+		enum : bool { has_context = false };
+
 		std::array<T, S> operator()(const std::array<T, S>& src, const std::array<T, S>& other) const throw() {
 			std::array<T, S> tmp;
 			Execute<0u>(src, other, tmp);
@@ -106,6 +112,8 @@ namespace anvil { namespace lutils { namespace experimental {
 			uint64_t _mask;
 		};
 	public:
+		enum : bool { has_context = ! IS_CPP_PRIMATIVE };
+
 		BlendRT(uint64_t mask) {
 			if constexpr (IS_CPP_PRIMATIVE) {
 				_mask = mask;
@@ -149,6 +157,8 @@ namespace anvil { namespace lutils { namespace experimental {
 
 	template<const uint64_t MASK, InstructionSets IS>
 	struct Blend<float, MASK, IS> {
+		enum : bool { has_context = false };
+
 		inline float operator()(const float src, const float other) const throw() {
 			enum : uint64_t { MASK_BOUND = MASK & 1ull };
 
@@ -165,6 +175,8 @@ namespace anvil { namespace lutils { namespace experimental {
 	private:
 		const bool _condition;
 	public:
+		enum : bool { has_context = false };
+
 		BlendRT(uint64_t mask) :
 			_condition((mask & 1ull) == 0u)
 		{}
@@ -224,6 +236,8 @@ namespace anvil { namespace lutils { namespace experimental {
 			enum : uint64_t { MASK2 = MASK & DefaultMask<__m128>::value };
 			const __m128 _mask;
 		public:
+			enum : bool { has_context = true };
+
 			BlendF32SSE() :
 				_mask(_mm_loadu_ps(reinterpret_cast<const float*>(MaskHelper32<MASK2, 4u>::g_mask)))
 			{}
@@ -235,6 +249,8 @@ namespace anvil { namespace lutils { namespace experimental {
 
 		template<uint64_t MASK, InstructionSets IS>
 		struct BlendF32SSE<MASK, IS, true> {
+			enum : bool { has_context = false };
+
 			inline __m128 operator()(const __m128 src, const __m128 other) const throw() {
 				enum : int { MASK2 = static_cast<int>(MASK & DefaultMask<__m128>::value) };
 				return _mm_blend_ps(src, other, MASK2);
@@ -263,6 +279,8 @@ namespace anvil { namespace lutils { namespace experimental {
 				return _mm_blendv_ps(src, other, _mask);
 			}
 		public:
+			enum : bool { has_context = true };
+
 			BlendRTF32SSE(const uint64_t mask) :
 				_mask(GeneratorMask(mask))
 			{}
@@ -281,6 +299,8 @@ namespace anvil { namespace lutils { namespace experimental {
 		private:
 			const __mmask8 _mask;
 		public:
+			enum : bool { has_context = false };
+
 			BlendRTF32SSE(const uint64_t mask) :
 				_mask(static_cast<__mmask8>(mask))
 			{}
@@ -298,6 +318,8 @@ namespace anvil { namespace lutils { namespace experimental {
 	private:
 		const detail::BlendF32SSE<MASK, IS> _blend;
 	public:
+		enum : bool { has_context = detail::BlendF32SSE<MASK, IS>::has_context };
+
 		inline __m128 operator()(const __m128 src, const __m128 other) const throw() {
 			enum : uint64_t { MASK_BOUND = MASK & DefaultMask<__m128>::value };
 			if constexpr (MASK_BOUND == 0ull) {
@@ -318,6 +340,8 @@ namespace anvil { namespace lutils { namespace experimental {
 	private:
 		const detail::BlendRTF32SSE<IS> _blend;
 	public:
+		enum : bool { has_context = detail::BlendRTF32SSE<IS>::has_context };
+
 		BlendRT(const uint64_t mask) :
 			_blend(mask)
 		{}
