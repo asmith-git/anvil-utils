@@ -354,6 +354,94 @@ namespace anvil { namespace BytePipe {
 		ANVIL_CONTRACT(bytesRead == bytes, "Failed to read from pipe");
 	}
 
+	static constexpr uint8_t g_secondary_type_sizes[] = {
+		0u, // SID_NULL
+		1u, // SID_U8
+		2u, // SID_U16
+		4u, // SID_U32
+		8u, // SID_U64
+		1u, // SID_S8
+		2u, // SID_S16
+		4u, // SID_S32
+		8u, // SID_S64
+		4u, // SID_F32
+		8u, // SID_F64
+		1u, // SID_C8
+		2u // SID_F16
+	};
+
+	namespace detail {
+		static void CallOnPrimativeU8(Parser& parser, const ValueHeader& header) {
+			parser.OnPrimativeU8(header.primative_v1.u8);
+		}
+
+		static void CallOnPrimativeU16(Parser& parser, const ValueHeader& header) {
+			parser.OnPrimativeU16(header.primative_v1.u16);
+		}
+
+		static void CallOnPrimativeU32(Parser& parser, const ValueHeader& header) {
+			parser.OnPrimativeU32(header.primative_v1.u32);
+		}
+
+		static void CallOnPrimativeU64(Parser& parser, const ValueHeader& header) {
+			parser.OnPrimativeU64(header.primative_v1.u64);
+		}
+
+		static void CallOnPrimativeS8(Parser& parser, const ValueHeader& header) {
+			parser.OnPrimativeS8(header.primative_v1.s8);
+		}
+
+		static void CallOnPrimativeS16(Parser& parser, const ValueHeader& header) {
+			parser.OnPrimativeS16(header.primative_v1.s16);
+		}
+
+		static void CallOnPrimativeS32(Parser& parser, const ValueHeader& header) {
+			parser.OnPrimativeS32(header.primative_v1.s32);
+		}
+
+		static void CallOnPrimativeS64(Parser& parser, const ValueHeader& header) {
+			parser.OnPrimativeS64(header.primative_v1.s64);
+		}
+
+		static void CallOnPrimativeF16(Parser& parser, const ValueHeader& header) {
+			parser.OnPrimativeF16(header.primative_v1.f16);
+		}
+
+		static void CallOnPrimativeF32(Parser& parser, const ValueHeader& header) {
+			parser.OnPrimativeF32(header.primative_v1.f32);
+		}
+
+		static void CallOnPrimativeF64(Parser& parser, const ValueHeader& header) {
+			parser.OnPrimativeF64(header.primative_v1.f64);
+		}
+
+		static void CallOnPrimativeC8(Parser& parser, const ValueHeader& header) {
+			parser.OnPrimativeC8(header.primative_v1.c8);
+		}
+
+		static void CallOnNull(Parser& parser, const ValueHeader& header) {
+			parser.OnNull();
+		}
+	}
+
+	typedef void(*OnPrimativeCallback)(Parser& parser, const ValueHeader& header);
+
+	static constexpr OnPrimativeCallback g_on_primative_callbacks[] = {
+		detail::CallOnNull,			// SID_NULL
+		detail::CallOnPrimativeU8,	// SID_U8
+		detail::CallOnPrimativeU16,	// SID_U16
+		detail::CallOnPrimativeU32,	// SID_U32
+		detail::CallOnPrimativeU64,	// SID_U64
+		detail::CallOnPrimativeS8,	// SID_S8
+		detail::CallOnPrimativeS16,	// SID_S16
+		detail::CallOnPrimativeS32,	// SID_S32
+		detail::CallOnPrimativeS64,	// SID_S64
+		detail::CallOnPrimativeF32,	// SID_F32
+		detail::CallOnPrimativeF64,	// SID_F64
+		detail::CallOnPrimativeC8,	// SID_C8
+		detail::CallOnPrimativeF16	// SID_F16
+	};
+
 	class ReadHelper {
 	private:
 		InputPipe& _pipe;
@@ -383,63 +471,15 @@ namespace anvil { namespace BytePipe {
 			_parser.OnObjectEnd();
 		}
 
-		void ReadPrimative() {
-			switch (header.primary_id) {
-			case SID_NULL:
-				_parser.OnNull();
-				break;
-			case SID_U8:
-				ReadFromPipe(_pipe, &header.primative_v1, sizeof(uint8_t));
-				_parser.OnPrimativeU8(header.primative_v1.u8);
-				break;
-			case SID_U16:
-				ReadFromPipe(_pipe, &header.primative_v1, sizeof(uint16_t));
-				_parser.OnPrimativeU16(header.primative_v1.u16);
-				break;
-			case SID_U32:
-				ReadFromPipe(_pipe, &header.primative_v1, sizeof(uint32_t));
-				_parser.OnPrimativeU32(header.primative_v1.u16);
-				break;
-			case SID_U64:
-				ReadFromPipe(_pipe, &header.primative_v1, sizeof(uint64_t));
-				_parser.OnPrimativeU64(header.primative_v1.u64);
-				break;
-			case SID_S8:
-				ReadFromPipe(_pipe, &header.primative_v1, sizeof(int8_t));
-				_parser.OnPrimativeS8(header.primative_v1.s8);
-				break;
-			case SID_S16:
-				ReadFromPipe(_pipe, &header.primative_v1, sizeof(int32_t));
-				_parser.OnPrimativeS16(header.primative_v1.s16);
-				break;
-			case SID_S32:
-				ReadFromPipe(_pipe, &header.primative_v1, sizeof(int32_t));
-				_parser.OnPrimativeS32(header.primative_v1.s16);
-				break;
-			case SID_S64:
-				ReadFromPipe(_pipe, &header.primative_v1, sizeof(int64_t));
-				_parser.OnPrimativeS64(header.primative_v1.s64);
-				break;
-			case SID_F32:
-				ReadFromPipe(_pipe, &header.primative_v1, sizeof(float));
-				_parser.OnPrimativeF32(header.primative_v1.f32);
-				break;
-			case SID_F64:
-				ReadFromPipe(_pipe, &header.primative_v1, sizeof(double));
-				_parser.OnPrimativeF64(header.primative_v1.f64);
-				break;
-			case SID_C8:
-				ReadFromPipe(_pipe, &header.primative_v1, sizeof(char));
-				_parser.OnPrimativeC8(header.primative_v1.c8);
-				break;
-			case SID_F16:
-				ReadFromPipe(_pipe, &header.primative_v1, sizeof(half));
-				_parser.OnPrimativeF16(header.primative_v1.f16);
-				break;
-			default:
-				ANVIL_CONTRACT(false, "Invalid value ID");
-				break;
-			}
+		inline void ReadPrimative() {
+			const uint32_t id = header.primary_id;
+
+			// Read primative value
+			const uint32_t bytes = g_secondary_type_sizes[id];
+			if(bytes > 0u) ReadFromPipe(_pipe, &header.primative_v1, g_secondary_type_sizes[id]);
+
+			// Output the primative value
+			g_on_primative_callbacks[id](_parser, header);
 		}
 
 		void ReadGeneric() {
