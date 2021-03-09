@@ -3,6 +3,8 @@
 
 # Usage Example
 ```cpp
+#include "anvil/byte-pipe/BytePipe.hpp"
+
 // This is the example data structure that we want to serialise with byte pipes
 struct Ball {
   // Serialisable variables
