@@ -19,9 +19,7 @@
 
 namespace anvil {namespace BytePipe {
 	enum Version : uint8_t {
-		VERSION_1 = 1,
-		VERSION_2 = 2,
-		VERSION_3 = 3
+		VERSION_1 = 1
 	};
 }}
 

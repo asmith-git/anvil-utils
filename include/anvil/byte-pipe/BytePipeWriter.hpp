@@ -27,7 +27,7 @@ namespace anvil { namespace BytePipe {
 		virtual void Flush() = 0;
 	};
 
-	class Writer final : public ParserV3 {
+	class Writer final : public Parser {
 	private:
 		Writer(Writer&&) = delete;
 		Writer(const Writer&) = delete;

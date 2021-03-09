@@ -24,17 +24,15 @@ namespace anvil { namespace BytePipe {
 		virtual uint32_t ReadBytes(void* dst, const uint32_t bytes) = 0;
 	};
 
-	class Parser {
-	public:
-		virtual ~Parser() {}
-		virtual Version GetSupportedVersion() const = 0;
-	};
-
 	enum half : uint16_t {};
 
-	class ParserV1 : public Parser {
+	class Parser {
 	public:
-		virtual ~ParserV1() {}
+		Parser() {}
+		virtual ~Parser() {}
+		virtual Version GetSupportedVersion() const { return VERSION_1; }
+
+		// Basic functionality
 
 		virtual void OnPipeOpen() = 0;
 		virtual void OnPipeClose() = 0;
@@ -47,6 +45,8 @@ namespace anvil { namespace BytePipe {
 		virtual void OnComponentID(const uint16_t id) = 0;
 
 		virtual void OnNull() = 0;
+
+		virtual void OnUserPOD(const uint32_t type, const uint32_t bytes, const void* data) = 0;
 
 		virtual void OnPrimativeF64(const double value) = 0;
 		virtual void OnPrimativeString(const char* value, const uint32_t length) = 0;
@@ -63,42 +63,80 @@ namespace anvil { namespace BytePipe {
 		virtual void OnPrimativeS32(const int32_t value) { OnPrimativeS64(value); }
 		virtual void OnPrimativeF16(const half value) { OnPrimativeF32(static_cast<float>(value)); } //! \bug half to float conversion not implemented
 
-		// Inherited from Parser
+		// Array Optimisations
 
-		virtual Version GetSupportedVersion() const override { return VERSION_1; }
-	};
+		virtual void OnPrimativeArrayU8(const uint8_t* src, const uint32_t size) {
+			Parser::OnArrayBegin(size);
+			for (uint32_t i = 0u; i < size; ++i) Parser::OnPrimativeU8(src[i]);
+			Parser::OnArrayEnd();
+		}
 
-	class ParserV2 : public ParserV1 {
-	public:
-		virtual ~ParserV2() {}
+		virtual void OnPrimativeArrayU16(const uint16_t* src, const uint32_t size) {
+			Parser::OnArrayBegin(size);
+			for (uint32_t i = 0u; i < size; ++i) Parser::OnPrimativeU16(src[i]);
+			Parser::OnArrayEnd();
+		}
 
-		virtual void OnPrimativeArrayU8(const uint8_t* src, const uint32_t size) = 0;
-		virtual void OnPrimativeArrayU16(const uint16_t* src, const uint32_t size) = 0;
-		virtual void OnPrimativeArrayU32(const uint32_t* src, const uint32_t size) = 0;
-		virtual void OnPrimativeArrayU64(const uint64_t* src, const uint32_t size) = 0;
-		virtual void OnPrimativeArrayS8(const int8_t* src, const uint32_t size) = 0;
-		virtual void OnPrimativeArrayS16(const int16_t* src, const uint32_t size) = 0;
-		virtual void OnPrimativeArrayS32(const int32_t* src, const uint32_t size) = 0;
-		virtual void OnPrimativeArrayS64(const int64_t* src, const uint32_t size) = 0;
-		virtual void OnPrimativeArrayF32(const float* src, const uint32_t size) = 0;
-		virtual void OnPrimativeArrayF64(const double* src, const uint32_t size) = 0;
-		virtual void OnPrimativeArrayC8(const char* src, const uint32_t size) = 0;
-		virtual void OnPrimativeArrayF16(const half* src, const uint32_t size) = 0;
+		virtual void OnPrimativeArrayU32(const uint32_t* src, const uint32_t size) {
+			Parser::OnArrayBegin(size);
+			for (uint32_t i = 0u; i < size; ++i) Parser::OnPrimativeU32(src[i]);
+			Parser::OnArrayEnd();
+		}
 
-		// Inherited from Parser
+		virtual void OnPrimativeArrayU64(const uint64_t* src, const uint32_t size) {
+			Parser::OnArrayBegin(size);
+			for (uint32_t i = 0u; i < size; ++i) Parser::OnPrimativeU64(src[i]);
+			Parser::OnArrayEnd();
+		}
 
-		virtual Version GetSupportedVersion() const override { return VERSION_2; }
-	};
+		virtual void OnPrimativeArrayS8(const int8_t* src, const uint32_t size) {
+			Parser::OnArrayBegin(size);
+			for (uint32_t i = 0u; i < size; ++i) Parser::OnPrimativeS8(src[i]);
+			Parser::OnArrayEnd();
+		}
 
-	class ParserV3 : public ParserV2 {
-	public:
-		virtual ~ParserV3() {}
+		virtual void OnPrimativeArrayS16(const int16_t* src, const uint32_t size) {
+			Parser::OnArrayBegin(size);
+			for (uint32_t i = 0u; i < size; ++i) Parser::OnPrimativeS16(src[i]);
+			Parser::OnArrayEnd();
+		}
 
-		virtual void OnUserPOD(const uint32_t type, const uint32_t bytes, const void* data) = 0;
+		virtual void OnPrimativeArrayS32(const int32_t* src, const uint32_t size) {
+			Parser::OnArrayBegin(size);
+			for (uint32_t i = 0u; i < size; ++i) Parser::OnPrimativeS32(src[i]);
+			Parser::OnArrayEnd();
+		}
 
-		// Inherited from Parser
+		virtual void OnPrimativeArrayS64(const int64_t* src, const uint32_t size) {
+			Parser::OnArrayBegin(size);
+			for (uint32_t i = 0u; i < size; ++i) Parser::OnPrimativeS64(src[i]);
+			Parser::OnArrayEnd();
+		}
 
-		virtual Version GetSupportedVersion() const override { return VERSION_2; }
+		virtual void OnPrimativeArrayF32(const float* src, const uint32_t size) {
+			Parser::OnArrayBegin(size);
+			for (uint32_t i = 0u; i < size; ++i) Parser::OnPrimativeF32(src[i]);
+			Parser::OnArrayEnd();
+		}
+
+		virtual void OnPrimativeArrayF64(const double* src, const uint32_t size) {
+			Parser::OnArrayBegin(size);
+			for (uint32_t i = 0u; i < size; ++i) Parser::OnPrimativeF64(src[i]);
+			Parser::OnArrayEnd();
+		}
+
+		virtual void OnPrimativeArrayC8(const char* src, const uint32_t size) {
+			Parser::OnArrayBegin(size);
+			for (uint32_t i = 0u; i < size; ++i) Parser::OnPrimativeC8(src[i]);
+			Parser::OnArrayEnd();
+		}
+
+		virtual void OnPrimativeArrayF16(const half* src, const uint32_t size) {
+			Parser::OnArrayBegin(size);
+			for (uint32_t i = 0u; i < size; ++i) Parser::OnPrimativeF16(src[i]);
+			Parser::OnArrayEnd();
+		}
+
 	};
 
 	class Reader {
