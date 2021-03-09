@@ -1,5 +1,5 @@
 # Dependencies
-* [anvil-utils](https://github.com/asmith-git/anvil-utils)
+* None
 
 # Usage Example
 ```cpp
@@ -29,7 +29,7 @@ struct Ball {
 ## Serialisation
 ```cpp
 // Using the basic serialisation functions
-void SerialiseMethod1(const Ball& ball, anvil::BytePipe::Writer& serialiser) {
+void SerialiseMethod1(const Ball& ball, anvil::BytePipe::Parser& serialiser) {
 	// Ball is serialised as an object
 	serialiser.OnObjectBegin(4u);
 
@@ -59,7 +59,7 @@ void SerialiseMethod1(const Ball& ball, anvil::BytePipe::Writer& serialiser) {
 }
 
 // The serialisation code can be simplified using the helper functions
-void SerialiseMethod2(const Ball& ball, anvil::BytePipe::Writer& serialiser) {
+void SerialiseMethod2(const Ball& ball, anvil::BytePipe::Parser& serialiser) {
 	serialiser.OnObjectBegin(4u);
 	serialiser.OnPrimative(Ball::COMPONENT_X, ball.x);
 	serialiser.OnPrimative(Ball::COMPONENT_Y, ball.y);
@@ -70,7 +70,7 @@ void SerialiseMethod2(const Ball& ball, anvil::BytePipe::Writer& serialiser) {
 
 // You could also serial Ball as a POD structure.
 // This is faster, but will break if you change the definition of any of the variables
-void SerialiseMethod3(const Ball& ball, anvil::BytePipe::Writer& serialiser) {
+void SerialiseMethod3(const Ball& ball, anvil::BytePipe::Parser& serialiser) {
 	serialiser.OnUserPOD(Ball::POD_ID, sizeof(Ball), &ball);
 }
 ```
@@ -78,7 +78,7 @@ void SerialiseMethod3(const Ball& ball, anvil::BytePipe::Writer& serialiser) {
 ```cpp
 // Interfacing directly with the deserialiser interface is a bit more complicated
 // but this is how an fast implementation of Ball's deserialiser would look like.
-class BallDeserialiser final : public anvil::BytePipe::Parser {
+class BallParser final : public anvil::BytePipe::Parser {
 private:
 	Ball _ball;				//!< The ball struture that is deserialised.
 	void* _next_value;		//!< The next variable in _ball that will be set.
@@ -95,12 +95,12 @@ private:
 	enum { COLOUR_ARRAY_SIZE = sizeof(Ball::colour) };
 	static_assert(std::is_same<uint8_t[COLOUR_ARRAY_SIZE], decltype(Ball::colour)>::value, "Expected Ball::colour to be an array of unsigned bytes");
 public:
-	BallDeserialiser() :
+	BallParser() :
 		_array_index(0u),
 		_next_value(nullptr)
 	{}
 
-	~BallDeserialiser() {
+	~BallParser() {
 
 	}
 
@@ -108,7 +108,7 @@ public:
 		return _ball;
 	}
 
-	// Inherited from Deserialiser
+	// Inherited from Parser
 
 	void OnPipeOpen() final {
 		// Reset the parse state
