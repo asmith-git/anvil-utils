@@ -534,71 +534,28 @@ namespace anvil { namespace BytePipe {
 			} else {
 				ANVIL_CONTRACT(id <= SID_F16, "Unknown secondary type ID");
 
-				const uint32_t size = header.array_v1.size;
-				uint32_t bytes = 0u;
-				void* buffer = nullptr;
 				typedef void(Parser::*ParserCallback)(const void* ptr, const uint32_t size);
-				ParserCallback callback = nullptr;
+				static constexpr ParserCallback g_callbacks[] = {
+					nullptr, // SID_NULL
+					reinterpret_cast<ParserCallback>(&Parser::OnPrimativeArrayU8),	// SID_U8
+					reinterpret_cast<ParserCallback>(&Parser::OnPrimativeArrayU16),	// SID_U16
+					reinterpret_cast<ParserCallback>(&Parser::OnPrimativeArrayU32),	// SID_U32
+					reinterpret_cast<ParserCallback>(&Parser::OnPrimativeArrayU64),	// SID_U64
+					reinterpret_cast<ParserCallback>(&Parser::OnPrimativeArrayS8),	// SID_S8
+					reinterpret_cast<ParserCallback>(&Parser::OnPrimativeArrayS16),	// SID_S16
+					reinterpret_cast<ParserCallback>(&Parser::OnPrimativeArrayS32),	// SID_S32
+					reinterpret_cast<ParserCallback>(&Parser::OnPrimativeArrayS64),	// SID_S64
+					reinterpret_cast<ParserCallback>(&Parser::OnPrimativeArrayF32),	// SID_F32
+					reinterpret_cast<ParserCallback>(&Parser::OnPrimativeArrayF64),	// SID_F64
+					reinterpret_cast<ParserCallback>(&Parser::OnPrimativeArrayC8),	// SID_C8
+					reinterpret_cast<ParserCallback>(&Parser::OnPrimativeArrayF16)	// SID_F16
+				};
 
-				// 0 indexed jump table
-				switch (id - 1u) {
-				case SID_U8 - 1u:
-					bytes = sizeof(uint8_t);
-					callback = reinterpret_cast<ParserCallback>(&Parser::OnPrimativeArrayU8);
-					break;
-				case SID_U16 - 1u:
-					bytes = sizeof(uint16_t);
-					callback = reinterpret_cast<ParserCallback>(&Parser::OnPrimativeArrayU16);
-					break;
-				case SID_U32 - 1u:
-					bytes = sizeof(uint32_t);
-					callback = reinterpret_cast<ParserCallback>(&Parser::OnPrimativeArrayU32);
-					break;
-				case SID_U64 - 1u:
-					bytes = sizeof(uint64_t);
-					callback = reinterpret_cast<ParserCallback>(&Parser::OnPrimativeArrayU64);
-					break;
-				case SID_S8 - 1u:
-					bytes = sizeof(int8_t);
-					callback = reinterpret_cast<ParserCallback>(&Parser::OnPrimativeArrayS8);
-					break;
-				case SID_S16 - 1u:
-					bytes = sizeof(int16_t);
-					callback = reinterpret_cast<ParserCallback>(&Parser::OnPrimativeArrayS16);
-					break;
-				case SID_S32 - 1u:
-					bytes = sizeof(int32_t);
-					callback = reinterpret_cast<ParserCallback>(&Parser::OnPrimativeArrayS32);
-					break;
-				case SID_S64 - 1u:
-					bytes = sizeof(int64_t);
-					callback = reinterpret_cast<ParserCallback>(&Parser::OnPrimativeArrayS64);
-					break;
-				case SID_F32 - 1u:
-					bytes = sizeof(float);
-					callback = reinterpret_cast<ParserCallback>(&Parser::OnPrimativeArrayF32);
-					break;
-				case SID_F64 - 1u:
-					bytes = sizeof(double);
-					callback = reinterpret_cast<ParserCallback>(&Parser::OnPrimativeArrayF64);
-					break;
-				case SID_C8 - 1u:
-					bytes = sizeof(char);
-					callback = reinterpret_cast<ParserCallback>(&Parser::OnPrimativeArrayC8);
-					break;
-				case SID_F16 - 1u:
-					bytes = sizeof(half);
-					callback = reinterpret_cast<ParserCallback>(&Parser::OnPrimativeArrayF16);
-					break;
-				default:
-					ANVIL_ASSUME_IMPOSSIBLE;
-					break;
-				}
-
-				bytes *= size;
-				buffer = AllocateMemory(bytes);
+				const uint32_t size = header.array_v1.size;
+				const uint32_t bytes = g_secondary_type_sizes[id] * size;
+				void* buffer = buffer = AllocateMemory(bytes);
 				ReadFromPipe(_pipe, buffer, bytes);
-				(_parser.*callback)(buffer, size);
+				(_parser.*g_callbacks[id])(buffer, size);
 			}
 		}
 	public:
