@@ -42,132 +42,374 @@ namespace anvil { namespace BytePipe {
 
 		// Basic functionality
 
+		/*!
+			\brief Called when the pipe is about to recieve data
+			\details Use this function to initialise variables.
+			OnPipeClose will be called when all data is revieved.
+			\see OnPipeClose
+		*/
 		virtual void OnPipeOpen() = 0;
+
+		/*!
+			\brief Called after all data has been recieved.
+			\details Use this function to clean up variables and free memory.
+			\see OnPipeOpen
+		*/
 		virtual void OnPipeClose() = 0;
 
+		/*!
+			\brief Signal that the next value(s) are part of an array.
+			\details OnArrayEnd must be called after all values in the array have been parsed.
+			The values will be in sequential order, so that the first value is index 0, then index 1, ect.
+			\param size The number of values in the array.
+			\see OnArrayEnd
+		*/
 		virtual void OnArrayBegin(const uint32_t size) = 0;
+
+		/*!
+			\brief Signal that all values in an array have been parsed.
+			\see OnArrayBegin
+		*/
 		virtual void OnArrayEnd() = 0;
 
+		/*!
+			\brief Signal that the next value(s) are part of an object.
+			\details OnObjectEnd must be called after all values in the array have been parsed.
+			The values are unordered, but OnComponentID must be called before each value to identify it.
+			\param size The number of values in the object.
+			\see OnArrayEnd
+			\see OnComponentID
+		*/
 		virtual void OnObjectBegin(const uint32_t component_count) = 0;
+
+		/*!
+			\brief Signal that all values in an object have been parsed.
+			\see OnObjectBegin
+		*/
 		virtual void OnObjectEnd() = 0;
+
+		/*!
+			\brief Specify which value is the next to be parsed.
+			Any calls outside of a OnObjectBegin / OnObjectEnd pair should be igored.
+			\param id The value's identifier.
+			\see OnArrayEnd
+			\see OnComponentID
+		*/
 		virtual void OnComponentID(const uint16_t id) = 0;
 
-		virtual void OnNull() = 0;
-
+		/*!
+			\brief Handle a user defined binary structure.
+			\details This allows the user to define their own POD (plain old data) structures, which can be 
+			handled natively by pipes, this is faster than serialising the structure as an object.
+			\param type A 24-bit ID code that describes which structure is being parsed.
+			\param bytes The size of the structure in bytes.
+			\param data A pointer to the structure.
+		*/
 		virtual void OnUserPOD(const uint32_t type, const uint32_t bytes, const void* data) = 0;
 
+		/*!
+			\brief Handle a null value
+		*/
+		virtual void OnNull() = 0;
+
+		/*!
+			\brief Handle a primative value (64-bit floating point)
+			\param value The value
+		*/
 		virtual void OnPrimativeF64(const double value) = 0;
+
+		/*!
+			\brief Handle a string value
+			\param value The string data, this may not zero-terminated
+		*/
 		virtual void OnPrimativeString(const char* value, const uint32_t length) = 0;
+
+		/*!
+			\brief Handle a primative value (character)
+			\param value The value
+		*/
 		virtual void OnPrimativeC8(const char value) = 0;
 
+		/*!
+			\brief Handle a primative value (64-bit unsigned integer)
+			\param value The value
+		*/
 		virtual void OnPrimativeU64(const uint64_t value) { 
 			OnPrimativeF64(static_cast<double>(value));
 		}
 
+		/*!
+			\brief Handle a primative value (64-bit signed integer)
+			\param value The value
+		*/
 		virtual void OnPrimativeS64(const int64_t value) { 
 			OnPrimativeF64(static_cast<double>(value));
 		}
 
+		/*!
+			\brief Handle a primative value (32-bit floating point)
+			\param value The value
+		*/
 		virtual void OnPrimativeF32(const float value) { 
 			OnPrimativeF64(value);
 		}
 
+		/*!
+			\brief Handle a primative value (8-bit unsigned integer)
+			\param value The value
+		*/
 		virtual void OnPrimativeU8(const uint8_t value) { 
 			OnPrimativeU64(value);
 		}
 
+		/*!
+			\brief Handle a primative value (16-bit unsigned integer)
+			\param value The value
+		*/
 		virtual void OnPrimativeU16(const uint16_t value) { 
 			OnPrimativeU64(value);
 		}
 
+		/*!
+			\brief Handle a primative value (32-bit unsigned integer)
+			\param value The value
+		*/
 		virtual void OnPrimativeU32(const uint32_t value) { 
 			OnPrimativeU64(value);
 		}
 
+		/*!
+			\brief Handle a primative value (8-bit signed integer)
+			\param value The value
+		*/
 		virtual void OnPrimativeS8(const int8_t value) { 
 			OnPrimativeS64(value);
 		}
 
+		/*!
+			\brief Handle a primative value (16-bit signed integer)
+			\param value The value
+		*/
 		virtual void OnPrimativeS16(const int16_t value) { 
 			OnPrimativeS64(value);
 		}
 
+		/*!
+			\brief Handle a primative value (32-bit signed integer)
+			\param value The value
+		*/
 		virtual void OnPrimativeS32(const int32_t value) { 
 			OnPrimativeS64(value); 
 		}
 
+		/*!
+			\brief Handle a primative value (16-bit floating point)
+			\param value The value
+		*/
 		virtual void OnPrimativeF16(const half value) { 
 			OnPrimativeF32(static_cast<float>(value));  //! \bug half to float conversion not implemented
 		}
 
 		// Array Optimisations
 
+		/*!
+			\brief Handle an array of primative values (8-bit unsigned integers)
+			\details This is the same as the following code, but is a special case that could be optimised :
+			\code{.cpp}
+			OnArrayBegin(size);
+			for (uint32_t i = 0u; i < size; ++i) OnPrimativeU8(src[i]);
+			OnArrayEnd();
+			\endcode
+			\param src The address of the first value
+			\param size The number of values in the array
+		*/
 		virtual void OnPrimativeArrayU8(const uint8_t* src, const uint32_t size) {
 			OnArrayBegin(size);
 			for (uint32_t i = 0u; i < size; ++i) OnPrimativeU8(src[i]);
 			OnArrayEnd();
 		}
 
+		/*!
+			\brief Handle an array of primative values (16-bit unsigned integers)
+			\details This is the same as the following code, but is a special case that could be optimised :
+			\code{.cpp}
+			OnArrayBegin(size);
+			for (uint32_t i = 0u; i < size; ++i) OnPrimativeU16(src[i]);
+			OnArrayEnd();
+			\endcode
+			\param src The address of the first value
+			\param size The number of values in the array
+		*/
 		virtual void OnPrimativeArrayU16(const uint16_t* src, const uint32_t size) {
 			OnArrayBegin(size);
 			for (uint32_t i = 0u; i < size; ++i) OnPrimativeU16(src[i]);
 			OnArrayEnd();
 		}
 
+		/*!
+			\brief Handle an array of primative values (32-bit unsigned integers)
+			\details This is the same as the following code, but is a special case that could be optimised :
+			\code{.cpp}
+			OnArrayBegin(size);
+			for (uint32_t i = 0u; i < size; ++i) OnPrimativeU32(src[i]);
+			OnArrayEnd();
+			\endcode
+			\param src The address of the first value
+			\param size The number of values in the array
+		*/
 		virtual void OnPrimativeArrayU32(const uint32_t* src, const uint32_t size) {
 			OnArrayBegin(size);
 			for (uint32_t i = 0u; i < size; ++i) OnPrimativeU32(src[i]);
 			OnArrayEnd();
 		}
 
+		/*!
+			\brief Handle an array of primative values (64-bit unsigned integers)
+			\details This is the same as the following code, but is a special case that could be optimised :
+			\code{.cpp}
+			OnArrayBegin(size);
+			for (uint32_t i = 0u; i < size; ++i) OnPrimativeU64(src[i]);
+			OnArrayEnd();
+			\endcode
+			\param src The address of the first value
+			\param size The number of values in the array
+		*/
 		virtual void OnPrimativeArrayU64(const uint64_t* src, const uint32_t size) {
 			OnArrayBegin(size);
 			for (uint32_t i = 0u; i < size; ++i) OnPrimativeU64(src[i]);
 			OnArrayEnd();
 		}
 
+		/*!
+			\brief Handle an array of primative values (8-bit signed integers)
+			\details This is the same as the following code, but is a special case that could be optimised :
+			\code{.cpp}
+			OnArrayBegin(size);
+			for (uint32_t i = 0u; i < size; ++i) OnPrimativeS8(src[i]);
+			OnArrayEnd();
+			\endcode
+			\param src The address of the first value
+			\param size The number of values in the array
+		*/
 		virtual void OnPrimativeArrayS8(const int8_t* src, const uint32_t size) {
 			OnArrayBegin(size);
 			for (uint32_t i = 0u; i < size; ++i) OnPrimativeS8(src[i]);
 			OnArrayEnd();
 		}
 
+		/*!
+			\brief Handle an array of primative values (16-bit signed integers)
+			\details This is the same as the following code, but is a special case that could be optimised :
+			\code{.cpp}
+			OnArrayBegin(size);
+			for (uint32_t i = 0u; i < size; ++i) OnPrimativeS16(src[i]);
+			OnArrayEnd();
+			\endcode
+			\param src The address of the first value
+			\param size The number of values in the array
+		*/
 		virtual void OnPrimativeArrayS16(const int16_t* src, const uint32_t size) {
 			OnArrayBegin(size);
 			for (uint32_t i = 0u; i < size; ++i) OnPrimativeS16(src[i]);
 			OnArrayEnd();
 		}
 
+		/*!
+			\brief Handle an array of primative values (32-bit signed integers)
+			\details This is the same as the following code, but is a special case that could be optimised :
+			\code{.cpp}
+			OnArrayBegin(size);
+			for (uint32_t i = 0u; i < size; ++i) OnPrimativeS32(src[i]);
+			OnArrayEnd();
+			\endcode
+			\param src The address of the first value
+			\param size The number of values in the array
+		*/
 		virtual void OnPrimativeArrayS32(const int32_t* src, const uint32_t size) {
 			OnArrayBegin(size);
 			for (uint32_t i = 0u; i < size; ++i) OnPrimativeS32(src[i]);
 			OnArrayEnd();
 		}
 
+		/*!
+			\brief Handle an array of primative values (64-bit signed integers)
+			\details This is the same as the following code, but is a special case that could be optimised :
+			\code{.cpp}
+			OnArrayBegin(size);
+			for (uint32_t i = 0u; i < size; ++i) OnPrimativeS64(src[i]);
+			OnArrayEnd();
+			\endcode
+			\param src The address of the first value
+			\param size The number of values in the array
+		*/
 		virtual void OnPrimativeArrayS64(const int64_t* src, const uint32_t size) {
 			OnArrayBegin(size);
 			for (uint32_t i = 0u; i < size; ++i) OnPrimativeS64(src[i]);
 			OnArrayEnd();
 		}
 
+		/*!
+			\brief Handle an array of primative values (32-bit floating point)
+			\details This is the same as the following code, but is a special case that could be optimised :
+			\code{.cpp}
+			OnArrayBegin(size);
+			for (uint32_t i = 0u; i < size; ++i) OnPrimativeF32(src[i]);
+			OnArrayEnd();
+			\endcode
+			\param src The address of the first value
+			\param size The number of values in the array
+		*/
 		virtual void OnPrimativeArrayF32(const float* src, const uint32_t size) {
 			OnArrayBegin(size);
 			for (uint32_t i = 0u; i < size; ++i) OnPrimativeF32(src[i]);
 			OnArrayEnd();
 		}
 
+		/*!
+			\brief Handle an array of primative values (64-bit floating point)
+			\details This is the same as the following code, but is a special case that could be optimised :
+			\code{.cpp}
+			OnArrayBegin(size);
+			for (uint32_t i = 0u; i < size; ++i) OnPrimativeF64(src[i]);
+			OnArrayEnd();
+			\endcode
+			\param src The address of the first value
+			\param size The number of values in the array
+		*/
 		virtual void OnPrimativeArrayF64(const double* src, const uint32_t size) {
 			OnArrayBegin(size);
 			for (uint32_t i = 0u; i < size; ++i) OnPrimativeF64(src[i]);
 			OnArrayEnd();
 		}
 
+		/*!
+			\brief Handle an array of primative values (character)
+			\details This is the same as the following code, but is a special case that could be optimised :
+			\code{.cpp}
+			OnArrayBegin(size);
+			for (uint32_t i = 0u; i < size; ++i) OnPrimativeC8(src[i]);
+			OnArrayEnd();
+			\endcode
+			\param src The address of the first value
+			\param size The number of values in the array
+		*/
 		virtual void OnPrimativeArrayC8(const char* src, const uint32_t size) {
 			OnArrayBegin(size);
 			for (uint32_t i = 0u; i < size; ++i) OnPrimativeC8(src[i]);
 			OnArrayEnd();
 		}
 
+		/*!
+			\brief Handle an array of primative values (16-bit floating point)
+			\details This is the same as the following code, but is a special case that could be optimised :
+			\code{.cpp}
+			OnArrayBegin(size);
+			for (uint32_t i = 0u; i < size; ++i) OnPrimativeF16(src[i]);
+			OnArrayEnd();
+			\endcode
+			\param src The address of the first value
+			\param size The number of values in the array
+		*/
 		virtual void OnPrimativeArrayF16(const half* src, const uint32_t size) {
 			OnArrayBegin(size);
 			for (uint32_t i = 0u; i < size; ++i) OnPrimativeF16(src[i]);
