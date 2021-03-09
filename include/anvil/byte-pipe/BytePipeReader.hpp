@@ -544,6 +544,19 @@ namespace anvil { namespace BytePipe {
 			OnPrimativeArrayF64(values, size);
 		}
 
+		// Object helper functions
+
+		template<class T>
+		inline void OnPrimative(const uint16_t component_id, const T value) {
+			OnComponentID(component_id);
+			OnPrimative<T>(value);
+		}
+
+		template<class T>
+		inline void OnPrimativeArray(const uint16_t component_id, const T* values, const uint32_t size) {
+			OnComponentID(component_id);
+			OnPrimativeArray<T>(values, size);
+		}
 
 	};
 
