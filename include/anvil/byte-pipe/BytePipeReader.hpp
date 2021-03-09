@@ -416,6 +416,135 @@ namespace anvil { namespace BytePipe {
 			OnArrayEnd();
 		}
 
+		// Template helpers
+
+		template<class T>
+		inline void OnPrimative(const T value);
+
+		template<class T>
+		inline void OnPrimativeArray(const T* values, const uint32_t size);
+
+		template<>
+		inline void OnPrimative<char>(const char value) {
+			OnPrimativeC8(value);
+		}
+
+		template<>
+		inline void OnPrimativeArray<char>(const char* values, const uint32_t size) {
+			OnPrimativeArrayC8(values, size);
+		}
+
+		template<>
+		inline void OnPrimative<uint8_t>(const uint8_t value) {
+			OnPrimativeU8(value);
+		}
+
+		template<>
+		inline void OnPrimativeArray<uint8_t>(const uint8_t* values, const uint32_t size) {
+			OnPrimativeArrayU8(values, size);
+		}
+
+		template<>
+		inline void OnPrimative<uint16_t>(const uint16_t value) {
+			OnPrimativeU16(value);
+		}
+
+		template<>
+		inline void OnPrimativeArray<uint16_t>(const uint16_t* values, const uint32_t size) {
+			OnPrimativeArrayU16(values, size);
+		}
+
+		template<>
+		inline void OnPrimative<uint32_t>(const uint32_t value) {
+			OnPrimativeU32(value);
+		}
+
+		template<>
+		inline void OnPrimativeArray<uint32_t>(const uint32_t* values, const uint32_t size) {
+			OnPrimativeArrayU32(values, size);
+		}
+
+		template<>
+		inline void OnPrimative<uint64_t>(const uint64_t value) {
+			OnPrimativeU64(value);
+		}
+
+		template<>
+		inline void OnPrimativeArray<uint64_t>(const uint64_t* values, const uint32_t size) {
+			OnPrimativeArrayU64(values, size);
+		}
+
+		template<>
+		inline void OnPrimative<int8_t>(const int8_t value) {
+			OnPrimativeS8(value);
+		}
+
+		template<>
+		inline void OnPrimativeArray<int8_t>(const int8_t* values, const uint32_t size) {
+			OnPrimativeArrayS8(values, size);
+		}
+
+		template<>
+		inline void OnPrimative<int16_t>(const int16_t value) {
+			OnPrimativeS16(value);
+		}
+
+		template<>
+		inline void OnPrimativeArray<int16_t>(const int16_t* values, const uint32_t size) {
+			OnPrimativeArrayS16(values, size);
+		}
+
+		template<>
+		inline void OnPrimative<int32_t>(const int32_t value) {
+			OnPrimativeS32(value);
+		}
+
+		template<>
+		inline void OnPrimativeArray<int32_t>(const int32_t* values, const uint32_t size) {
+			OnPrimativeArrayS32(values, size);
+		}
+
+		template<>
+		inline void OnPrimative<int64_t>(const int64_t value) {
+			OnPrimativeS64(value);
+		}
+
+		template<>
+		inline void OnPrimativeArray<int64_t>(const int64_t* values, const uint32_t size) {
+			OnPrimativeArrayS64(values, size);
+		}
+
+		template<>
+		inline void OnPrimative<half>(const half value) {
+			OnPrimativeF16(value);
+		}
+
+		template<>
+		inline void OnPrimativeArray<half>(const half* values, const uint32_t size) {
+			OnPrimativeArrayF16(values, size);
+		}
+
+		template<>
+		inline void OnPrimative<float>(const float value) {
+			OnPrimativeF32(value);
+		}
+
+		template<>
+		inline void OnPrimativeArray<float>(const float* values, const uint32_t size) {
+			OnPrimativeArrayF32(values, size);
+		}
+
+		template<>
+		inline void OnPrimative<double>(const double value) {
+			OnPrimativeF64(value);
+		}
+
+		template<>
+		inline void OnPrimativeArray<double>(const double* values, const uint32_t size) {
+			OnPrimativeArrayF64(values, size);
+		}
+
+
 	};
 
 	class Reader {
