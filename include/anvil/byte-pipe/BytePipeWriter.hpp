@@ -55,7 +55,7 @@ namespace anvil { namespace BytePipe {
 		Writer(OutputPipe& pipe, Version version);
 		virtual ~Writer();
 
-		// Inherited from ParserV1
+		// Inherited from Parser
 
 		void OnPipeOpen() final;
 		void OnPipeClose() final;
@@ -79,8 +79,6 @@ namespace anvil { namespace BytePipe {
 		void OnPrimativeC8(const char value) final;
 		void OnPrimativeF16(const half value) final;
 
-		// Inherited from ParserV2
-
 		void OnPrimativeArrayU8(const uint8_t* src, const uint32_t size) final;
 		void OnPrimativeArrayU16(const uint16_t* src, const uint32_t size) final;
 		void OnPrimativeArrayU32(const uint32_t* src, const uint32_t size) final;
@@ -93,8 +91,6 @@ namespace anvil { namespace BytePipe {
 		void OnPrimativeArrayF64(const double* src, const uint32_t size) final;
 		void OnPrimativeArrayC8(const char* src, const uint32_t size) final;
 		void OnPrimativeArrayF16(const half* src, const uint32_t size) final;
-
-		// Inherited from ParserV3
 
 		void OnUserPOD(const uint32_t type, const uint32_t bytes, const void* data) final;
 	};

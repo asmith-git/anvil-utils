@@ -19,28 +19,28 @@
 namespace anvil { namespace BytePipe {
 
 	enum PrimaryID : uint8_t {
-		ID1_NULL,
-		ID1_PRIMATIVE,
-		ID1_STRING,
-		ID1_ARRAY,
-		ID1_OBJECT,
-		ID1_USER_POD
+		PID_NULL,
+		PID_PRIMATIVE,
+		PID_STRING,
+		PID_ARRAY,
+		PID_OBJECT,
+		PID_USER_POD
 	};
 
 	enum SecondaryID : uint8_t {
-		ID2_NULL,
-		ID2_U8,
-		ID2_U16,
-		ID2_U32,
-		ID2_U64,
-		ID2_S8,
-		ID2_S16,
-		ID2_S32,
-		ID2_S64,
-		ID2_F32,
-		ID2_F64,
-		ID2_C8,
-		ID2_F16
+		SID_NULL,
+		SID_U8,
+		SID_U16,
+		SID_U32,
+		SID_U64,
+		SID_S8,
+		SID_S16,
+		SID_S32,
+		SID_S64,
+		SID_F32,
+		SID_F64,
+		SID_C8,
+		SID_F16
 	};
 
 	// Header definitions
@@ -146,8 +146,8 @@ namespace anvil { namespace BytePipe {
 		_state_stack.push_back(STATE_ARRAY);
 
 		ValueHeader header;
-		header.primary_id = ID1_ARRAY;
-		header.secondary_id = ID2_NULL;
+		header.primary_id = PID_ARRAY;
+		header.secondary_id = SID_NULL;
 		header.array_v1.size = size;
 		Write(&header, sizeof(ValueHeader::array_v1) + 1u);
 	}
@@ -161,32 +161,32 @@ namespace anvil { namespace BytePipe {
 		_state_stack.push_back(STATE_OBJECT);
 
 		ValueHeader header;
-		header.primary_id = ID1_OBJECT;
-		header.secondary_id = ID2_NULL;
+		header.primary_id = PID_OBJECT;
+		header.secondary_id = SID_NULL;
 		header.object_v1.components = components;
 		Write(&header, sizeof(ValueHeader::object_v1) + 1u);
 	}
 
 	void Writer::OnObjectEnd() {
-		ANVIL_CONTRACT(GetCurrentState() == ID1_OBJECT, "BytePipe was not in object mode");
+		ANVIL_CONTRACT(GetCurrentState() == PID_OBJECT, "BytePipe was not in object mode");
 		_state_stack.pop_back();
 	}
 
 	void Writer::OnComponentID(const uint16_t id) {
-		ANVIL_CONTRACT(GetCurrentState() == ID1_OBJECT, "BytePipe was not in object mode");
+		ANVIL_CONTRACT(GetCurrentState() == PID_OBJECT, "BytePipe was not in object mode");
 		Write(&id, 2u);
 	}
 
 	void Writer::OnNull() {
 		ValueHeader header;
-		header.primary_id = ID1_PRIMATIVE;
-		header.secondary_id = ID2_NULL;
+		header.primary_id = PID_PRIMATIVE;
+		header.secondary_id = SID_NULL;
 		Write(&header, 1u);
 	}
 
 	void Writer::_OnPrimative(const uint64_t value, uint32_t bytes, const uint8_t id) {
 		ValueHeader header;
-		header.primary_id = ID1_PRIMATIVE;
+		header.primary_id = PID_PRIMATIVE;
 		header.secondary_id = id;
 		header.primative_v1.u64 = value;
 		Write(&header, bytes + 1u);
@@ -196,83 +196,83 @@ namespace anvil { namespace BytePipe {
 		union { uint64_t u64; uint8_t val; };
 		u64 = 0u;
 		val = value;
-		_OnPrimative(u64, 1u, ID2_U8);
+		_OnPrimative(u64, 1u, SID_U8);
 	}
 
 	void Writer::OnPrimativeU16(const uint16_t value) {
 		union { uint64_t u64; uint16_t val; };
 		u64 = 0u;
 		val = value;
-		_OnPrimative(u64, 2u, ID2_U16);
+		_OnPrimative(u64, 2u, SID_U16);
 	}
 
 	void Writer::OnPrimativeU32(const uint32_t value) {
 		union { uint64_t u64; uint32_t val; };
 		u64 = 0u;
 		val = value;
-		_OnPrimative(u64, 4u, ID2_U32);
+		_OnPrimative(u64, 4u, SID_U32);
 	}
 
 	void Writer::OnPrimativeU64(const uint64_t value) {
-		_OnPrimative(value, 8u, ID2_U64);
+		_OnPrimative(value, 8u, SID_U64);
 	}
 
 	void Writer::OnPrimativeS8(const int8_t value) {
 		union { uint64_t u64; int8_t val; };
 		u64 = 0u;
 		val = value;
-		_OnPrimative(u64, 1u, ID2_S8);
+		_OnPrimative(u64, 1u, SID_S8);
 	}
 
 	void Writer::OnPrimativeS16(const int16_t value) {
 		union { uint64_t u64; int16_t val; };
 		u64 = 0u;
 		val = value;
-		_OnPrimative(u64, 2u, ID2_S16);
+		_OnPrimative(u64, 2u, SID_S16);
 	}
 
 	void Writer::OnPrimativeS32(const int32_t value) {
 		union { uint64_t u64; int32_t val; };
 		u64 = 0u;
 		val = value;
-		_OnPrimative(u64, 4u, ID2_S32);
+		_OnPrimative(u64, 4u, SID_S32);
 	}
 
 	void Writer::OnPrimativeS64(const int64_t value) {
 		union { uint64_t u64; int64_t val; };
 		val = value;
-		_OnPrimative(u64, 8u, ID2_S64);
+		_OnPrimative(u64, 8u, SID_S64);
 	}
 
 	void Writer::OnPrimativeF32(const float value) {
 		union { uint64_t u64; float val; };
 		u64 = 0u;
 		val = value;
-		_OnPrimative(u64, 4u, ID2_F32);
+		_OnPrimative(u64, 4u, SID_F32);
 	}
 
 	void Writer::OnPrimativeF64(const double value) {
 		union { uint64_t u64; double val; };
 		val = value;
-		_OnPrimative(u64, 8u, ID2_F64);
+		_OnPrimative(u64, 8u, SID_F64);
 	}
 
 	void Writer::OnPrimativeC8(const char value) {
 		union { uint64_t u64; char val; };
 		val = value;
-		_OnPrimative(u64, 1u, ID2_C8);
+		_OnPrimative(u64, 1u, SID_C8);
 	}
 
 	void Writer::OnPrimativeF16(const half value) {
 		union { uint64_t u64; half val; };
 		val = value;
-		_OnPrimative(u64, 2u, ID2_F16);
+		_OnPrimative(u64, 2u, SID_F16);
 	}
 
 	void Writer::OnPrimativeString(const char* value, const uint32_t length) {
 		ValueHeader header;
-		header.primary_id = ID1_STRING;
-		header.secondary_id = ID2_C8;
+		header.primary_id = PID_STRING;
+		header.secondary_id = SID_C8;
 		header.string_v1.length = length;
 		Write(&header, sizeof(ValueHeader::string_v1) + 1u);
 		Write(value, length);
@@ -280,7 +280,7 @@ namespace anvil { namespace BytePipe {
 
 	void Writer::_OnPrimativeArray(const void* ptr, const uint32_t size, const uint8_t id, const uint32_t element_bytes) {
 		ValueHeader header;
-		header.primary_id = ID1_ARRAY;
+		header.primary_id = PID_ARRAY;
 		header.secondary_id = id;
 		header.array_v1.size = size;
 		Write(&header, sizeof(ValueHeader::array_v1) + 1u);
@@ -289,57 +289,57 @@ namespace anvil { namespace BytePipe {
 	}
 
 	void Writer::OnPrimativeArrayU8(const uint8_t* ptr, const uint32_t size) {
-		_OnPrimativeArray(ptr, size, ID2_U8, sizeof(uint8_t));
+		_OnPrimativeArray(ptr, size, SID_U8, sizeof(uint8_t));
 	}
 
 	void Writer::OnPrimativeArrayU16(const uint16_t* ptr, const uint32_t size) {
-		_OnPrimativeArray(ptr, size, ID2_U16, sizeof(uint16_t));
+		_OnPrimativeArray(ptr, size, SID_U16, sizeof(uint16_t));
 	}
 
 	void Writer::OnPrimativeArrayU32(const uint32_t* ptr, const uint32_t size) {
-		_OnPrimativeArray(ptr, size, ID2_U32, sizeof(uint32_t));
+		_OnPrimativeArray(ptr, size, SID_U32, sizeof(uint32_t));
 	}
 
 	void Writer::OnPrimativeArrayU64(const uint64_t* ptr, const uint32_t size) {
-		_OnPrimativeArray(ptr, size, ID2_U64, sizeof(uint32_t));
+		_OnPrimativeArray(ptr, size, SID_U64, sizeof(uint32_t));
 	}
 
 	void Writer::OnPrimativeArrayS8(const int8_t* ptr, const uint32_t size) {
-		_OnPrimativeArray(ptr, size, ID2_S8, sizeof(int8_t));
+		_OnPrimativeArray(ptr, size, SID_S8, sizeof(int8_t));
 	}
 
 	void Writer::OnPrimativeArrayS16(const int16_t* ptr, const uint32_t size) {
-		_OnPrimativeArray(ptr, size, ID2_S16, sizeof(int16_t));
+		_OnPrimativeArray(ptr, size, SID_S16, sizeof(int16_t));
 	}
 
 	void Writer::OnPrimativeArrayS32(const int32_t* ptr, const uint32_t size) {
-		_OnPrimativeArray(ptr, size, ID2_S32, sizeof(int32_t));
+		_OnPrimativeArray(ptr, size, SID_S32, sizeof(int32_t));
 	}
 
 	void Writer::OnPrimativeArrayS64(const int64_t* ptr, const uint32_t size) {
-		_OnPrimativeArray(ptr, size, ID2_S64, sizeof(int64_t));
+		_OnPrimativeArray(ptr, size, SID_S64, sizeof(int64_t));
 	}
 
 	void Writer::OnPrimativeArrayF32(const float* ptr, const uint32_t size) {
-		_OnPrimativeArray(ptr, size, ID2_F32, sizeof(float));
+		_OnPrimativeArray(ptr, size, SID_F32, sizeof(float));
 	}
 
 	void Writer::OnPrimativeArrayF64(const double* ptr, const uint32_t size) {
-		_OnPrimativeArray(ptr, size, ID2_F64, sizeof(double));
+		_OnPrimativeArray(ptr, size, SID_F64, sizeof(double));
 	}
 
 	void Writer::OnPrimativeArrayC8(const char* ptr, const uint32_t size) {
-		_OnPrimativeArray(ptr, size, ID2_C8, sizeof(char));
+		_OnPrimativeArray(ptr, size, SID_C8, sizeof(char));
 	}
 
 	void Writer::OnPrimativeArrayF16(const half* ptr, const uint32_t size) {
-		_OnPrimativeArray(ptr, size, ID2_F16, sizeof(half));
+		_OnPrimativeArray(ptr, size, SID_F16, sizeof(half));
 	}
 
 	void Writer::OnUserPOD(const uint32_t type, const uint32_t bytes, const void* data) {
 		ANVIL_CONTRACT(type <= 1048575u, "Type must be <= 1048575u");
 		ValueHeader header;
-		header.primary_id = ID1_USER_POD;
+		header.primary_id = PID_USER_POD;
 		header.secondary_id = type & 15u;
 		header.user_pod.extended_secondary_id = static_cast<uint16_t>(type >> 4u);
 		header.user_pod.bytes = bytes;
@@ -392,54 +392,54 @@ namespace anvil { namespace BytePipe {
 
 		void ReadPrimativeV1() {
 			switch (header.primary_id) {
-			case ID2_NULL:
+			case SID_NULL:
 				_parser.OnNull();
 				break;
-			case ID2_U8:
+			case SID_U8:
 				ReadFromPipe(_pipe, &header.primative_v1, sizeof(uint8_t));
 				_parser.OnPrimativeU8(header.primative_v1.u8);
 				break;
-			case ID2_U16:
+			case SID_U16:
 				ReadFromPipe(_pipe, &header.primative_v1, sizeof(uint16_t));
 				_parser.OnPrimativeU16(header.primative_v1.u16);
 				break;
-			case ID2_U32:
+			case SID_U32:
 				ReadFromPipe(_pipe, &header.primative_v1, sizeof(uint32_t));
 				_parser.OnPrimativeU32(header.primative_v1.u16);
 				break;
-			case ID2_U64:
+			case SID_U64:
 				ReadFromPipe(_pipe, &header.primative_v1, sizeof(uint64_t));
 				_parser.OnPrimativeU64(header.primative_v1.u64);
 				break;
-			case ID2_S8:
+			case SID_S8:
 				ReadFromPipe(_pipe, &header.primative_v1, sizeof(int8_t));
 				_parser.OnPrimativeS8(header.primative_v1.s8);
 				break;
-			case ID2_S16:
+			case SID_S16:
 				ReadFromPipe(_pipe, &header.primative_v1, sizeof(int32_t));
 				_parser.OnPrimativeS16(header.primative_v1.s16);
 				break;
-			case ID2_S32:
+			case SID_S32:
 				ReadFromPipe(_pipe, &header.primative_v1, sizeof(int32_t));
 				_parser.OnPrimativeS32(header.primative_v1.s16);
 				break;
-			case ID2_S64:
+			case SID_S64:
 				ReadFromPipe(_pipe, &header.primative_v1, sizeof(int64_t));
 				_parser.OnPrimativeS64(header.primative_v1.s64);
 				break;
-			case ID2_F32:
+			case SID_F32:
 				ReadFromPipe(_pipe, &header.primative_v1, sizeof(float));
 				_parser.OnPrimativeF32(header.primative_v1.f32);
 				break;
-			case ID2_F64:
+			case SID_F64:
 				ReadFromPipe(_pipe, &header.primative_v1, sizeof(double));
 				_parser.OnPrimativeF64(header.primative_v1.f64);
 				break;
-			case ID2_C8:
+			case SID_C8:
 				ReadFromPipe(_pipe, &header.primative_v1, sizeof(char));
 				_parser.OnPrimativeC8(header.primative_v1.c8);
 				break;
-			case ID2_F16:
+			case SID_F16:
 				ReadFromPipe(_pipe, &header.primative_v1, sizeof(half));
 				_parser.OnPrimativeF16(header.primative_v1.f16);
 				break;
@@ -451,10 +451,10 @@ namespace anvil { namespace BytePipe {
 
 		void ReadGenericV1() {
 			switch (header.primary_id) {
-			case ID1_NULL:
+			case PID_NULL:
 				break;
-			case ID1_STRING:
-				ANVIL_CONTRACT(header.secondary_id == ID2_C8, "String subtype was not char");
+			case PID_STRING:
+				ANVIL_CONTRACT(header.secondary_id == SID_C8, "String subtype was not char");
 				ReadFromPipe(_pipe, &header.string_v1, sizeof(header.string_v1));
 				{
 					const uint32_t len = header.string_v1.length;
@@ -464,11 +464,11 @@ namespace anvil { namespace BytePipe {
 					_parser.OnPrimativeString(buffer, len);
 				}
 				break;
-			case ID1_ARRAY:
+			case PID_ARRAY:
 				ReadFromPipe(_pipe, &header.array_v1, sizeof(header.array_v1));
 				ReadArray();
 				break;
-			case ID1_OBJECT:
+			case PID_OBJECT:
 				ReadFromPipe(_pipe, &header.object_v1, sizeof(header.object_v1));
 				ReadObject();
 				break;
@@ -503,10 +503,10 @@ namespace anvil { namespace BytePipe {
 
 		void ReadArrayV2() {
 			const uint32_t id = header.secondary_id;
-			if (id == ID2_NULL) {
+			if (id == SID_NULL) {
 				ReadArrayV1();
 			} else {
-				ANVIL_CONTRACT(id <= ID2_F16, "Unknown secondary type ID");
+				ANVIL_CONTRACT(id <= SID_F16, "Unknown secondary type ID");
 
 				const uint32_t size = header.array_v1.size;
 				uint32_t bytes = 0u;
@@ -516,51 +516,51 @@ namespace anvil { namespace BytePipe {
 
 				// 0 indexed jump table
 				switch (id - 1u) {
-				case ID2_U8 - 1u:
+				case SID_U8 - 1u:
 					bytes = sizeof(uint8_t);
 					callback = reinterpret_cast<ParserCallback>(&Parser::OnPrimativeArrayU8);
 					break;
-				case ID2_U16 - 1u:
+				case SID_U16 - 1u:
 					bytes = sizeof(uint16_t);
 					callback = reinterpret_cast<ParserCallback>(&Parser::OnPrimativeArrayU16);
 					break;
-				case ID2_U32 - 1u:
+				case SID_U32 - 1u:
 					bytes = sizeof(uint32_t);
 					callback = reinterpret_cast<ParserCallback>(&Parser::OnPrimativeArrayU32);
 					break;
-				case ID2_U64 - 1u:
+				case SID_U64 - 1u:
 					bytes = sizeof(uint64_t);
 					callback = reinterpret_cast<ParserCallback>(&Parser::OnPrimativeArrayU64);
 					break;
-				case ID2_S8 - 1u:
+				case SID_S8 - 1u:
 					bytes = sizeof(int8_t);
 					callback = reinterpret_cast<ParserCallback>(&Parser::OnPrimativeArrayS8);
 					break;
-				case ID2_S16 - 1u:
+				case SID_S16 - 1u:
 					bytes = sizeof(int16_t);
 					callback = reinterpret_cast<ParserCallback>(&Parser::OnPrimativeArrayS16);
 					break;
-				case ID2_S32 - 1u:
+				case SID_S32 - 1u:
 					bytes = sizeof(int32_t);
 					callback = reinterpret_cast<ParserCallback>(&Parser::OnPrimativeArrayS32);
 					break;
-				case ID2_S64 - 1u:
+				case SID_S64 - 1u:
 					bytes = sizeof(int64_t);
 					callback = reinterpret_cast<ParserCallback>(&Parser::OnPrimativeArrayS64);
 					break;
-				case ID2_F32 - 1u:
+				case SID_F32 - 1u:
 					bytes = sizeof(float);
 					callback = reinterpret_cast<ParserCallback>(&Parser::OnPrimativeArrayF32);
 					break;
-				case ID2_F64 - 1u:
+				case SID_F64 - 1u:
 					bytes = sizeof(double);
 					callback = reinterpret_cast<ParserCallback>(&Parser::OnPrimativeArrayF64);
 					break;
-				case ID2_C8 - 1u:
+				case SID_C8 - 1u:
 					bytes = sizeof(char);
 					callback = reinterpret_cast<ParserCallback>(&Parser::OnPrimativeArrayC8);
 					break;
-				case ID2_F16 - 1u:
+				case SID_F16 - 1u:
 					bytes = sizeof(half);
 					callback = reinterpret_cast<ParserCallback>(&Parser::OnPrimativeArrayF16);
 					break;
@@ -577,7 +577,7 @@ namespace anvil { namespace BytePipe {
 		}
 
 		void ReadGenericV3() {
-			if (header.primary_id == ID1_USER_POD) {
+			if (header.primary_id == PID_USER_POD) {
 				uint32_t id = header.user_pod.extended_secondary_id;
 				id <<= 4u;
 				id |= header.secondary_id;
@@ -611,7 +611,7 @@ namespace anvil { namespace BytePipe {
 		void Read() {
 			// Continue with read
 			ReadFromPipe(_pipe, &header.id_union, 1u);
-			while (header.id_union != ID1_NULL) {
+			while (header.id_union != PID_NULL) {
 				ReadGeneric();
 				ReadFromPipe(_pipe, &header.id_union, 1u);
 			}
