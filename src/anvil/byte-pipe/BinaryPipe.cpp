@@ -358,10 +358,6 @@ namespace anvil { namespace BytePipe {
 	private:
 		InputPipe& _pipe;
 		Parser& _parser;
-		void (ReadHelper::*_read_generic)();
-		void (ReadHelper::*_read_primative)();
-		void (ReadHelper::*_read_array)();
-		void (ReadHelper::*_read_object)();
 		void* _mem;
 		uint32_t _mem_bytes;
 
@@ -374,23 +370,20 @@ namespace anvil { namespace BytePipe {
 			return _mem;
 		}
 
-		inline void ReadGeneric() {
-			(this->*_read_generic)();
+		void ReadObject() {
+			const uint32_t size = header.object_v1.components;
+			_parser.OnObjectBegin(size);
+			uint16_t component_id;
+			for (uint32_t i = 0u; i < size; ++i) {
+				ReadFromPipe(_pipe, &component_id, sizeof(component_id));
+				_parser.OnComponentID(component_id);
+				ReadFromPipe(_pipe, &header, 1u);
+				ReadGeneric();
+			}
+			_parser.OnObjectEnd();
 		}
 
-		inline void ReadPrimative() {
-			(this->*_read_primative)();
-		}
-
-		inline void ReadArray() {
-			(this->*_read_array)();
-		}
-
-		inline void ReadObject() {
-			(this->*_read_object)();
-		}
-
-		void ReadPrimativeV1() {
+		void ReadPrimative() {
 			switch (header.primary_id) {
 			case SID_NULL:
 				_parser.OnNull();
@@ -449,7 +442,7 @@ namespace anvil { namespace BytePipe {
 			}
 		}
 
-		void ReadGenericV1() {
+		void ReadGeneric() {
 			switch (header.primary_id) {
 			case PID_NULL:
 				break;
@@ -472,39 +465,32 @@ namespace anvil { namespace BytePipe {
 				ReadFromPipe(_pipe, &header.object_v1, sizeof(header.object_v1));
 				ReadObject();
 				break;
+			case PID_USER_POD:
+				{
+					uint32_t id = header.user_pod.extended_secondary_id;
+					id <<= 4u;
+					id |= header.secondary_id;
+					void* mem = AllocateMemory(header.user_pod.bytes);
+					ReadFromPipe(_pipe, mem, header.user_pod.bytes);
+					_parser.OnUserPOD(id, header.user_pod.bytes, mem);
+				}
+				break;
 			default:
 				ReadPrimative();
 				break;
 			}
 		}
 
-		void ReadArrayV1() {
-			const uint32_t size = header.array_v1.size;
-			_parser.OnArrayBegin(size);
-			for (uint32_t i = 0u; i < size; ++i) {
-				ReadFromPipe(_pipe, &header, 1u);
-				ReadGeneric();
-			}
-			_parser.OnArrayEnd();
-		}
-
-		void ReadObjectV1() {
-			const uint32_t size = header.object_v1.components;
-			_parser.OnObjectBegin(size);
-			uint16_t component_id;
-			for (uint32_t i = 0u; i < size; ++i) {
-				ReadFromPipe(_pipe, &component_id, sizeof(component_id));
-				_parser.OnComponentID(component_id);
-				ReadFromPipe(_pipe, &header, 1u);
-				ReadGeneric();
-			}
-			_parser.OnObjectEnd();
-		}
-
-		void ReadArrayV2() {
+		void ReadArray() {
 			const uint32_t id = header.secondary_id;
 			if (id == SID_NULL) {
-				ReadArrayV1();
+				const uint32_t size = header.array_v1.size;
+				_parser.OnArrayBegin(size);
+				for (uint32_t i = 0u; i < size; ++i) {
+					ReadFromPipe(_pipe, &header, 1u);
+					ReadGeneric();
+				}
+				_parser.OnArrayEnd();
 			} else {
 				ANVIL_CONTRACT(id <= SID_F16, "Unknown secondary type ID");
 
@@ -575,19 +561,6 @@ namespace anvil { namespace BytePipe {
 				(_parser.*callback)(buffer, size);
 			}
 		}
-
-		void ReadGenericV3() {
-			if (header.primary_id == PID_USER_POD) {
-				uint32_t id = header.user_pod.extended_secondary_id;
-				id <<= 4u;
-				id |= header.secondary_id;
-				void* mem = AllocateMemory(header.user_pod.bytes);
-				ReadFromPipe(_pipe, mem, header.user_pod.bytes);
-				_parser.OnUserPOD(id, header.user_pod.bytes, mem);
-			} else {
-				ReadGenericV1();
-			}
-		}
 	public:
 		ValueHeader header;
 
@@ -596,13 +569,7 @@ namespace anvil { namespace BytePipe {
 			_parser(parser),
 			_mem(nullptr),
 			_mem_bytes(0u)
-		{
-			_read_generic = &ReadHelper::ReadGenericV1;
-			_read_primative = &ReadHelper::ReadPrimativeV1;
-			_read_array = &ReadHelper::ReadArrayV1;
-			_read_object = &ReadHelper::ReadObjectV1;
-			_read_generic = &ReadHelper::ReadGenericV3;
-		}
+		{}
 
 		~ReadHelper() {
 			if (_mem) operator delete(_mem);
