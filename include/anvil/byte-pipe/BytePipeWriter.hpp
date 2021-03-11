@@ -20,6 +20,12 @@
 
 namespace anvil { namespace BytePipe {
 
+	/*!
+		\author Adam Smtih
+		\date September 2019
+		\brief An output stream for binary data.
+		\see InputPipe
+	*/
 	class OutputPipe {
 	public:
 		virtual ~OutputPipe() {}
@@ -27,6 +33,12 @@ namespace anvil { namespace BytePipe {
 		virtual void Flush() = 0;
 	};
 
+	/*!
+		\author Adam Smtih
+		\date September 2019
+		\brief Writes binary serialised data into an OutputPipe
+		\see Reader
+	*/
 	class Writer final : public Parser {
 	private:
 		Writer(Writer&&) = delete;

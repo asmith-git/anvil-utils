@@ -16,16 +16,28 @@
 #define ANVIL_BYTEPIPE_READER_HPP
 
 #include "anvil/byte-pipe/BytePipeCore.hpp"
+#include "anvil/byte-pipe/BytePipeObjects.hpp"
 
 namespace anvil { namespace BytePipe {
+
+	/*!
+		\author Adam Smtih
+		\date September 2019
+		\brief An input stream for binary data.
+		\see OutputPipe
+	*/
 	class InputPipe {
 	public:
 		virtual ~InputPipe() {}
 		virtual uint32_t ReadBytes(void* dst, const uint32_t bytes) = 0;
 	};
 
-	enum half : uint16_t {};
 
+	/*!
+		\author Adam Smtih
+		\date September 2019
+		\brief Interface for serialising or deserialising data.
+	*/
 	class Parser {
 	public:
 		Parser() {
@@ -95,7 +107,7 @@ namespace anvil { namespace BytePipe {
 			\see OnArrayEnd
 			\see OnComponentID
 		*/
-		virtual void OnComponentID(const uint16_t id) = 0;
+		virtual void OnComponentID(const ComponentID id) = 0;
 
 		/*!
 			\brief Handle a user defined binary structure.
@@ -209,6 +221,11 @@ namespace anvil { namespace BytePipe {
 		virtual void OnPrimativeF16(const half value) { 
 			OnPrimativeF32(static_cast<float>(value));  //! \bug half to float conversion not implemented
 		}
+
+		// Object Support
+
+		void OnValue(const Value& value);
+		void OnValue(const PrimativeValue& value);
 
 		// Array Optimisations
 
@@ -547,19 +564,25 @@ namespace anvil { namespace BytePipe {
 		// Object helper functions
 
 		template<class T>
-		inline void OnPrimative(const uint16_t component_id, const T value) {
+		inline void OnPrimative(const ComponentID component_id, const T value) {
 			OnComponentID(component_id);
 			OnPrimative<T>(value);
 		}
 
 		template<class T>
-		inline void OnPrimativeArray(const uint16_t component_id, const T* values, const uint32_t size) {
+		inline void OnPrimativeArray(const ComponentID component_id, const T* values, const uint32_t size) {
 			OnComponentID(component_id);
 			OnPrimativeArray<T>(values, size);
 		}
 
 	};
 
+	/*!
+		\author Adam Smtih
+		\date ??? 2019
+		\brief Reads binary serialised data from an InputPipe and outputs it into a Parser
+		\see Writer
+	*/
 	class Reader {
 	private:
 		Reader(Reader&&) = delete;
@@ -573,6 +596,49 @@ namespace anvil { namespace BytePipe {
 		~Reader();
 
 		void Read(Parser& dst);
+	};
+
+	/*!
+		\author Adam Smtih
+		\date March 2021
+		\brief Converts data into DOM (document object model) style format.
+	*/
+	class ValueParser final : public Parser {
+	private:
+		Value _root;
+		std::vector<Value*> _value_stack;
+		ComponentID _component_id;
+
+		Value& CurrentValue();
+		Value& NextValue();
+	public:
+		ValueParser();
+		virtual ~ValueParser();
+
+		Value& GetValue();
+
+		void OnPipeOpen() final;
+		void OnPipeClose() final;
+		void OnArrayBegin(const uint32_t size) final;
+		void OnArrayEnd() final;
+		void OnObjectBegin(const uint32_t component_count) final;
+		void OnObjectEnd() final;
+		void OnComponentID(const ComponentID id)  final;
+		void OnUserPOD(const uint32_t type, const uint32_t bytes, const void* data) final;
+		void OnNull() final;
+		void OnPrimativeF64(const double value) final; 
+		void OnPrimativeString(const char* value, const uint32_t length) final;
+		void OnPrimativeC8(const char value) final;
+		void OnPrimativeU64(const uint64_t value) final;
+		void OnPrimativeS64(const int64_t value) final;
+		void OnPrimativeF32(const float value) final;
+		void OnPrimativeU8(const uint8_t value) final;
+		void OnPrimativeU16(const uint16_t value) final;
+		void OnPrimativeU32(const uint32_t value) final;
+		void OnPrimativeS8(const int8_t value) final;
+		void OnPrimativeS16(const int16_t value) final;
+		void OnPrimativeS32(const int32_t value) final;
+		void OnPrimativeF16(const half value) final;
 	};
 
 }}

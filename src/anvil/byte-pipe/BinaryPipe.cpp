@@ -612,4 +612,232 @@ namespace anvil { namespace BytePipe {
 		ReadHelper helper(_pipe, dst, version);
 		helper.Read();
 	}
+
+	// ValueParser
+
+	ValueParser::ValueParser() {
+		
+	}
+
+	ValueParser::~ValueParser() {
+		
+	}
+
+	Value& ValueParser::GetValue() {
+		return _root;
+	}
+
+	void ValueParser::OnPipeOpen() {
+		_value_stack.clear();
+		_root.SetNull();
+	}
+
+	void ValueParser::OnPipeClose() {
+		_value_stack.clear();
+		_root.SetNull();
+	}
+
+	void ValueParser::OnArrayBegin(const uint32_t size) {
+		Value& val = NextValue();
+		val.SetArray();
+		_value_stack.push_back(&val);
+	}
+
+	void ValueParser::OnArrayEnd() {
+		_value_stack.pop_back();
+	}
+
+	void ValueParser::OnObjectBegin(const uint32_t component_count) {
+		Value& val = NextValue();
+		val.SetObject();
+		_value_stack.push_back(&val);
+	}
+
+	void ValueParser::OnObjectEnd() {
+		_value_stack.pop_back();
+	}
+
+	void ValueParser::OnComponentID(const ComponentID id) {
+		_component_id = id;
+	}
+
+	void ValueParser::OnUserPOD(const uint32_t type, const uint32_t bytes, const void* data) {
+		throw std::runtime_error("ValueParser::OnUserPOD : Pods not supported");
+	}
+
+	void ValueParser::OnNull() {
+		NextValue().SetNull();
+	}
+
+	void ValueParser::OnPrimativeF64(const double value) {
+		NextValue().SetF64(value);
+	}
+
+	void ValueParser::OnPrimativeString(const char* value, const uint32_t length) {
+		// Zero terminate string
+		char* str = static_cast<char*>(operator new(length + 1));
+		memcpy(str, value, length);
+		str[length] = '\0';
+
+		try {
+			Value& val = NextValue();
+			val.SetString(str);
+		} catch (...) {
+			operator delete(str);
+			std::rethrow_exception(std::current_exception());
+		}
+		operator delete(str);
+	}
+
+	void ValueParser::OnPrimativeC8(const char value) {
+		NextValue().SetC8(value);
+	}
+
+	void ValueParser::OnPrimativeU64(const uint64_t value) {
+		NextValue().SetU64(value);
+	}
+
+	void ValueParser::OnPrimativeS64(const int64_t value) {
+		NextValue().SetS64(value);
+	}
+
+	void ValueParser::OnPrimativeF32(const float value) {
+		NextValue().SetF32(value);
+	}
+
+	void ValueParser::OnPrimativeU8(const uint8_t value) {
+		NextValue().SetU8(value);
+	}
+
+	void ValueParser::OnPrimativeU16(const uint16_t value) {
+		NextValue().SetU16(value);
+	}
+
+	void ValueParser::OnPrimativeU32(const uint32_t value) {
+		NextValue().SetU32(value);
+	}
+
+	void ValueParser::OnPrimativeS8(const int8_t value) {
+		NextValue().SetS8(value);
+	}
+
+	void ValueParser::OnPrimativeS16(const int16_t value) {
+		NextValue().SetS16(value);
+	}
+
+	void ValueParser::OnPrimativeS32(const int32_t value) {
+		NextValue().SetS32(value);
+	}
+
+	void ValueParser::OnPrimativeF16(const half value) {
+		NextValue().SetF16(value);
+	}
+
+	Value& ValueParser::CurrentValue() {
+		return _value_stack.empty() ? _root : *_value_stack.back();
+	}
+
+	Value& ValueParser::NextValue() {
+		Value& val = CurrentValue();
+		switch (val.GetType()) {
+		case TYPE_ARRAY:
+			{
+				Value tmp;
+				val.AddValue(std::move(tmp));
+				return val.GetValue(val.GetSize() - 1);
+			}
+			break;
+		case TYPE_OBJECT:
+			{
+				Value tmp;
+				val.AddValue(_component_id, std::move(tmp));
+				return val.GetValue(_component_id);
+			}
+			break;
+		default:
+			return val;
+		}
+	}
+
+	// Parser
+
+	void Parser::OnValue(const Value& value) {
+		switch (value.GetType()) {
+		case TYPE_STRING:
+			{
+				const char* str = const_cast<Value&>(value).GetString();
+				OnPrimativeString(str, strlen(str));
+			}
+			break;
+		case TYPE_ARRAY:
+			{
+				const size_t size = value.GetSize();
+				OnArrayBegin(size);
+				for (size_t i = 0u; i < size; ++i) {
+					OnValue(const_cast<Value&>(value).GetValue(i));
+				}
+				OnArrayEnd();
+			}
+			break;
+		case TYPE_OBJECT:
+			{
+				const size_t size = value.GetSize();
+				OnObjectBegin(size);
+				for (size_t i = 0u; i < size; ++i) {
+					const ComponentID id = value.GetComponentID(i);
+					OnComponentID(id);
+					OnValue(const_cast<Value&>(value).GetValue(id));
+				}
+				OnObjectEnd();
+			}
+			break;
+		default:
+			OnValue(value.GetPrimativeValue());
+			break;
+		}
+	}
+
+	void Parser::OnValue(const PrimativeValue& value) {
+		switch (value.type) {
+		case TYPE_NULL:
+			OnNull();
+			break;
+		case TYPE_U8:
+			OnPrimativeU8(value.u8);
+			break;
+		case TYPE_U16:
+			OnPrimativeU16(value.u16);
+			break;
+		case TYPE_U32:
+			OnPrimativeU32(value.u32);
+			break;
+		case TYPE_U64:
+			OnPrimativeU64(value.u64);
+			break;
+		case TYPE_S8:
+			OnPrimativeS8(value.u8);
+			break;
+		case TYPE_S16:
+			OnPrimativeS16(value.s16);
+			break;
+		case TYPE_S32:
+			OnPrimativeS32(value.s32);
+			break;
+		case TYPE_S64:
+			OnPrimativeS64(value.s64);
+			break;
+		case TYPE_F16:
+			OnPrimativeF16(value.f16);
+			break;
+		case TYPE_F32:
+			OnPrimativeF32(value.f32);
+			break;
+		case TYPE_F64:
+			OnPrimativeF64(value.f64);
+			break;
+		default:
+			throw std::runtime_error("Writer::OnValue : Value is not a primative type");
+		}
+	}
+
 }}
