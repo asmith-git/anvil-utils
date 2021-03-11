@@ -253,6 +253,24 @@ namespace anvil { namespace BytePipe {
 		detail::CallOnPrimativeB	// SID_B
 	};
 
+	template<class T>
+	static constexpr SecondaryID GetSecondaryID();
+
+	template<> static constexpr SecondaryID GetSecondaryID<void>() { return SID_NULL; }
+	template<> static constexpr SecondaryID GetSecondaryID<char>() { return SID_C8; }
+	template<> static constexpr SecondaryID GetSecondaryID<bool>() { return SID_B; }
+	template<> static constexpr SecondaryID GetSecondaryID<uint8_t>() { return SID_U8; }
+	template<> static constexpr SecondaryID GetSecondaryID<uint16_t>() { return SID_U16; }
+	template<> static constexpr SecondaryID GetSecondaryID<uint32_t>() { return SID_U32; }
+	template<> static constexpr SecondaryID GetSecondaryID<uint64_t>() { return SID_U64; }
+	template<> static constexpr SecondaryID GetSecondaryID<int8_t>() { return SID_S8; }
+	template<> static constexpr SecondaryID GetSecondaryID<int16_t>() { return SID_S16; }
+	template<> static constexpr SecondaryID GetSecondaryID<int32_t>() { return SID_S32; }
+	template<> static constexpr SecondaryID GetSecondaryID<int64_t>() { return SID_S64; }
+	template<> static constexpr SecondaryID GetSecondaryID<half>() { return SID_F16; }
+	template<> static constexpr SecondaryID GetSecondaryID<float>() { return SID_F32; }
+	template<> static constexpr SecondaryID GetSecondaryID<double>() { return SID_F64; }
+
 	// Writer
 
 	Writer::Writer(OutputPipe& pipe, Version version) :
@@ -337,7 +355,19 @@ namespace anvil { namespace BytePipe {
 		Write(&header, 1u);
 	}
 
-	void Writer::_OnPrimative(const uint64_t value, uint32_t bytes, const uint8_t id) {
+	void Writer::_OnPrimative32(const uint32_t value, const uint8_t id) {
+		const uint32_t bytes = g_secondary_type_sizes[id];
+
+		ValueHeader header;
+		header.primary_id = PID_PRIMATIVE;
+		header.secondary_id = id;
+		header.primative_v1.u32 = value;
+		Write(&header, bytes + 1u);
+	}
+
+	void Writer::_OnPrimative64(const uint64_t value, const uint8_t id) {
+		const uint32_t bytes = g_secondary_type_sizes[id];
+
 		ValueHeader header;
 		header.primary_id = PID_PRIMATIVE;
 		header.secondary_id = id;
@@ -346,87 +376,104 @@ namespace anvil { namespace BytePipe {
 	}
 
 	void Writer::OnPrimativeBool(const bool value) {
-		union { uint64_t u64; bool val; };
-		u64 = 0u;
+		typedef std::remove_const<decltype(value)>::type T;
+		union { uint32_t u; T val; };
+		u = 0u;
 		val = value;
-		_OnPrimative(u64, 1u, SID_B);
+		_OnPrimative32(u, GetSecondaryID<T>());
 	}
 
 	void Writer::OnPrimativeU8(const uint8_t value) {
-		union { uint64_t u64; uint8_t val; };
-		u64 = 0u;
+		typedef std::remove_const<decltype(value)>::type T;
+		union { uint32_t u; T val; };
+		u = 0u;
 		val = value;
-		_OnPrimative(u64, 1u, SID_U8);
+		_OnPrimative32(u, GetSecondaryID<T>());
 	}
 
 	void Writer::OnPrimativeU16(const uint16_t value) {
-		union { uint64_t u64; uint16_t val; };
-		u64 = 0u;
+		typedef std::remove_const<decltype(value)>::type T;
+		union { uint32_t u; T val; };
+		u = 0u;
 		val = value;
-		_OnPrimative(u64, 2u, SID_U16);
+		_OnPrimative32(u, GetSecondaryID<T>());
 	}
 
 	void Writer::OnPrimativeU32(const uint32_t value) {
-		union { uint64_t u64; uint32_t val; };
-		u64 = 0u;
+		typedef std::remove_const<decltype(value)>::type T;
+		union { uint32_t u; T val; };
+		u = 0u;
 		val = value;
-		_OnPrimative(u64, 4u, SID_U32);
+		_OnPrimative32(u, GetSecondaryID<T>());
 	}
 
 	void Writer::OnPrimativeU64(const uint64_t value) {
-		_OnPrimative(value, 8u, SID_U64);
+		typedef std::remove_const<decltype(value)>::type T;
+		_OnPrimative64(value, GetSecondaryID<T>());
 	}
 
 	void Writer::OnPrimativeS8(const int8_t value) {
-		union { uint64_t u64; int8_t val; };
-		u64 = 0u;
+		typedef std::remove_const<decltype(value)>::type T;
+		union { uint32_t u; T val; };
+		u = 0u;
 		val = value;
-		_OnPrimative(u64, 1u, SID_S8);
+		_OnPrimative32(u, GetSecondaryID<T>());
 	}
 
 	void Writer::OnPrimativeS16(const int16_t value) {
-		union { uint64_t u64; int16_t val; };
-		u64 = 0u;
+		typedef std::remove_const<decltype(value)>::type T;
+		union { uint32_t u; T val; };
+		u = 0u;
 		val = value;
-		_OnPrimative(u64, 2u, SID_S16);
+		_OnPrimative32(u, GetSecondaryID<T>());
 	}
 
 	void Writer::OnPrimativeS32(const int32_t value) {
-		union { uint64_t u64; int32_t val; };
-		u64 = 0u;
+		typedef std::remove_const<decltype(value)>::type T;
+		union { uint32_t u; T val; };
+		u = 0u;
 		val = value;
-		_OnPrimative(u64, 4u, SID_S32);
+		_OnPrimative32(u, GetSecondaryID<T>());
 	}
 
 	void Writer::OnPrimativeS64(const int64_t value) {
-		union { uint64_t u64; int64_t val; };
+		typedef std::remove_const<decltype(value)>::type T;
+		union { uint64_t u; T val; };
+		u = 0u;
 		val = value;
-		_OnPrimative(u64, 8u, SID_S64);
+		_OnPrimative64(u, GetSecondaryID<T>());
 	}
 
 	void Writer::OnPrimativeF32(const float value) {
-		union { uint64_t u64; float val; };
-		u64 = 0u;
+		typedef std::remove_const<decltype(value)>::type T;
+		union { uint32_t u; T val; };
+		u = 0u;
 		val = value;
-		_OnPrimative(u64, 4u, SID_F32);
+		_OnPrimative32(u, GetSecondaryID<T>());
 	}
 
 	void Writer::OnPrimativeF64(const double value) {
-		union { uint64_t u64; double val; };
+		typedef std::remove_const<decltype(value)>::type T;
+		union { uint64_t u; T val; };
+		u = 0u;
 		val = value;
-		_OnPrimative(u64, 8u, SID_F64);
+		_OnPrimative64(u, GetSecondaryID<T>());
 	}
 
 	void Writer::OnPrimativeC8(const char value) {
-		union { uint64_t u64; char val; };
+		typedef std::remove_const<decltype(value)>::type T;
+		union { uint32_t u; T val; };
+		u = 0u;
 		val = value;
-		_OnPrimative(u64, 1u, SID_C8);
+		_OnPrimative32(u, GetSecondaryID<T>());
 	}
 
 	void Writer::OnPrimativeF16(const half value) {
-		union { uint64_t u64; half val; };
+		typedef std::remove_const<decltype(value)>::type T;
+		union { uint32_t u; T val; };
+		u = 0u;
 		val = value;
-		_OnPrimative(u64, 2u, SID_F16);
+		_OnPrimative32(u, GetSecondaryID<T>());
 	}
 
 	void Writer::OnPrimativeString(const char* value, const uint32_t length) {
@@ -450,55 +497,68 @@ namespace anvil { namespace BytePipe {
 	}
 
 	void Writer::OnPrimativeArrayBool(const bool* ptr, const uint32_t size) {
-		_OnPrimativeArray(ptr, size, SID_B);
+		typedef std::remove_const<std::remove_pointer<decltype(ptr)>::type>::type T;
+		_OnPrimativeArray(ptr, size, GetSecondaryID<T>());
 	}
 
 	void Writer::OnPrimativeArrayU8(const uint8_t* ptr, const uint32_t size) {
-		_OnPrimativeArray(ptr, size, SID_U8);
+		typedef std::remove_const<std::remove_pointer<decltype(ptr)>::type>::type T;
+		_OnPrimativeArray(ptr, size, GetSecondaryID<T>());
 	}
 
 	void Writer::OnPrimativeArrayU16(const uint16_t* ptr, const uint32_t size) {
-		_OnPrimativeArray(ptr, size, SID_U16);
+		typedef std::remove_const<std::remove_pointer<decltype(ptr)>::type>::type T;
+		_OnPrimativeArray(ptr, size, GetSecondaryID<T>());
 	}
 
 	void Writer::OnPrimativeArrayU32(const uint32_t* ptr, const uint32_t size) {
-		_OnPrimativeArray(ptr, size, SID_U32);
+		typedef std::remove_const<std::remove_pointer<decltype(ptr)>::type>::type T;
+		_OnPrimativeArray(ptr, size, GetSecondaryID<T>());
 	}
 
 	void Writer::OnPrimativeArrayU64(const uint64_t* ptr, const uint32_t size) {
-		_OnPrimativeArray(ptr, size, SID_U64);
+		typedef std::remove_const<std::remove_pointer<decltype(ptr)>::type>::type T;
+		_OnPrimativeArray(ptr, size, GetSecondaryID<T>());
 	}
 
 	void Writer::OnPrimativeArrayS8(const int8_t* ptr, const uint32_t size) {
-		_OnPrimativeArray(ptr, size, SID_S8);
+		typedef std::remove_const<std::remove_pointer<decltype(ptr)>::type>::type T;
+		_OnPrimativeArray(ptr, size, GetSecondaryID<T>());
 	}
 
 	void Writer::OnPrimativeArrayS16(const int16_t* ptr, const uint32_t size) {
-		_OnPrimativeArray(ptr, size, SID_S16);
+		typedef std::remove_const<std::remove_pointer<decltype(ptr)>::type>::type T;
+		_OnPrimativeArray(ptr, size, GetSecondaryID<T>());
 	}
 
 	void Writer::OnPrimativeArrayS32(const int32_t* ptr, const uint32_t size) {
-		_OnPrimativeArray(ptr, size, SID_S32);
+		typedef std::remove_const<std::remove_pointer<decltype(ptr)>::type>::type T;
+		_OnPrimativeArray(ptr, size, GetSecondaryID<T>());
 	}
 
 	void Writer::OnPrimativeArrayS64(const int64_t* ptr, const uint32_t size) {
-		_OnPrimativeArray(ptr, size, SID_S64);
+		typedef std::remove_const<std::remove_pointer<decltype(ptr)>::type>::type T;
+		_OnPrimativeArray(ptr, size, GetSecondaryID<T>());
 	}
 
 	void Writer::OnPrimativeArrayF32(const float* ptr, const uint32_t size) {
-		_OnPrimativeArray(ptr, size, SID_F32);
+		typedef std::remove_const<std::remove_pointer<decltype(ptr)>::type>::type T;
+		_OnPrimativeArray(ptr, size, GetSecondaryID<T>());
 	}
 
 	void Writer::OnPrimativeArrayF64(const double* ptr, const uint32_t size) {
-		_OnPrimativeArray(ptr, size, SID_F64);
+		typedef std::remove_const<std::remove_pointer<decltype(ptr)>::type>::type T;
+		_OnPrimativeArray(ptr, size, GetSecondaryID<T>());
 	}
 
 	void Writer::OnPrimativeArrayC8(const char* ptr, const uint32_t size) {
-		_OnPrimativeArray(ptr, size, SID_C8);
+		typedef std::remove_const<std::remove_pointer<decltype(ptr)>::type>::type T;
+		_OnPrimativeArray(ptr, size, GetSecondaryID<T>());
 	}
 
 	void Writer::OnPrimativeArrayF16(const half* ptr, const uint32_t size) {
-		_OnPrimativeArray(ptr, size, SID_F16);
+		typedef std::remove_const<std::remove_pointer<decltype(ptr)>::type>::type T;
+		_OnPrimativeArray(ptr, size, GetSecondaryID<T>());
 	}
 
 	void Writer::OnUserPOD(const uint32_t type, const uint32_t bytes, const void* data) {
