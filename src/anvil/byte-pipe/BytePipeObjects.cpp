@@ -98,6 +98,12 @@ namespace anvil { namespace BytePipe {
 		_primative.type = TYPE_NULL;
 	}
 
+	void Value::SetBool(const bool value) {
+		SetNull();
+		_primative.b = value;
+		_primative.type = TYPE_BOOL;
+	}
+
 	void Value::SetC8(const char value) {
 		SetNull();
 		_primative.c8 = value;
@@ -218,6 +224,10 @@ namespace anvil { namespace BytePipe {
 		static_cast<Object*>(_primative.ptr)->emplace(id, std::move(value));
 	}
 
+	bool Value::GetBool() {
+		return GetS64() != 0.0;
+	}
+
 	char Value::GetC8() {
 		return static_cast<char>(GetS64());
 	}
@@ -296,6 +306,9 @@ namespace anvil { namespace BytePipe {
 			_primative.f64 = static_cast<double>(_primative.f32);
 			break;
 		case TYPE_F64:
+			break;
+		case TYPE_BOOL:
+			_primative.f64 = _primative.b ? 1.0 : 0.0;
 			break;
 		default:
 			throw std::runtime_error("Value::GetF64 : Value is not a numerical type");

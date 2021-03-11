@@ -137,6 +137,12 @@ namespace anvil { namespace BytePipe {
 		virtual void OnPrimativeString(const char* value, const uint32_t length) = 0;
 
 		/*!
+			\brief Handle a primative value (boolean)
+			\param value The value
+		*/
+		virtual void OnPrimativeBool(const bool value) = 0;
+
+		/*!
 			\brief Handle a primative value (character)
 			\param value The value
 		*/
@@ -433,6 +439,23 @@ namespace anvil { namespace BytePipe {
 			OnArrayEnd();
 		}
 
+		/*!
+			\brief Handle an array of primative values (bool)
+			\details This is the same as the following code, but is a special case that could be optimised :
+			\code{.cpp}
+			OnArrayBegin(size);
+			for (uint32_t i = 0u; i < size; ++i) OnPrimativeBool(src[i]);
+			OnArrayEnd();
+			\endcode
+			\param src The address of the first value
+			\param size The number of values in the array
+		*/
+		virtual void OnPrimativeArrayBool(const bool* src, const uint32_t size) {
+			OnArrayBegin(size);
+			for (uint32_t i = 0u; i < size; ++i) OnPrimativeBool(src[i]);
+			OnArrayEnd();
+		}
+
 		// Template helpers
 
 		template<class T>
@@ -440,6 +463,17 @@ namespace anvil { namespace BytePipe {
 
 		template<class T>
 		inline void OnPrimativeArray(const T* values, const uint32_t size);
+
+		template<>
+		inline void OnPrimative<bool>(const bool value) {
+			OnPrimativeBool(value);
+		}
+
+		template<>
+		inline void OnPrimativeArray<bool>(const bool* values, const uint32_t size) {
+			OnPrimativeArrayBool(values, size);
+		}
+
 
 		template<>
 		inline void OnPrimative<char>(const char value) {
@@ -628,6 +662,7 @@ namespace anvil { namespace BytePipe {
 		void OnNull() final;
 		void OnPrimativeF64(const double value) final; 
 		void OnPrimativeString(const char* value, const uint32_t length) final;
+		void OnPrimativeBool(const bool value) final;
 		void OnPrimativeC8(const char value) final;
 		void OnPrimativeU64(const uint64_t value) final;
 		void OnPrimativeS64(const int64_t value) final;

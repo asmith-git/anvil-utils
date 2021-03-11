@@ -37,7 +37,8 @@ namespace anvil { namespace BytePipe {
 		TYPE_F64,
 		TYPE_STRING,
 		TYPE_ARRAY,
-		TYPE_OBJECT
+		TYPE_OBJECT,
+		TYPE_BOOL,
 	};
 
 	typedef uint16_t ComponentID;
@@ -47,6 +48,7 @@ namespace anvil { namespace BytePipe {
 	struct PrimativeValue {
 		union {
 			void* ptr;
+			bool b;
 			char c8;
 			uint8_t u8;
 			uint16_t u16;
@@ -87,6 +89,13 @@ namespace anvil { namespace BytePipe {
 			\details Previous value will be lost.
 		*/
 		void SetNull();
+
+		/*!
+			\brief Set the value to be a boolean.
+			\details Previous value will be lost.
+			\param value The value to copy.
+		*/
+		void SetBool(const bool value = false);
 
 		/*!
 			\brief Set the value to be a character.
@@ -207,6 +216,7 @@ namespace anvil { namespace BytePipe {
 		*/
 		void AddValue(const ComponentID id, Value&& value);
 
+		bool GetBool();
 		char GetC8();
 		uint8_t GetU8();
 		uint16_t GetU16();

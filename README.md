@@ -1,5 +1,5 @@
 # Dependencies
-* [anvil-utils (If ANVIL_DISABLE_LUTILS is not defined)](https://github.com/asmith-git/anvil-utils)
+* [anvil-utils](https://github.com/asmith-git/anvil-utils) (If ANVIL_DISABLE_LUTILS is not defined)
 
 # Usage Example
 ```cpp
@@ -180,6 +180,11 @@ public:
 	}
 
 	void OnPrimativeF64(const double value) final {
+		// Act like the value was a float
+		OnPrimativeF32(value);
+	}
+
+	void OnPrimativeBool(const bool value) final {
 		// Act like the value was a float
 		OnPrimativeF32(value);
 	}

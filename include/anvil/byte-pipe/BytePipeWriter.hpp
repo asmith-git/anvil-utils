@@ -90,6 +90,7 @@ namespace anvil { namespace BytePipe {
 		void OnPrimativeS32(const int32_t value) final;
 		void OnPrimativeC8(const char value) final;
 		void OnPrimativeF16(const half value) final;
+		void OnPrimativeBool(const bool value) final;
 
 		void OnPrimativeArrayU8(const uint8_t* src, const uint32_t size) final;
 		void OnPrimativeArrayU16(const uint16_t* src, const uint32_t size) final;
@@ -103,6 +104,7 @@ namespace anvil { namespace BytePipe {
 		void OnPrimativeArrayF64(const double* src, const uint32_t size) final;
 		void OnPrimativeArrayC8(const char* src, const uint32_t size) final;
 		void OnPrimativeArrayF16(const half* src, const uint32_t size) final;
+		void OnPrimativeArrayBool(const bool* src, const uint32_t size) final;
 
 		void OnUserPOD(const uint32_t type, const uint32_t bytes, const void* data) final;
 	};
