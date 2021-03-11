@@ -256,4 +256,27 @@ public:
 	}
 
 };
+
+// The objects header provides a DOM (document object model) style interface that can
+// simplify deserialisation but introduces overheads due to requiring all memory being 
+// copied and converted into objects
+Ball DeserialiseMethod2(anvil::BytePipe::Value& value) {
+	if (value.GetType() != anvil::BytePipe::TYPE_OBJECT) throw std::runtime_error("DeserialiseMethod2 : Ball must be an object");
+
+	Ball ball;
+
+	// Read the primative variables
+	ball.x = value.GetValue(Ball::COMPONENT_X).GetF32();
+	ball.y = value.GetValue(Ball::COMPONENT_Y).GetF32();
+	ball.radius = value.GetValue(Ball::COMPONENT_RADIUS).GetF32();
+
+	// Read the colour array
+	anvil::BytePipe::Value& colour = value.GetValue(Ball::COMPONENT_COLOUR);
+	ball.colour[0u] = colour.GetValue(0u).GetU8();
+	ball.colour[1u] = colour.GetValue(1u).GetU8();
+	ball.colour[2u] = colour.GetValue(2u).GetU8();
+	ball.colour[3u] = colour.GetValue(3u).GetU8();
+
+	return ball;
+}
 ```
