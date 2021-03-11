@@ -38,7 +38,7 @@ namespace anvil { namespace BytePipe {
 		TYPE_STRING,
 		TYPE_ARRAY,
 		TYPE_OBJECT,
-		TYPE_BOOL,
+		TYPE_BOOL
 	};
 
 	typedef uint16_t ComponentID;

@@ -60,6 +60,24 @@ namespace anvil { namespace BytePipe {
 		uint8_t version;
 	};
 
+
+
+	union ValueHeaderPrimative {
+		bool b;
+		uint8_t u8;
+		uint16_t u16;
+		uint32_t u32;
+		uint64_t u64;
+		int8_t s8;
+		int16_t s16;
+		int32_t s32;
+		int64_t s64;
+		float f32;
+		double f64;
+		char c8;
+		half f16;
+	};
+
 	struct ValueHeader {
 		union {
 			struct {
@@ -81,21 +99,7 @@ namespace anvil { namespace BytePipe {
 				uint32_t length;
 			} string_v1;
 
-			union {
-				bool b;
-				uint8_t u8;
-				uint16_t u16;
-				uint32_t u32;
-				uint64_t u64;
-				int8_t s8;
-				int16_t s16;
-				int32_t s32;
-				int64_t s64;
-				float f32;
-				double f64;
-				char c8;
-				half f16;
-			} primative_v1;
+			ValueHeaderPrimative primative_v1;
 
 			struct {
 				uint16_t extended_secondary_id;
@@ -111,6 +115,66 @@ namespace anvil { namespace BytePipe {
 	static_assert(sizeof(ValueHeader) == 9u, "ValueHeader was not packed correctly by compiler");
 	static_assert(sizeof(ValueHeader::user_pod) == 6u, "ValueHeader was not packed correctly by compiler");
 	static_assert(offsetof(ValueHeader, primative_v1.u8) == 1u, "ValueHeader was not packed correctly by compiler");
+
+	// Helper functions
+
+	namespace detail {
+		static void CallOnPrimativeU8(Parser& parser, const ValueHeaderPrimative& header) {
+			parser.OnPrimativeU8(header.u8);
+		}
+
+		static void CallOnPrimativeU16(Parser& parser, const ValueHeaderPrimative& header) {
+			parser.OnPrimativeU16(header.u16);
+		}
+
+		static void CallOnPrimativeU32(Parser& parser, const ValueHeaderPrimative& header) {
+			parser.OnPrimativeU32(header.u32);
+		}
+
+		static void CallOnPrimativeU64(Parser& parser, const ValueHeaderPrimative& header) {
+			parser.OnPrimativeU64(header.u64);
+		}
+
+		static void CallOnPrimativeS8(Parser& parser, const ValueHeaderPrimative& header) {
+			parser.OnPrimativeS8(header.s8);
+		}
+
+		static void CallOnPrimativeS16(Parser& parser, const ValueHeaderPrimative& header) {
+			parser.OnPrimativeS16(header.s16);
+		}
+
+		static void CallOnPrimativeS32(Parser& parser, const ValueHeaderPrimative& header) {
+			parser.OnPrimativeS32(header.s32);
+		}
+
+		static void CallOnPrimativeS64(Parser& parser, const ValueHeaderPrimative& header) {
+			parser.OnPrimativeS64(header.s64);
+		}
+
+		static void CallOnPrimativeF16(Parser& parser, const ValueHeaderPrimative& header) {
+			parser.OnPrimativeF16(header.f16);
+		}
+
+		static void CallOnPrimativeF32(Parser& parser, const ValueHeaderPrimative& header) {
+			parser.OnPrimativeF32(header.f32);
+		}
+
+		static void CallOnPrimativeF64(Parser& parser, const ValueHeaderPrimative& header) {
+			parser.OnPrimativeF64(header.f64);
+		}
+
+		static void CallOnPrimativeC8(Parser& parser, const ValueHeaderPrimative& header) {
+			parser.OnPrimativeC8(header.c8);
+		}
+
+		static void CallOnNull(Parser& parser, const ValueHeaderPrimative& header) {
+			parser.OnNull();
+		}
+
+		static void CallOnPrimativeB(Parser& parser, const ValueHeaderPrimative& header) {
+			parser.OnPrimativeBool(header.b);
+		}
+	}
 
 	// Helper arrays
 
@@ -129,6 +193,64 @@ namespace anvil { namespace BytePipe {
 		1u, // SID_C8
 		2u, // SID_F16,
 		1u // SID_B
+	};
+
+	// Convert Value type to binary primative type ID
+	static constexpr const SecondaryID g_object_type_2_sid[] = {
+		SID_NULL, // TYPE_NULL
+		SID_C8, // TYPE_C8
+		SID_U8, // TYPE_U8
+		SID_U16, // TYPE_U16
+		SID_U32, // TYPE_U32
+		SID_U64, // TYPE_U64
+		SID_S8, // TYPE_S8
+		SID_S16, // TYPE_S16
+		SID_S32, // TYPE_S32
+		SID_S64, // TYPE_S64
+		SID_F16, // TYPE_F16
+		SID_F32, // TYPE_F32
+		SID_F64, // TYPE_F64
+		static_cast<SecondaryID>(255), // TYPE_STRING
+		static_cast<SecondaryID>(255), // TYPE_ARRAY
+		static_cast<SecondaryID>(255), // TYPE_OBJECT
+		SID_B, // TYPE_BOOL
+	};
+
+	typedef void(Parser::*PrimativeArrayCallback)(const void* ptr, const uint32_t size);
+	static constexpr const PrimativeArrayCallback g_primative_array_callbacks[] = {
+		nullptr,														// SID_NULL
+		reinterpret_cast<PrimativeArrayCallback>(&Parser::OnPrimativeArrayU8),	// SID_U8
+		reinterpret_cast<PrimativeArrayCallback>(&Parser::OnPrimativeArrayU16),	// SID_U16
+		reinterpret_cast<PrimativeArrayCallback>(&Parser::OnPrimativeArrayU32),	// SID_U32
+		reinterpret_cast<PrimativeArrayCallback>(&Parser::OnPrimativeArrayU64),	// SID_U64
+		reinterpret_cast<PrimativeArrayCallback>(&Parser::OnPrimativeArrayS8),	// SID_S8
+		reinterpret_cast<PrimativeArrayCallback>(&Parser::OnPrimativeArrayS16),	// SID_S16
+		reinterpret_cast<PrimativeArrayCallback>(&Parser::OnPrimativeArrayS32),	// SID_S32
+		reinterpret_cast<PrimativeArrayCallback>(&Parser::OnPrimativeArrayS64),	// SID_S64
+		reinterpret_cast<PrimativeArrayCallback>(&Parser::OnPrimativeArrayF32),	// SID_F32
+		reinterpret_cast<PrimativeArrayCallback>(&Parser::OnPrimativeArrayF64),	// SID_F64
+		reinterpret_cast<PrimativeArrayCallback>(&Parser::OnPrimativeArrayC8),	// SID_C8
+		reinterpret_cast<PrimativeArrayCallback>(&Parser::OnPrimativeArrayF16),	// SID_F16
+		reinterpret_cast<PrimativeArrayCallback>(&Parser::OnPrimativeArrayBool)	// SID_B
+	};
+
+
+	typedef void(*PrimativeCallback)(Parser& parser, const ValueHeaderPrimative& header);
+	static constexpr const PrimativeCallback g_primative_callbacks[] = {
+		detail::CallOnNull,			// SID_NULL
+		detail::CallOnPrimativeU8,	// SID_U8
+		detail::CallOnPrimativeU16,	// SID_U16
+		detail::CallOnPrimativeU32,	// SID_U32
+		detail::CallOnPrimativeU64,	// SID_U64
+		detail::CallOnPrimativeS8,	// SID_S8
+		detail::CallOnPrimativeS16,	// SID_S16
+		detail::CallOnPrimativeS32,	// SID_S32
+		detail::CallOnPrimativeS64,	// SID_S64
+		detail::CallOnPrimativeF32,	// SID_F32
+		detail::CallOnPrimativeF64,	// SID_F64
+		detail::CallOnPrimativeC8,	// SID_C8
+		detail::CallOnPrimativeF16,	// SID_F16
+		detail::CallOnPrimativeB	// SID_B
 	};
 
 	// Writer
@@ -397,64 +519,6 @@ namespace anvil { namespace BytePipe {
 		ANVIL_CONTRACT(bytesRead == bytes, "Failed to read from pipe");
 	}
 
-	namespace detail {
-		static void CallOnPrimativeU8(Parser& parser, const ValueHeader& header) {
-			parser.OnPrimativeU8(header.primative_v1.u8);
-		}
-
-		static void CallOnPrimativeU16(Parser& parser, const ValueHeader& header) {
-			parser.OnPrimativeU16(header.primative_v1.u16);
-		}
-
-		static void CallOnPrimativeU32(Parser& parser, const ValueHeader& header) {
-			parser.OnPrimativeU32(header.primative_v1.u32);
-		}
-
-		static void CallOnPrimativeU64(Parser& parser, const ValueHeader& header) {
-			parser.OnPrimativeU64(header.primative_v1.u64);
-		}
-
-		static void CallOnPrimativeS8(Parser& parser, const ValueHeader& header) {
-			parser.OnPrimativeS8(header.primative_v1.s8);
-		}
-
-		static void CallOnPrimativeS16(Parser& parser, const ValueHeader& header) {
-			parser.OnPrimativeS16(header.primative_v1.s16);
-		}
-
-		static void CallOnPrimativeS32(Parser& parser, const ValueHeader& header) {
-			parser.OnPrimativeS32(header.primative_v1.s32);
-		}
-
-		static void CallOnPrimativeS64(Parser& parser, const ValueHeader& header) {
-			parser.OnPrimativeS64(header.primative_v1.s64);
-		}
-
-		static void CallOnPrimativeF16(Parser& parser, const ValueHeader& header) {
-			parser.OnPrimativeF16(header.primative_v1.f16);
-		}
-
-		static void CallOnPrimativeF32(Parser& parser, const ValueHeader& header) {
-			parser.OnPrimativeF32(header.primative_v1.f32);
-		}
-
-		static void CallOnPrimativeF64(Parser& parser, const ValueHeader& header) {
-			parser.OnPrimativeF64(header.primative_v1.f64);
-		}
-
-		static void CallOnPrimativeC8(Parser& parser, const ValueHeader& header) {
-			parser.OnPrimativeC8(header.primative_v1.c8);
-		}
-
-		static void CallOnNull(Parser& parser, const ValueHeader& header) {
-			parser.OnNull();
-		}
-
-		static void CallOnPrimativeB(Parser& parser, const ValueHeader& header) {
-			parser.OnPrimativeBool(header.primative_v1.b);
-		}
-	}
-
 	class ReadHelper {
 	private:
 		InputPipe& _pipe;
@@ -492,25 +556,7 @@ namespace anvil { namespace BytePipe {
 			if(bytes > 0u) ReadFromPipe(_pipe, &header.primative_v1, g_secondary_type_sizes[id]);
 
 			// Output the primative value
-			typedef void(*OnPrimativeCallback)(Parser& parser, const ValueHeader& header);
-			static constexpr const OnPrimativeCallback g_on_primative_callbacks[] = {
-				detail::CallOnNull,			// SID_NULL
-				detail::CallOnPrimativeU8,	// SID_U8
-				detail::CallOnPrimativeU16,	// SID_U16
-				detail::CallOnPrimativeU32,	// SID_U32
-				detail::CallOnPrimativeU64,	// SID_U64
-				detail::CallOnPrimativeS8,	// SID_S8
-				detail::CallOnPrimativeS16,	// SID_S16
-				detail::CallOnPrimativeS32,	// SID_S32
-				detail::CallOnPrimativeS64,	// SID_S64
-				detail::CallOnPrimativeF32,	// SID_F32
-				detail::CallOnPrimativeF64,	// SID_F64
-				detail::CallOnPrimativeC8,	// SID_C8
-				detail::CallOnPrimativeF16,	// SID_F16
-				detail::CallOnPrimativeB	// SID_B
-			};
-
-			g_on_primative_callbacks[id](_parser, header);
+			g_primative_callbacks[id](_parser, header.primative_v1);
 		}
 
 		void ReadGeneric() {
@@ -574,29 +620,11 @@ namespace anvil { namespace BytePipe {
 			} else {
 				ANVIL_CONTRACT(id <= SID_B, "Unknown secondary type ID");
 
-				typedef void(Parser::*ParserCallback)(const void* ptr, const uint32_t size);
-				static constexpr const ParserCallback g_callbacks[] = {
-					nullptr,														// SID_NULL
-					reinterpret_cast<ParserCallback>(&Parser::OnPrimativeArrayU8),	// SID_U8
-					reinterpret_cast<ParserCallback>(&Parser::OnPrimativeArrayU16),	// SID_U16
-					reinterpret_cast<ParserCallback>(&Parser::OnPrimativeArrayU32),	// SID_U32
-					reinterpret_cast<ParserCallback>(&Parser::OnPrimativeArrayU64),	// SID_U64
-					reinterpret_cast<ParserCallback>(&Parser::OnPrimativeArrayS8),	// SID_S8
-					reinterpret_cast<ParserCallback>(&Parser::OnPrimativeArrayS16),	// SID_S16
-					reinterpret_cast<ParserCallback>(&Parser::OnPrimativeArrayS32),	// SID_S32
-					reinterpret_cast<ParserCallback>(&Parser::OnPrimativeArrayS64),	// SID_S64
-					reinterpret_cast<ParserCallback>(&Parser::OnPrimativeArrayF32),	// SID_F32
-					reinterpret_cast<ParserCallback>(&Parser::OnPrimativeArrayF64),	// SID_F64
-					reinterpret_cast<ParserCallback>(&Parser::OnPrimativeArrayC8),	// SID_C8
-					reinterpret_cast<ParserCallback>(&Parser::OnPrimativeArrayF16),	// SID_F16
-					reinterpret_cast<ParserCallback>(&Parser::OnPrimativeArrayBool)	// SID_B
-				};
-
 				const uint32_t size = header.array_v1.size;
 				const uint32_t bytes = g_secondary_type_sizes[id] * size;
 				void* buffer = buffer = AllocateMemory(bytes);
 				ReadFromPipe(_pipe, buffer, bytes);
-				(_parser.*g_callbacks[id])(buffer, size);
+				(_parser.*g_primative_array_callbacks[id])(buffer, size);
 			}
 		}
 	public:
@@ -832,49 +860,13 @@ namespace anvil { namespace BytePipe {
 	}
 
 	void Parser::OnValue(const PrimativeValue& value) {
-		switch (value.type) {
-		case TYPE_NULL:
-			OnNull();
-			break;
-		case TYPE_U8:
-			OnPrimativeU8(value.u8);
-			break;
-		case TYPE_U16:
-			OnPrimativeU16(value.u16);
-			break;
-		case TYPE_U32:
-			OnPrimativeU32(value.u32);
-			break;
-		case TYPE_U64:
-			OnPrimativeU64(value.u64);
-			break;
-		case TYPE_S8:
-			OnPrimativeS8(value.u8);
-			break;
-		case TYPE_S16:
-			OnPrimativeS16(value.s16);
-			break;
-		case TYPE_S32:
-			OnPrimativeS32(value.s32);
-			break;
-		case TYPE_S64:
-			OnPrimativeS64(value.s64);
-			break;
-		case TYPE_F16:
-			OnPrimativeF16(value.f16);
-			break;
-		case TYPE_F32:
-			OnPrimativeF32(value.f32);
-			break;
-		case TYPE_F64:
-			OnPrimativeF64(value.f64);
-			break;
-		case TYPE_BOOL:
-			OnPrimativeBool(value.b);
-			break;
-		default:
-			throw std::runtime_error("Writer::OnValue : Value is not a primative type");
-		}
+		// Convert to primative ID
+		ANVIL_CONTRACT(value.type <= TYPE_BOOL, "Parser::OnValue::Unknown type");
+		const SecondaryID id = g_object_type_2_sid[value.type];
+		ANVIL_CONTRACT(id <= SID_B, "Parser::OnValue::Unknown type");
+
+		// Set the primative value
+		g_primative_callbacks[id](*this, *reinterpret_cast<const ValueHeaderPrimative*>(&value.u64));
 	}
 
 }}
