@@ -1,6 +1,5 @@
 # Dependencies
-Try the [standalone branch](https://github.com/asmith-git/anvil-byte-pipe/tree/standalone) for a zero-dependency version
-* [anvil-utils](https://github.com/asmith-git/anvil-utils)
+* [anvil-utils (If ANVIL_DISABLE_LUTILS is not defined)](https://github.com/asmith-git/anvil-utils)
 
 # Usage Example
 ```cpp

@@ -14,7 +14,17 @@
 
 #include <cstddef>
 #include "anvil/byte-pipe/BytePipeWriter.hpp"
-#include "anvil/lutils/Assert.hpp"
+
+#ifdef ANVIL_DISABLE_LUTILS
+	#define ANVIL_CONTRACT(condition, msg) if(!(condition)) throw std::runtime_error(msg)
+	#ifdef _MSVC_LANG
+		#define ANVIL_ASSUME(condition) __assume(condition)
+	#else
+		#define ANVIL_ASSUME(condition)
+	#endif
+#else
+	#include "anvil/lutils/Assert.hpp"
+#endif
 
 namespace anvil { namespace BytePipe {
 
