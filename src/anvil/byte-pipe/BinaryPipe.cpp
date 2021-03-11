@@ -18,7 +18,11 @@
 #ifdef ANVIL_DISABLE_LUTILS
 	#define ANVIL_CONTRACT(condition, msg) if(!(condition)) throw std::runtime_error(msg)
 	#ifdef _MSVC_LANG
-		#define ANVIL_ASSUME(condition) __assume(condition)
+		#ifdef _DEBUG
+			#define ANVIL_ASSUME(condition) ANVIL_CONTRACT(condition, "Anvil Byte Pipe (Debug) : Assumption is incorrect")
+		#else
+				#define ANVIL_ASSUME(condition) __assume(condition)
+		#endif
 	#else
 		#define ANVIL_ASSUME(condition)
 	#endif
@@ -357,6 +361,7 @@ namespace anvil { namespace BytePipe {
 
 	void Writer::_OnPrimative32(const uint32_t value, const uint8_t id) {
 		const uint32_t bytes = g_secondary_type_sizes[id];
+		ANVIL_ASSUME(bytes <= 4u);
 
 		ValueHeader header;
 		header.primary_id = PID_PRIMATIVE;
@@ -367,6 +372,7 @@ namespace anvil { namespace BytePipe {
 
 	void Writer::_OnPrimative64(const uint64_t value, const uint8_t id) {
 		const uint32_t bytes = g_secondary_type_sizes[id];
+		ANVIL_ASSUME(bytes <= 8u);
 
 		ValueHeader header;
 		header.primary_id = PID_PRIMATIVE;
