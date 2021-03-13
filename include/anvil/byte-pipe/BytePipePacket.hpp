@@ -70,8 +70,6 @@ namespace anvil { namespace BytePipe {
 		InputPipe& _downstream_pipe;
 
 		void ReadNextPacket();
-	protected:
-		virtual void OnReadPacket(PacketHeader& header, void* data);
 	public:
 		PacketInputStream(InputPipe& downstream_pipe);
 		virtual ~PacketInputStream();
@@ -87,8 +85,6 @@ namespace anvil { namespace BytePipe {
 		uint8_t _default_word;
 
 		void _Flush();
-	protected:
-		virtual void OnWritePacket(PacketHeader& header, void* data);
 	public:
 		PacketOutputStream(OutputPipe& downstream_pipe, const size_t packet_size, const uint8_t default_word = 0u);
 		virtual ~PacketOutputStream();

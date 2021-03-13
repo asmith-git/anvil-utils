@@ -77,7 +77,6 @@ namespace anvil { namespace BytePipe {
 		uint8_t* tmp = static_cast<uint8_t*>(_alloca(used_bytes + unused_bytes));
 		read = _downstream_pipe.ReadBytes(tmp, used_bytes + unused_bytes);
 		if (read != used_bytes + unused_bytes) throw std::runtime_error("PacketInputStream::ReadNextPacket : Failed reading used packet data");
-		OnReadPacket(header, tmp);
 
 		// Copy the used data into the main buffer
 		for (uint32_t i = 0u; i < used_bytes; ++i) _buffer.push_back(tmp[i]); //! \todo This could be optimised
@@ -99,10 +98,6 @@ namespace anvil { namespace BytePipe {
 		}
 
 		return bytes;
-	}
-
-	void PacketInputStream::OnReadPacket(PacketHeader& header, void* data) {
-		// Do nothing
 	}
 
 	// PacketOutputStream
@@ -182,7 +177,6 @@ namespace anvil { namespace BytePipe {
 
 		// Write the packet to the downstream pipe
 		//! \bug Packets larger than UINT32_MAX will cause an integer overflow on the byte count
-		OnWritePacket(header, payload);
 		_downstream_pipe.WriteBytes(_buffer, _max_packet_size + header_size);
 
 		// Reset the state of this pipe
@@ -191,10 +185,6 @@ namespace anvil { namespace BytePipe {
 
 	void PacketOutputStream::Flush() {
 		_Flush();
-	}
-
-	void PacketOutputStream::OnWritePacket(PacketHeader& header, void* data) {
-		// Do nothing
 	}
 
 }}
