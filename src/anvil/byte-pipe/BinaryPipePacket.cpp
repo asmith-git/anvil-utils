@@ -19,7 +19,7 @@ namespace anvil { namespace BytePipe {
 	static uint32_t PacketVersionFromSize(const uint64_t size) {
 		if (size < 32766u) {
 			return 2u;
-		} else if (size > UINT16_MAX) {
+		} else if (size > UINT16_MAX + 1u) {
 			return 3u;
 		} else {
 			return 1u;
@@ -71,6 +71,9 @@ namespace anvil { namespace BytePipe {
 			used_bytes = header.v3.used_size;
 			packet_size = header.v3.packet_size;
 		}
+
+		used_bytes += 1u;
+		packet_size += 1u;
 
 		// Read the data into the buffer
 		const uint32_t unused_bytes = (packet_size - g_header_sizes[version]) - used_bytes;
@@ -147,6 +150,8 @@ namespace anvil { namespace BytePipe {
 	}
 
 	void PacketOutputStream::_Flush() {
+		if (_current_packet_size == 0u) return;
+
 		const uint32_t version = PacketVersionFromSize(_max_packet_size);
 		const uint32_t header_size = g_header_sizes[version];
 
@@ -160,19 +165,19 @@ namespace anvil { namespace BytePipe {
 			// Create the header
 			header.v1.packet_version = 1u;
 			header.v1.reseved = 0u;
-			header.v1.used_size = _current_packet_size;
-			header.v1.packet_size = _max_packet_size + header_size;
+			header.v1.used_size = _current_packet_size - 1u;
+			header.v1.packet_size = (_max_packet_size + header_size) - 1u;
 		} else if (version == 2u) {
 			// Create the header
 			header.v2.packet_version = 2u;
-			header.v2.used_size = _current_packet_size;
-			header.v2.packet_size = _max_packet_size + header_size;
+			header.v2.used_size = _current_packet_size - 1u;
+			header.v2.packet_size = (_max_packet_size + header_size) - 1u;
 		} else if (version == 3u) {
 			// Create the header
 			header.v3.packet_version = 3u;
 			header.v3.reseved = 0u;
-			header.v3.used_size = _current_packet_size;
-			header.v3.packet_size = _max_packet_size + header_size;
+			header.v3.used_size = _current_packet_size - 1u;
+			header.v3.packet_size = (_max_packet_size + header_size) - 1u;
 		}
 
 		// Write the packet to the downstream pipe
