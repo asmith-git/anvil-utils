@@ -20,5 +20,6 @@
 #include "anvil/byte-pipe/BytePipeReader.hpp"
 #include "anvil/byte-pipe/BytePipeWriter.hpp"
 #include "anvil/byte-pipe/BytePipeSTL.hpp"
+#include "anvil/byte-pipe/BytePipeRLE.hpp"
 
 #endif

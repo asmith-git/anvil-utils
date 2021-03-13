@@ -133,6 +133,115 @@ NEW_BLOCK:
 				WriteWordNonRLE(word);
 			}
 		}
+
+		void WriteWord4(const uint32_t word) {
+			if constexpr (std::is_same<DataWord, uint8_t>::value) {
+
+				const uint32_t w1 = word & 255u;
+				const uint32_t w2 = (word >> 8u) & 255u;
+				const uint32_t w3 = (word >> 16u) & 255u;
+				const uint32_t w4 = word >> 24u;
+
+
+				// If all words are the same
+				if (((w1 ^ w2) | (w1 ^ w3) | (w1 ^ w4)) == 0u) {
+					// If the currently block isn't repeating or is repeating a different word then flush it
+					if (_length > 0u) {
+						if (_rle_mode) {
+							if (w1 != _current_word) {
+							FLUSH:
+								// Flush the current block
+								_Flush();
+							}
+						} else {
+							goto FLUSH;
+						}
+					}
+
+					_rle_mode = true;
+					_current_word = static_cast<DataWord>(w1);
+					if (_length < MAX_RLE_LENGTH - 4u) {
+						// Add all 4 words to the block at once
+						_length += 4u;
+					} else {
+						// Add the words individually
+						WriteWordRLE(static_cast<DataWord>(w1));
+						WriteWordRLE(static_cast<DataWord>(w2));
+						WriteWordRLE(static_cast<DataWord>(w3));
+						WriteWordRLE(static_cast<DataWord>(w4));
+					}
+					return;
+				}
+
+				// Add the words individually
+				WriteWord(static_cast<DataWord>(w1));
+				WriteWord(static_cast<DataWord>(w2));
+				WriteWord(static_cast<DataWord>(w3));
+				WriteWord(static_cast<DataWord>(w4));
+			} else {
+				throw std::runtime_error("RLEEncoderPipe::WriteWord4 : Only implemented for 1 byte words");
+			}
+		}
+
+		void WriteWord8(const uint64_t word) {
+			if constexpr (std::is_same<DataWord, uint8_t>::value) {
+
+				const uint64_t w1 = word & 255ull;
+				const uint64_t w2 = (word >> 8ull) & 255ull;
+				const uint64_t w3 = (word >> 16ull) & 255ull;
+				const uint64_t w4 = (word >> 24ull) & 255ull;
+				const uint64_t w5 = (word >> 32ull) & 255ull;
+				const uint64_t w6 = (word >> 40ull) & 255ull;
+				const uint64_t w7 = (word >> 48ull) & 255ull;
+				const uint64_t w8 = word >> 56ull;
+
+				// If all words are the same
+				if (((w1 ^ w2) | (w1 ^ w3) | (w1 ^ w4) | (w1 ^ w5) | (w1 ^ w6) | (w1 ^ w7) | (w1 ^ w8)) == 0u) {
+					// If the currently block isn't repeating or is repeating a different word then flush it
+					if (_length > 0u) {
+						if (_rle_mode) {
+							if (w1 != _current_word) {
+							FLUSH:
+								// Flush the current block
+								_Flush();
+							}
+						} else {
+							goto FLUSH;
+						}
+					}
+
+					_rle_mode = true;
+					_current_word = static_cast<DataWord>(w1);
+					if (_length < MAX_RLE_LENGTH - 8u) {
+						// Add all 4 words to the block at once
+						_length += 8u;
+					} else {
+						// Add the words individually
+						WriteWordRLE(static_cast<DataWord>(w1));
+						WriteWordRLE(static_cast<DataWord>(w2));
+						WriteWordRLE(static_cast<DataWord>(w3));
+						WriteWordRLE(static_cast<DataWord>(w4));
+						WriteWordRLE(static_cast<DataWord>(w5));
+						WriteWordRLE(static_cast<DataWord>(w6));
+						WriteWordRLE(static_cast<DataWord>(w7));
+						WriteWordRLE(static_cast<DataWord>(w8));
+					}
+					return;
+				}
+
+				// Add the words individually
+				WriteWord(static_cast<DataWord>(w1));
+				WriteWord(static_cast<DataWord>(w2));
+				WriteWord(static_cast<DataWord>(w3));
+				WriteWord(static_cast<DataWord>(w4));
+				WriteWord(static_cast<DataWord>(w5));
+				WriteWord(static_cast<DataWord>(w6));
+				WriteWord(static_cast<DataWord>(w7));
+				WriteWord(static_cast<DataWord>(w8));
+			} else {
+				throw std::runtime_error("RLEEncoderPipe::WriteWord8 : Only implemented for 1 byte words");
+			}
+		}
 	public:
 		RLEEncoderPipe(OutputPipe& output) :
 			_output(output),
@@ -154,6 +263,24 @@ NEW_BLOCK:
 			if (words * sizeof(DataWord) != bytes) throw std::runtime_error("RLEEncoderPipe::WriteBytes : Byte count is not divisible by the word size");
 
 			const DataWord* wordPtr = static_cast<const DataWord*>(src);
+
+
+			// Optimise memory reads for 1 byte data
+			if constexpr (std::is_same<DataWord, uint8_t>::value) {
+				if constexpr (sizeof(intptr_t) >= 8u) {
+					while (words >= 8u) {
+						WriteWord8(*reinterpret_cast<const uint64_t*>(wordPtr));
+						wordPtr += 8u;
+						words -= 8u;
+					}
+				} else {
+					while (words >= 4u) {
+						WriteWord4(*reinterpret_cast<const uint32_t*>(wordPtr));
+						wordPtr += 4u;
+						words -= 4u;
+					}
+				}
+			}
 
 			for (uint32_t i = 0; i < words; ++i) {
 				WriteWord(wordPtr[i]);
