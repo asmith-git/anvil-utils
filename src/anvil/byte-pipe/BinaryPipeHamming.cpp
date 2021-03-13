@@ -65,7 +65,7 @@ namespace anvil { namespace BytePipe {
 		if (c != 0u) {
 			// Flip the incorrect bit
 			uint32_t tmp = bit0 | (bit1 << 1u) | (bit2 << 2u) | (bit3 << 3u) | (bit4 << 4u) | (bit5 << 5u) | (bit6 << 6u);
-			uint32_t flag = 1u << (c - 1u);
+			uint32_t flag = 1u << (7u - c);
 			if (tmp & flag) {
 				tmp &= ~flag;
 			} else {
@@ -96,10 +96,17 @@ namespace anvil { namespace BytePipe {
 	}
 
 #ifndef ANVIL_LEGACY_COMPILER_SUPPORT
+	// Test encoding without errors
 	static_assert(DecodeHamming8(EncodeHamming8(0)) == 0, "Error detected in hamming encoder");
 	static_assert(DecodeHamming8(EncodeHamming8(15)) == 15, "Error detected in hamming encoder");
 	static_assert(DecodeHamming8(EncodeHamming8(64)) == 64, "Error detected in hamming encoder");
 	static_assert(DecodeHamming8(EncodeHamming8(255)) == 255, "Error detected in hamming encoder");
+
+	// Test encoding with errors
+	static_assert(DecodeHamming4(EncodeHamming4(0) | 1) == 0, "Error detected in hamming encoder");
+	static_assert(DecodeHamming4(EncodeHamming4(0) | 2) == 0, "Error detected in hamming encoder");
+	static_assert(DecodeHamming4(EncodeHamming4(0) | 4) == 0, "Error detected in hamming encoder");
+	static_assert(DecodeHamming4(EncodeHamming4(0) | 8) == 0, "Error detected in hamming encoder");
 #endif
 
 	struct BitOutputStream {
