@@ -68,8 +68,7 @@ namespace anvil { namespace BytePipe {
 			uint32_t flag = 1u << (c - 1u);
 			if (tmp & flag) {
 				tmp &= ~flag;
-			}
-			else {
+			} else {
 				tmp |= flag;
 			}
 
@@ -77,8 +76,7 @@ namespace anvil { namespace BytePipe {
 			bit4 = (tmp & 32) >> 4u;
 			tmp &= 7u;
 			return tmp | (bit4 << 3u);
-		}
-		else {
+		} else {
 			return bit0 | (bit1 << 1u) | (bit2 << 2u) | (bit4 << 3u);
 		}
 	}
