@@ -34,11 +34,34 @@ namespace anvil { namespace BytePipe {
 		uint64_t packet_size : 16;		//!< The size of the packet in bytes (including the header)
 		uint64_t reseved : 30;			//!< Unused bits, zeroed by default. May be used by user clases.
 	};
+
+	// Small packets
+	struct PacketHeaderVersion2 {
+		uint32_t packet_version : 2;	//!< Defines the layout of the packet header, values : 0 - 3
+		uint32_t used_size : 15;		//!< The number of bytes in the payload that contain valid data
+		uint32_t packet_size : 15;		//!< The size of the packet in bytes (including the header)
+	};
+
+	// Large packets
+	struct PacketHeaderVersion3 {
+		uint8_t packet_version;
+		uint64_t used_size;		//!< The number of bytes in the payload that contain valid data
+		uint64_t packet_size;	//!< The size of the packet in bytes (including the header)
+		uint32_t reseved;		//!< Unused bits, zeroed by default. May be used by user clases.
+	};
+
+	// Large packets
 #pragma pack(pop)
 
 	static_assert(sizeof(PacketHeaderVersion1) == 8u, "Expected PacketHeaderVersion1 to be 8 bytes");
+	static_assert(sizeof(PacketHeaderVersion2) == 4u, "Expected PacketHeaderVersion2 to be 4 bytes");
+	static_assert(sizeof(PacketHeaderVersion3) == 21u, "Expected PacketHeaderVersion3 to be 21 bytes");
 
-	typedef PacketHeaderVersion1 PacketHeader;
+	union PacketHeader {
+		PacketHeaderVersion1 v1;
+		PacketHeaderVersion2 v2;
+		PacketHeaderVersion3 v3;
+	};
 
 
 	class PacketInputStream : public InputPipe {
