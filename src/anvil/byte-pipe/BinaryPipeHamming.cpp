@@ -17,7 +17,7 @@
 namespace anvil { namespace BytePipe {
 
 	// Encode Hamming bits for 4 input bits, output is 7 bits
-	static uint32_t EncodeHamming4(uint32_t input) {
+	static ANVIL_CONSTEXPR uint32_t EncodeHamming4(uint32_t input) {
 		//! \todo Optimise
 		uint32_t bit0 = input & 1u;
 		uint32_t bit1 = (input & 2u) >> 1u;
@@ -32,21 +32,21 @@ namespace anvil { namespace BytePipe {
 	}
 
 	// Encode Hamming bits for 8 input bits, output is 14 bits
-	static uint32_t EncodeHamming8(uint32_t input) {
+	static ANVIL_CONSTEXPR uint32_t EncodeHamming8(uint32_t input) {
 		uint32_t lo = EncodeHamming4(input & 15u);
 		uint32_t hi = EncodeHamming4((input >> 4u) & 15u);
 		return lo | (hi << 7u);
 	}
 
 	// Encode Hamming bits for 16 input bits, output is 24 bits
-	static uint32_t EncodeHamming16(uint32_t input) {
+	static ANVIL_CONSTEXPR uint32_t EncodeHamming16(uint32_t input) {
 		uint32_t lo = EncodeHamming8(input & 255u);
 		uint32_t hi = EncodeHamming8((input >> 8u) & 255u);
 		return lo | (hi << 14u);
 	}
 
 	// Decode Hamming bits for 7 input bits, output is 4 bits
-	static uint32_t DecodeHamming4(uint32_t input) {
+	static ANVIL_CONSTEXPR uint32_t DecodeHamming4(uint32_t input) {
 		//! \todo Optimise
 		const uint32_t bit0 = input & 1u;
 		const uint32_t bit1 = (input & 2u) >> 1u;
@@ -82,18 +82,25 @@ namespace anvil { namespace BytePipe {
 	}
 
 	// Decode Hamming bits for 14 input bits, output is 8 bits
-	static uint32_t DecodeHamming8(uint32_t input) {
+	static ANVIL_CONSTEXPR uint32_t DecodeHamming8(uint32_t input) {
 		uint32_t lo = EncodeHamming4(input & 127u);
 		uint32_t hi = EncodeHamming4((input >> 7u) & 127u);
 		return lo | (hi << 4u);
 	}
 
 	// Decode Hamming bits for 24 input bits, output is 16 bits
-	static uint32_t DecodeHamming16(uint32_t input) {
+	static ANVIL_CONSTEXPR uint32_t DecodeHamming16(uint32_t input) {
 		uint32_t lo = DecodeHamming8(input & 16383u);
 		uint32_t hi = DecodeHamming8((input >> 14u) & 16383u);
 		return lo | (hi << 8u);
 	}
+
+#ifndef ANVIL_LEGACY_COMPILER_SUPPORT
+	//static_assert(DecodeHamming8(EncodeHamming8(0)) != 0, "Error detected in hamming encoder");
+	static_assert(DecodeHamming8(EncodeHamming8(15)) != 15, "Error detected in hamming encoder");
+	static_assert(DecodeHamming8(EncodeHamming8(64)) != 64, "Error detected in hamming encoder");
+	static_assert(DecodeHamming8(EncodeHamming8(255)) != 255, "Error detected in hamming encoder");
+#endif
 
 	struct BitOutputStream {
 		uint8_t* out;
