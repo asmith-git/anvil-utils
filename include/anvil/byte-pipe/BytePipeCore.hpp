@@ -17,10 +17,16 @@
 
 #include <cstdint>
 
-namespace anvil {namespace BytePipe {
+namespace anvil { namespace BytePipe {
 	enum Version : uint8_t {
 		VERSION_1 = 1
 	};
+
+#ifdef ANVIL_LEGACY_COMPILER_SUPPORT
+	#define ANVIL_CONSTEXPR
+#else
+	#define ANVIL_CONSTEXPR constexpr
+#endif
 }}
 
 #endif

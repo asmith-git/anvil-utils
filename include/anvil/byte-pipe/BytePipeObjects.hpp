@@ -47,22 +47,22 @@ namespace anvil { namespace BytePipe {
 
 
 	template<class T>
-	static constexpr Type GetTypeID();
+	static ANVIL_CONSTEXPR Type GetTypeID();
 
-	template<> static constexpr Type GetTypeID<void>() { return TYPE_NULL; }
-	template<> static constexpr Type GetTypeID<char>() { return TYPE_C8; }
-	template<> static constexpr Type GetTypeID<bool>() { return TYPE_BOOL; }
-	template<> static constexpr Type GetTypeID<uint8_t>() { return TYPE_U8; }
-	template<> static constexpr Type GetTypeID<uint16_t>() { return TYPE_U16; }
-	template<> static constexpr Type GetTypeID<uint32_t>() { return TYPE_U32; }
-	template<> static constexpr Type GetTypeID<uint64_t>() { return TYPE_U64; }
-	template<> static constexpr Type GetTypeID<int8_t>() { return TYPE_S8; }
-	template<> static constexpr Type GetTypeID<int16_t>() { return TYPE_S16; }
-	template<> static constexpr Type GetTypeID<int32_t>() { return TYPE_S32; }
-	template<> static constexpr Type GetTypeID<int64_t>() { return TYPE_S64; }
-	template<> static constexpr Type GetTypeID<half>() { return TYPE_F16; }
-	template<> static constexpr Type GetTypeID<float>() { return TYPE_F32; }
-	template<> static constexpr Type GetTypeID<double>() { return TYPE_F64; }
+	template<> static ANVIL_CONSTEXPR Type GetTypeID<void>() { return TYPE_NULL; }
+	template<> static ANVIL_CONSTEXPR Type GetTypeID<char>() { return TYPE_C8; }
+	template<> static ANVIL_CONSTEXPR Type GetTypeID<bool>() { return TYPE_BOOL; }
+	template<> static ANVIL_CONSTEXPR Type GetTypeID<uint8_t>() { return TYPE_U8; }
+	template<> static ANVIL_CONSTEXPR Type GetTypeID<uint16_t>() { return TYPE_U16; }
+	template<> static ANVIL_CONSTEXPR Type GetTypeID<uint32_t>() { return TYPE_U32; }
+	template<> static ANVIL_CONSTEXPR Type GetTypeID<uint64_t>() { return TYPE_U64; }
+	template<> static ANVIL_CONSTEXPR Type GetTypeID<int8_t>() { return TYPE_S8; }
+	template<> static ANVIL_CONSTEXPR Type GetTypeID<int16_t>() { return TYPE_S16; }
+	template<> static ANVIL_CONSTEXPR Type GetTypeID<int32_t>() { return TYPE_S32; }
+	template<> static ANVIL_CONSTEXPR Type GetTypeID<int64_t>() { return TYPE_S64; }
+	template<> static ANVIL_CONSTEXPR Type GetTypeID<half>() { return TYPE_F16; }
+	template<> static ANVIL_CONSTEXPR Type GetTypeID<float>() { return TYPE_F32; }
+	template<> static ANVIL_CONSTEXPR Type GetTypeID<double>() { return TYPE_F64; }
 
 	struct PrimativeValue {
 		union {

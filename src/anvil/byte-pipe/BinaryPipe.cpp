@@ -187,7 +187,7 @@ namespace anvil { namespace BytePipe {
 			U raw;
 			T val;
 		};
-		if constexpr (sizeof(T) < sizeof(U)) raw = 0u;
+		if ANVIL_CONSTEXPR (sizeof(T) < sizeof(U)) raw = 0u;
 		val = value;
 		return raw;
 	}
@@ -204,7 +204,7 @@ namespace anvil { namespace BytePipe {
 
 	// Helper arrays
 
-	static constexpr const uint8_t g_secondary_type_sizes[] = {
+	static ANVIL_CONSTEXPR const uint8_t g_secondary_type_sizes[] = {
 		0u, // SID_NULL
 		1u, // SID_U8
 		2u, // SID_U16
@@ -222,7 +222,7 @@ namespace anvil { namespace BytePipe {
 	};
 
 	// Convert binary primative type ID to value type
-	static constexpr const Type g_sid_2_object_type[] = {
+	static ANVIL_CONSTEXPR const Type g_sid_2_object_type[] = {
 		TYPE_NULL, // SID_NULL
 		TYPE_U8, // SID_U8
 		TYPE_U16, // SID_U16
@@ -240,7 +240,7 @@ namespace anvil { namespace BytePipe {
 	};
 
 	// Convert Value type to binary primative type ID
-	static constexpr const SecondaryID g_object_type_2_sid[] = {
+	static ANVIL_CONSTEXPR const SecondaryID g_object_type_2_sid[] = {
 		SID_NULL, // TYPE_NULL
 		SID_C8, // TYPE_C8
 		SID_U8, // TYPE_U8
@@ -261,7 +261,7 @@ namespace anvil { namespace BytePipe {
 	};
 
 	typedef void(Parser::*PrimativeArrayCallback)(const void* ptr, const uint32_t size);
-	static constexpr const PrimativeArrayCallback g_primative_array_callbacks[] = {
+	static ANVIL_CONSTEXPR const PrimativeArrayCallback g_primative_array_callbacks[] = {
 		nullptr,														// SID_NULL
 		reinterpret_cast<PrimativeArrayCallback>(&Parser::OnPrimativeArrayU8),	// SID_U8
 		reinterpret_cast<PrimativeArrayCallback>(&Parser::OnPrimativeArrayU16),	// SID_U16
@@ -280,7 +280,7 @@ namespace anvil { namespace BytePipe {
 
 
 	typedef void(*PrimativeCallback)(Parser& parser, const PrimativeValue& header);
-	static constexpr const PrimativeCallback g_primative_callbacks[] = {
+	static ANVIL_CONSTEXPR const PrimativeCallback g_primative_callbacks[] = {
 		detail::CallOnNull,			// SID_NULL
 		detail::CallOnPrimativeU8,	// SID_U8
 		detail::CallOnPrimativeU16,	// SID_U16
@@ -298,22 +298,22 @@ namespace anvil { namespace BytePipe {
 	};
 
 	template<class T>
-	static constexpr SecondaryID GetSecondaryID();
+	static ANVIL_CONSTEXPR SecondaryID GetSecondaryID();
 
-	template<> static constexpr SecondaryID GetSecondaryID<void>() { return SID_NULL; }
-	template<> static constexpr SecondaryID GetSecondaryID<char>() { return SID_C8; }
-	template<> static constexpr SecondaryID GetSecondaryID<bool>() { return SID_B; }
-	template<> static constexpr SecondaryID GetSecondaryID<uint8_t>() { return SID_U8; }
-	template<> static constexpr SecondaryID GetSecondaryID<uint16_t>() { return SID_U16; }
-	template<> static constexpr SecondaryID GetSecondaryID<uint32_t>() { return SID_U32; }
-	template<> static constexpr SecondaryID GetSecondaryID<uint64_t>() { return SID_U64; }
-	template<> static constexpr SecondaryID GetSecondaryID<int8_t>() { return SID_S8; }
-	template<> static constexpr SecondaryID GetSecondaryID<int16_t>() { return SID_S16; }
-	template<> static constexpr SecondaryID GetSecondaryID<int32_t>() { return SID_S32; }
-	template<> static constexpr SecondaryID GetSecondaryID<int64_t>() { return SID_S64; }
-	template<> static constexpr SecondaryID GetSecondaryID<half>() { return SID_F16; }
-	template<> static constexpr SecondaryID GetSecondaryID<float>() { return SID_F32; }
-	template<> static constexpr SecondaryID GetSecondaryID<double>() { return SID_F64; }
+	template<> static ANVIL_CONSTEXPR SecondaryID GetSecondaryID<void>() { return SID_NULL; }
+	template<> static ANVIL_CONSTEXPR SecondaryID GetSecondaryID<char>() { return SID_C8; }
+	template<> static ANVIL_CONSTEXPR SecondaryID GetSecondaryID<bool>() { return SID_B; }
+	template<> static ANVIL_CONSTEXPR SecondaryID GetSecondaryID<uint8_t>() { return SID_U8; }
+	template<> static ANVIL_CONSTEXPR SecondaryID GetSecondaryID<uint16_t>() { return SID_U16; }
+	template<> static ANVIL_CONSTEXPR SecondaryID GetSecondaryID<uint32_t>() { return SID_U32; }
+	template<> static ANVIL_CONSTEXPR SecondaryID GetSecondaryID<uint64_t>() { return SID_U64; }
+	template<> static ANVIL_CONSTEXPR SecondaryID GetSecondaryID<int8_t>() { return SID_S8; }
+	template<> static ANVIL_CONSTEXPR SecondaryID GetSecondaryID<int16_t>() { return SID_S16; }
+	template<> static ANVIL_CONSTEXPR SecondaryID GetSecondaryID<int32_t>() { return SID_S32; }
+	template<> static ANVIL_CONSTEXPR SecondaryID GetSecondaryID<int64_t>() { return SID_S64; }
+	template<> static ANVIL_CONSTEXPR SecondaryID GetSecondaryID<half>() { return SID_F16; }
+	template<> static ANVIL_CONSTEXPR SecondaryID GetSecondaryID<float>() { return SID_F32; }
+	template<> static ANVIL_CONSTEXPR SecondaryID GetSecondaryID<double>() { return SID_F64; }
 
 	// Writer
 

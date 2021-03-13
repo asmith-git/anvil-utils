@@ -135,7 +135,7 @@ NEW_BLOCK:
 		}
 
 		void WriteWord4(const uint32_t word) {
-			if constexpr (std::is_same<DataWord, uint8_t>::value) {
+			if ANVIL_CONSTEXPR (std::is_same<DataWord, uint8_t>::value) {
 
 				const uint32_t w1 = word & 255u;
 				const uint32_t w2 = (word >> 8u) & 255u;
@@ -184,7 +184,7 @@ NEW_BLOCK:
 		}
 
 		void WriteWord8(const uint64_t word) {
-			if constexpr (std::is_same<DataWord, uint8_t>::value) {
+			if ANVIL_CONSTEXPR (std::is_same<DataWord, uint8_t>::value) {
 
 				const uint64_t w1 = word & 255ull;
 				const uint64_t w2 = (word >> 8ull) & 255ull;
@@ -266,8 +266,8 @@ NEW_BLOCK:
 
 
 			// Optimise memory reads for 1 byte data
-			if constexpr (std::is_same<DataWord, uint8_t>::value) {
-				if constexpr (sizeof(intptr_t) >= 8u) {
+			if ANVIL_CONSTEXPR (std::is_same<DataWord, uint8_t>::value) {
+				if ANVIL_CONSTEXPR (sizeof(intptr_t) >= 8u) {
 					while (words >= 8u) {
 						WriteWord8(*reinterpret_cast<const uint64_t*>(wordPtr));
 						wordPtr += 8u;

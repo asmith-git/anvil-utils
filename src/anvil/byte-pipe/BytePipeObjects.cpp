@@ -16,7 +16,7 @@
 
 namespace anvil { namespace BytePipe {
 
-	static constexpr const uint8_t g_type_sizes[] = {
+	static ANVIL_CONSTEXPR const uint8_t g_type_sizes[] = {
 		0u,	// TYPE_NULL,
 		1u,	// TYPE_C8,
 		1u,	// TYPE_U8,
@@ -42,7 +42,7 @@ namespace anvil { namespace BytePipe {
 			uint64_t raw;
 			T val;
 		};
-		if constexpr (sizeof(T) < sizeof(uint64_t)) raw = 0u;
+		if ANVIL_CONSTEXPR(sizeof(T) < sizeof(uint64_t)) raw = 0u;
 		val = value;
 		return raw;
 	}

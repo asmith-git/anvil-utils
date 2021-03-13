@@ -1,6 +1,6 @@
 # Dependencies
-* [C++17](https://en.wikipedia.org/wiki/C%2B%2B17)
-* [anvil-utils](https://github.com/asmith-git/anvil-utils) (If ANVIL_DISABLE_LUTILS is not defined)
+* [C++17](https://en.wikipedia.org/wiki/C%2B%2B17) (Removed by defining ANVIL_LEGACY_COMPILER_SUPPORT)
+* [anvil-utils](https://github.com/asmith-git/anvil-utils) (Removed by defining ANVIL_DISABLE_LUTILS)
 
 # Usage Example
 ```cpp
