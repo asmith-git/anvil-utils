@@ -45,6 +45,25 @@ namespace anvil { namespace BytePipe {
 
 	enum half : uint16_t {};
 
+
+	template<class T>
+	static constexpr Type GetTypeID();
+
+	template<> static constexpr Type GetTypeID<void>() { return TYPE_NULL; }
+	template<> static constexpr Type GetTypeID<char>() { return TYPE_C8; }
+	template<> static constexpr Type GetTypeID<bool>() { return TYPE_BOOL; }
+	template<> static constexpr Type GetTypeID<uint8_t>() { return TYPE_U8; }
+	template<> static constexpr Type GetTypeID<uint16_t>() { return TYPE_U16; }
+	template<> static constexpr Type GetTypeID<uint32_t>() { return TYPE_U32; }
+	template<> static constexpr Type GetTypeID<uint64_t>() { return TYPE_U64; }
+	template<> static constexpr Type GetTypeID<int8_t>() { return TYPE_S8; }
+	template<> static constexpr Type GetTypeID<int16_t>() { return TYPE_S16; }
+	template<> static constexpr Type GetTypeID<int32_t>() { return TYPE_S32; }
+	template<> static constexpr Type GetTypeID<int64_t>() { return TYPE_S64; }
+	template<> static constexpr Type GetTypeID<half>() { return TYPE_F16; }
+	template<> static constexpr Type GetTypeID<float>() { return TYPE_F32; }
+	template<> static constexpr Type GetTypeID<double>() { return TYPE_F64; }
+
 	struct PrimativeValue {
 		union {
 			void* ptr;
@@ -64,6 +83,44 @@ namespace anvil { namespace BytePipe {
 		};
 
 		Type type;
+
+		bool operator==(const PrimativeValue& other) const;
+		bool operator!=(const PrimativeValue& other) const;
+
+		PrimativeValue();
+		PrimativeValue(bool value);
+		PrimativeValue(char value);
+		PrimativeValue(uint8_t value);
+		PrimativeValue(uint16_t value);
+		PrimativeValue(uint32_t value);
+		PrimativeValue(uint64_t value);
+		PrimativeValue(int8_t value);
+		PrimativeValue(int16_t value);
+		PrimativeValue(int32_t value);
+		PrimativeValue(int64_t value);
+		PrimativeValue(half value);
+		PrimativeValue(float value);
+		PrimativeValue(double value);
+
+		/*!
+			\param type The type of \a raw
+			\param The value
+		*/
+		PrimativeValue(Type type, uint64_t raw);
+
+		operator bool() const;
+		operator char() const;
+		operator uint8_t() const;
+		operator uint16_t() const;
+		operator uint32_t() const;
+		operator uint64_t() const;
+		operator int8_t() const;
+		operator int16_t() const;
+		operator int32_t() const;
+		operator int64_t() const;
+		operator half() const;
+		operator float() const;
+		operator double() const;
 	};
 
 	class Value {
@@ -216,19 +273,19 @@ namespace anvil { namespace BytePipe {
 		*/
 		void AddValue(const ComponentID id, Value&& value);
 
-		bool GetBool();
-		char GetC8();
-		uint8_t GetU8();
-		uint16_t GetU16();
-		uint32_t GetU32();
-		uint64_t GetU64();
-		int8_t GetS8();
-		int16_t GetS16();
-		int32_t GetS32();
-		int64_t GetS64();
-		half GetF16();
-		float GetF32();
-		double GetF64();
+		bool GetBool() const;
+		char GetC8() const;
+		uint8_t GetU8() const;
+		uint16_t GetU16() const;
+		uint32_t GetU32() const;
+		uint64_t GetU64() const;
+		int8_t GetS8() const;
+		int16_t GetS16() const;
+		int32_t GetS32() const;
+		int64_t GetS64() const;
+		half GetF16() const;
+		float GetF32() const;
+		double GetF64() const;
 		const char* GetString();
 
 		/*!

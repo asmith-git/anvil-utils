@@ -16,15 +16,20 @@
 #include "anvil/byte-pipe/BytePipeWriter.hpp"
 
 #ifdef ANVIL_DISABLE_LUTILS
-	#define ANVIL_CONTRACT(condition, msg) if(!(condition)) throw std::runtime_error(msg)
-	#ifdef _MSVC_LANG
-		#ifdef _DEBUG
-			#define ANVIL_ASSUME(condition) ANVIL_CONTRACT(condition, "Anvil Byte Pipe (Debug) : Assumption is incorrect")
+	#ifndef ANVIL_CONTRACT
+		#define ANVIL_CONTRACT(condition, msg) if(!(condition)) throw std::runtime_error(msg)
+	#endif
+
+	#ifndef ANVIL_ASSUME
+		#ifdef _MSVC_LANG
+			#ifdef _DEBUG
+				#define ANVIL_ASSUME(condition) ANVIL_CONTRACT(condition, "Anvil Byte Pipe (Debug) : Assumption is incorrect")
+			#else
+					#define ANVIL_ASSUME(condition) __assume(condition)
+			#endif
 		#else
-				#define ANVIL_ASSUME(condition) __assume(condition)
+			#define ANVIL_ASSUME(condition)
 		#endif
-	#else
-		#define ANVIL_ASSUME(condition)
 	#endif
 #else
 	#include "anvil/lutils/Assert.hpp"
@@ -64,24 +69,6 @@ namespace anvil { namespace BytePipe {
 		uint8_t version;
 	};
 
-
-
-	union ValueHeaderPrimative {
-		bool b;
-		uint8_t u8;
-		uint16_t u16;
-		uint32_t u32;
-		uint64_t u64;
-		int8_t s8;
-		int16_t s16;
-		int32_t s32;
-		int64_t s64;
-		float f32;
-		double f64;
-		char c8;
-		half f16;
-	};
-
 	struct ValueHeader {
 		union {
 			struct {
@@ -103,7 +90,21 @@ namespace anvil { namespace BytePipe {
 				uint32_t length;
 			} string_v1;
 
-			ValueHeaderPrimative primative_v1;
+			union ValueHeaderPrimative {
+				bool b;
+				uint8_t u8;
+				uint16_t u16;
+				uint32_t u32;
+				uint64_t u64;
+				int8_t s8;
+				int16_t s16;
+				int32_t s32;
+				int64_t s64;
+				float f32;
+				double f64;
+				char c8;
+				half f16;
+			} primative_v1;
 
 			struct {
 				uint16_t extended_secondary_id;
@@ -123,61 +124,82 @@ namespace anvil { namespace BytePipe {
 	// Helper functions
 
 	namespace detail {
-		static void CallOnPrimativeU8(Parser& parser, const ValueHeaderPrimative& header) {
+		static void CallOnPrimativeU8(Parser& parser, const PrimativeValue& header) {
 			parser.OnPrimativeU8(header.u8);
 		}
 
-		static void CallOnPrimativeU16(Parser& parser, const ValueHeaderPrimative& header) {
+		static void CallOnPrimativeU16(Parser& parser, const PrimativeValue& header) {
 			parser.OnPrimativeU16(header.u16);
 		}
 
-		static void CallOnPrimativeU32(Parser& parser, const ValueHeaderPrimative& header) {
+		static void CallOnPrimativeU32(Parser& parser, const PrimativeValue& header) {
 			parser.OnPrimativeU32(header.u32);
 		}
 
-		static void CallOnPrimativeU64(Parser& parser, const ValueHeaderPrimative& header) {
+		static void CallOnPrimativeU64(Parser& parser, const PrimativeValue& header) {
 			parser.OnPrimativeU64(header.u64);
 		}
 
-		static void CallOnPrimativeS8(Parser& parser, const ValueHeaderPrimative& header) {
+		static void CallOnPrimativeS8(Parser& parser, const PrimativeValue& header) {
 			parser.OnPrimativeS8(header.s8);
 		}
 
-		static void CallOnPrimativeS16(Parser& parser, const ValueHeaderPrimative& header) {
+		static void CallOnPrimativeS16(Parser& parser, const PrimativeValue& header) {
 			parser.OnPrimativeS16(header.s16);
 		}
 
-		static void CallOnPrimativeS32(Parser& parser, const ValueHeaderPrimative& header) {
+		static void CallOnPrimativeS32(Parser& parser, const PrimativeValue& header) {
 			parser.OnPrimativeS32(header.s32);
 		}
 
-		static void CallOnPrimativeS64(Parser& parser, const ValueHeaderPrimative& header) {
+		static void CallOnPrimativeS64(Parser& parser, const PrimativeValue& header) {
 			parser.OnPrimativeS64(header.s64);
 		}
 
-		static void CallOnPrimativeF16(Parser& parser, const ValueHeaderPrimative& header) {
+		static void CallOnPrimativeF16(Parser& parser, const PrimativeValue& header) {
 			parser.OnPrimativeF16(header.f16);
 		}
 
-		static void CallOnPrimativeF32(Parser& parser, const ValueHeaderPrimative& header) {
+		static void CallOnPrimativeF32(Parser& parser, const PrimativeValue& header) {
 			parser.OnPrimativeF32(header.f32);
 		}
 
-		static void CallOnPrimativeF64(Parser& parser, const ValueHeaderPrimative& header) {
+		static void CallOnPrimativeF64(Parser& parser, const PrimativeValue& header) {
 			parser.OnPrimativeF64(header.f64);
 		}
 
-		static void CallOnPrimativeC8(Parser& parser, const ValueHeaderPrimative& header) {
+		static void CallOnPrimativeC8(Parser& parser, const PrimativeValue& header) {
 			parser.OnPrimativeC8(header.c8);
 		}
 
-		static void CallOnNull(Parser& parser, const ValueHeaderPrimative& header) {
+		static void CallOnNull(Parser& parser, const PrimativeValue& header) {
 			parser.OnNull();
 		}
 
-		static void CallOnPrimativeB(Parser& parser, const ValueHeaderPrimative& header) {
+		static void CallOnPrimativeB(Parser& parser, const PrimativeValue& header) {
 			parser.OnPrimativeBool(header.b);
 		}
+	}
+
+	template<class T, class U>
+	static inline uint64_t GetRaw(const T value) {
+		union {
+			U raw;
+			T val;
+		};
+		if constexpr (sizeof(T) < sizeof(U)) raw = 0u;
+		val = value;
+		return raw;
+	}
+
+	template<>
+	static inline uint64_t GetRaw<uint64_t, uint64_t>(const uint64_t value) {
+		return value;
+	}
+
+	template<>
+	static inline uint64_t GetRaw<uint32_t, uint32_t>(const uint32_t value) {
+		return value;
 	}
 
 	// Helper arrays
@@ -197,6 +219,24 @@ namespace anvil { namespace BytePipe {
 		1u, // SID_C8
 		2u, // SID_F16,
 		1u // SID_B
+	};
+
+	// Convert binary primative type ID to value type
+	static constexpr const Type g_sid_2_object_type[] = {
+		TYPE_NULL, // SID_NULL
+		TYPE_U8, // SID_U8
+		TYPE_U16, // SID_U16
+		TYPE_U32, // SID_U32
+		TYPE_U64, // SID_U64
+		TYPE_S8, // SID_S8
+		TYPE_S16, // SID_S16
+		TYPE_S32, // SID_S32
+		TYPE_S64, // SID_S64
+		TYPE_F32, // SID_F32
+		TYPE_F32, // SID_F64
+		TYPE_C8, // SID_C8
+		TYPE_F16, // SID_F16,
+		TYPE_BOOL // SID_B
 	};
 
 	// Convert Value type to binary primative type ID
@@ -239,7 +279,7 @@ namespace anvil { namespace BytePipe {
 	};
 
 
-	typedef void(*PrimativeCallback)(Parser& parser, const ValueHeaderPrimative& header);
+	typedef void(*PrimativeCallback)(Parser& parser, const PrimativeValue& header);
 	static constexpr const PrimativeCallback g_primative_callbacks[] = {
 		detail::CallOnNull,			// SID_NULL
 		detail::CallOnPrimativeU8,	// SID_U8
@@ -383,103 +423,67 @@ namespace anvil { namespace BytePipe {
 
 	void Writer::OnPrimativeBool(const bool value) {
 		typedef std::remove_const<decltype(value)>::type T;
-		union { uint32_t u; T val; };
-		u = 0u;
-		val = value;
-		_OnPrimative32(u, GetSecondaryID<T>());
+		_OnPrimative32(GetRaw<T, uint32_t>(value), GetSecondaryID<T>());
 	}
 
 	void Writer::OnPrimativeU8(const uint8_t value) {
 		typedef std::remove_const<decltype(value)>::type T;
-		union { uint32_t u; T val; };
-		u = 0u;
-		val = value;
-		_OnPrimative32(u, GetSecondaryID<T>());
+		_OnPrimative32(GetRaw<T, uint32_t>(value), GetSecondaryID<T>());
 	}
 
 	void Writer::OnPrimativeU16(const uint16_t value) {
 		typedef std::remove_const<decltype(value)>::type T;
-		union { uint32_t u; T val; };
-		u = 0u;
-		val = value;
-		_OnPrimative32(u, GetSecondaryID<T>());
+		_OnPrimative32(GetRaw<T, uint32_t>(value), GetSecondaryID<T>());
 	}
 
 	void Writer::OnPrimativeU32(const uint32_t value) {
 		typedef std::remove_const<decltype(value)>::type T;
-		union { uint32_t u; T val; };
-		u = 0u;
-		val = value;
-		_OnPrimative32(u, GetSecondaryID<T>());
+		_OnPrimative32(GetRaw<T, uint32_t>(value), GetSecondaryID<T>());
 	}
 
 	void Writer::OnPrimativeU64(const uint64_t value) {
 		typedef std::remove_const<decltype(value)>::type T;
-		_OnPrimative64(value, GetSecondaryID<T>());
+		_OnPrimative64(GetRaw<T, uint64_t>(value), GetSecondaryID<T>());
 	}
 
 	void Writer::OnPrimativeS8(const int8_t value) {
 		typedef std::remove_const<decltype(value)>::type T;
-		union { uint32_t u; T val; };
-		u = 0u;
-		val = value;
-		_OnPrimative32(u, GetSecondaryID<T>());
+		_OnPrimative32(GetRaw<T, uint32_t>(value), GetSecondaryID<T>());
 	}
 
 	void Writer::OnPrimativeS16(const int16_t value) {
 		typedef std::remove_const<decltype(value)>::type T;
-		union { uint32_t u; T val; };
-		u = 0u;
-		val = value;
-		_OnPrimative32(u, GetSecondaryID<T>());
+		_OnPrimative32(GetRaw<T, uint32_t>(value), GetSecondaryID<T>());
 	}
 
 	void Writer::OnPrimativeS32(const int32_t value) {
 		typedef std::remove_const<decltype(value)>::type T;
-		union { uint32_t u; T val; };
-		u = 0u;
-		val = value;
-		_OnPrimative32(u, GetSecondaryID<T>());
+		_OnPrimative32(GetRaw<T, uint32_t>(value), GetSecondaryID<T>());
 	}
 
 	void Writer::OnPrimativeS64(const int64_t value) {
 		typedef std::remove_const<decltype(value)>::type T;
-		union { uint64_t u; T val; };
-		u = 0u;
-		val = value;
-		_OnPrimative64(u, GetSecondaryID<T>());
+		_OnPrimative64(GetRaw<T, uint64_t>(value), GetSecondaryID<T>());
 	}
 
 	void Writer::OnPrimativeF32(const float value) {
 		typedef std::remove_const<decltype(value)>::type T;
-		union { uint32_t u; T val; };
-		u = 0u;
-		val = value;
-		_OnPrimative32(u, GetSecondaryID<T>());
+		_OnPrimative32(GetRaw<T, uint32_t>(value), GetSecondaryID<T>());
 	}
 
 	void Writer::OnPrimativeF64(const double value) {
 		typedef std::remove_const<decltype(value)>::type T;
-		union { uint64_t u; T val; };
-		u = 0u;
-		val = value;
-		_OnPrimative64(u, GetSecondaryID<T>());
+		_OnPrimative64(GetRaw<T, uint64_t>(value), GetSecondaryID<T>());
 	}
 
 	void Writer::OnPrimativeC8(const char value) {
 		typedef std::remove_const<decltype(value)>::type T;
-		union { uint32_t u; T val; };
-		u = 0u;
-		val = value;
-		_OnPrimative32(u, GetSecondaryID<T>());
+		_OnPrimative32(GetRaw<T, uint32_t>(value), GetSecondaryID<T>());
 	}
 
 	void Writer::OnPrimativeF16(const half value) {
 		typedef std::remove_const<decltype(value)>::type T;
-		union { uint32_t u; T val; };
-		u = 0u;
-		val = value;
-		_OnPrimative32(u, GetSecondaryID<T>());
+		_OnPrimative32(GetRaw<T, uint32_t>(value), GetSecondaryID<T>());
 	}
 
 	void Writer::OnPrimativeString(const char* value, const uint32_t length) {
@@ -621,8 +625,9 @@ namespace anvil { namespace BytePipe {
 			const uint32_t bytes = g_secondary_type_sizes[id];
 			if(bytes > 0u) ReadFromPipe(_pipe, &header.primative_v1, g_secondary_type_sizes[id]);
 
-			// Output the primative value
-			g_primative_callbacks[id](_parser, header.primative_v1);
+			// Output the value
+			PrimativeValue tmp(g_sid_2_object_type[id], header.primative_v1.u64);
+			_parser.OnValue(tmp);
 		}
 
 		void ReadGeneric() {
@@ -926,13 +931,9 @@ namespace anvil { namespace BytePipe {
 	}
 
 	void Parser::OnValue(const PrimativeValue& value) {
-		// Convert to primative ID
-		ANVIL_CONTRACT(value.type <= TYPE_BOOL, "Parser::OnValue::Unknown type");
 		const SecondaryID id = g_object_type_2_sid[value.type];
-		ANVIL_CONTRACT(id <= SID_B, "Parser::OnValue::Unknown type");
-
-		// Set the primative value
-		g_primative_callbacks[id](*this, *reinterpret_cast<const ValueHeaderPrimative*>(&value.u64));
+		ANVIL_CONTRACT(id <= SID_B, "PrimativeCallbackHelper : Unknown primative type");
+		g_primative_callbacks[id](*this, value);
 	}
 
 }}
