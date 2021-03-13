@@ -108,11 +108,14 @@ namespace anvil { namespace BytePipe {
 	PacketOutputPipe::PacketOutputPipe(OutputPipe& downstream_pipe, const size_t packet_size, const uint8_t default_word) :
 		_downstream_pipe(downstream_pipe),
 		_buffer(nullptr),
-		_max_packet_size(packet_size),
+		_max_packet_size(0u),
 		_current_packet_size(0u),
 		_default_word(default_word)
 	{
-		_buffer = new uint8_t[packet_size + g_header_sizes[PacketVersionFromSize(packet_size)]];
+		uint32_t version = PacketVersionFromSize(packet_size);
+		uint32_t header_size = g_header_sizes[version];
+		_max_packet_size = packet_size - header_size;
+		_buffer = new uint8_t[packet_size]; // _max_packet_size + header_size
 	}
 
 	PacketOutputPipe::~PacketOutputPipe() {
