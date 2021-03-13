@@ -32,26 +32,26 @@ namespace anvil { namespace BytePipe {
 		sizeof(PacketHeaderVersion3)
 	};
 
-	// PacketInputStream
+	// PacketInputPipe
 
-	PacketInputStream::PacketInputStream(InputPipe& downstream_pipe) :
+	PacketInputPipe::PacketInputPipe(InputPipe& downstream_pipe) :
 		_downstream_pipe(downstream_pipe)
 	{}
 
-	PacketInputStream::~PacketInputStream() {
+	PacketInputPipe::~PacketInputPipe() {
 
 	}
 
-	void PacketInputStream::ReadNextPacket() {
+	void PacketInputPipe::ReadNextPacket() {
 		// Read the packet header version
 		PacketHeader header;
 		uint32_t read = _downstream_pipe.ReadBytes(&header, 1u);
 
 		// Error checking
-		if (read != 1u) throw std::runtime_error("PacketInputStream::ReadNextPacket : Failed to read packet version");
+		if (read != 1u) throw std::runtime_error("PacketInputPipe::ReadNextPacket : Failed to read packet version");
 		uint32_t version = header.v1.packet_version;
 		if (version >= 3u) version = header.v3.packet_version; // Read the extended version number
-		if(header.v1.packet_version > 3u) throw std::runtime_error("PacketInputStream::ReadNextPacket : Packet version is not supported");
+		if(header.v1.packet_version > 3u) throw std::runtime_error("PacketInputPipe::ReadNextPacket : Packet version is not supported");
 
 		// Read the rest of the header
 		read = _downstream_pipe.ReadBytes(reinterpret_cast<uint8_t*>(&header) + 1u, g_header_sizes[header.v1.packet_version] - 1u);
@@ -79,13 +79,13 @@ namespace anvil { namespace BytePipe {
 		const uint32_t unused_bytes = (packet_size - g_header_sizes[version]) - used_bytes;
 		uint8_t* tmp = static_cast<uint8_t*>(_alloca(used_bytes + unused_bytes));
 		read = _downstream_pipe.ReadBytes(tmp, used_bytes + unused_bytes);
-		if (read != used_bytes + unused_bytes) throw std::runtime_error("PacketInputStream::ReadNextPacket : Failed reading used packet data");
+		if (read != used_bytes + unused_bytes) throw std::runtime_error("PacketInputPipe::ReadNextPacket : Failed reading used packet data");
 
 		// Copy the used data into the main buffer
 		for (uint32_t i = 0u; i < used_bytes; ++i) _buffer.push_back(tmp[i]); //! \todo This could be optimised
 	}
 
-	uint32_t PacketInputStream::ReadBytes(void* dst, const uint32_t bytes) {
+	uint32_t PacketInputPipe::ReadBytes(void* dst, const uint32_t bytes) {
 		uint8_t* data = static_cast<uint8_t*>(dst);
 		uint32_t b = bytes;
 
@@ -103,9 +103,9 @@ namespace anvil { namespace BytePipe {
 		return bytes;
 	}
 
-	// PacketOutputStream
+	// PacketOutputPipe
 
-	PacketOutputStream::PacketOutputStream(OutputPipe& downstream_pipe, const size_t packet_size, const uint8_t default_word) :
+	PacketOutputPipe::PacketOutputPipe(OutputPipe& downstream_pipe, const size_t packet_size, const uint8_t default_word) :
 		_downstream_pipe(downstream_pipe),
 		_buffer(nullptr),
 		_max_packet_size(packet_size),
@@ -115,13 +115,13 @@ namespace anvil { namespace BytePipe {
 		_buffer = new uint8_t[packet_size + g_header_sizes[PacketVersionFromSize(packet_size)]];
 	}
 
-	PacketOutputStream::~PacketOutputStream() {
+	PacketOutputPipe::~PacketOutputPipe() {
 		 _Flush();
 		 delete[] _buffer;
 		 _buffer = nullptr;
 	}
 
-	uint32_t PacketOutputStream::WriteBytes(const void* src, const uint32_t bytes) {
+	uint32_t PacketOutputPipe::WriteBytes(const void* src, const uint32_t bytes) {
 		const uint32_t version = PacketVersionFromSize(_max_packet_size);
 		const uint32_t header_size = g_header_sizes[version];
 
@@ -149,7 +149,7 @@ namespace anvil { namespace BytePipe {
 		return bytes;
 	}
 
-	void PacketOutputStream::_Flush() {
+	void PacketOutputPipe::_Flush() {
 		if (_current_packet_size == 0u) return;
 
 		const uint32_t version = PacketVersionFromSize(_max_packet_size);
@@ -188,7 +188,7 @@ namespace anvil { namespace BytePipe {
 		_current_packet_size = 0u;
 	}
 
-	void PacketOutputStream::Flush() {
+	void PacketOutputPipe::Flush() {
 		_Flush();
 		_downstream_pipe.Flush();
 	}
