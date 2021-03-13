@@ -64,7 +64,7 @@ namespace anvil { namespace BytePipe {
 		// If there is an error
 		if (c != 0u) {
 			// Flip the incorrect bit
-			uint32_t tmp = bit0 | (bit1 << 1u) | (bit2 << 2u) | (bit3 << 4u) | (bit4 << 4u) | (bit5 << 5u) | (bit6 << 6u);
+			uint32_t tmp = bit0 | (bit1 << 1u) | (bit2 << 2u) | (bit3 << 3u) | (bit4 << 4u) | (bit5 << 5u) | (bit6 << 6u);
 			uint32_t flag = 1u << (c - 1u);
 			if (tmp & flag) {
 				tmp &= ~flag;
