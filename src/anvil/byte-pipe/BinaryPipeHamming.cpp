@@ -21,14 +21,14 @@ namespace anvil { namespace BytePipe {
 		//! \todo Optimise
 		uint32_t bit0 = input & 1u;
 		uint32_t bit1 = (input & 2u) >> 1u;
-		uint32_t bit2 = (input & 8u) >> 2u;
-		uint32_t bit4 = (input & 32u) >> 4u;
+		uint32_t bit2 = (input & 4u) >> 2u;
+		uint32_t bit4 = (input & 8u) >> 3u; // Bit 3 of input
 
 		uint32_t bit6 = bit0 ^ bit2 ^ bit4;
 		uint32_t bit5 = bit0 ^ bit1 ^ bit4;
 		uint32_t bit3 = bit0 ^ bit1 ^ bit2;
 
-		return bit0 | (bit1 << 1u) | (bit2 << 2u) | (bit3 << 4u) | (bit4 << 4u) | (bit5 << 5u) | (bit6 << 6u);
+		return bit0 | (bit1 << 1u) | (bit2 << 2u) | (bit3 << 3u) | (bit4 << 4u) | (bit5 << 5u) | (bit6 << 6u);
 	}
 
 	// Encode Hamming bits for 8 input bits, output is 14 bits
@@ -50,11 +50,11 @@ namespace anvil { namespace BytePipe {
 		//! \todo Optimise
 		const uint32_t bit0 = input & 1u;
 		const uint32_t bit1 = (input & 2u) >> 1u;
-		const uint32_t bit2 = (input & 8u) >> 2u;
-		const uint32_t bit3 = (input & 16) >> 3u;
-		      uint32_t bit4 = (input & 32) >> 4u;
-		const uint32_t bit5 = (input & 64u) >> 5u;
-		const uint32_t bit6 = (input & 128u) >> 6u;
+		const uint32_t bit2 = (input & 4u) >> 2u;
+		const uint32_t bit3 = (input & 8u) >> 3u;
+		uint32_t bit4 = (input & 16u) >> 4u;
+		const uint32_t bit5 = (input & 32u) >> 5u;
+		const uint32_t bit6 = (input & 64u) >> 6u;
 
 		const uint32_t c1 = bit6 ^ bit4 ^ bit2 ^ bit0;
 		const uint32_t c2 = bit5 ^ bit4 ^ bit1 ^ bit0;
@@ -68,7 +68,8 @@ namespace anvil { namespace BytePipe {
 			uint32_t flag = 1u << (c - 1u);
 			if (tmp & flag) {
 				tmp &= ~flag;
-			} else {
+			}
+			else {
 				tmp |= flag;
 			}
 
@@ -76,15 +77,16 @@ namespace anvil { namespace BytePipe {
 			bit4 = (tmp & 32) >> 4u;
 			tmp &= 7u;
 			return tmp | (bit4 << 3u);
-		} else {
+		}
+		else {
 			return bit0 | (bit1 << 1u) | (bit2 << 2u) | (bit4 << 3u);
 		}
 	}
 
 	// Decode Hamming bits for 14 input bits, output is 8 bits
 	static ANVIL_CONSTEXPR uint32_t DecodeHamming8(uint32_t input) {
-		uint32_t lo = EncodeHamming4(input & 127u);
-		uint32_t hi = EncodeHamming4((input >> 7u) & 127u);
+		uint32_t lo = DecodeHamming4(input & 127u);
+		uint32_t hi = DecodeHamming4((input >> 7u) & 127u);
 		return lo | (hi << 4u);
 	}
 
@@ -96,10 +98,10 @@ namespace anvil { namespace BytePipe {
 	}
 
 #ifndef ANVIL_LEGACY_COMPILER_SUPPORT
-	//static_assert(DecodeHamming8(EncodeHamming8(0)) != 0, "Error detected in hamming encoder");
-	static_assert(DecodeHamming8(EncodeHamming8(15)) != 15, "Error detected in hamming encoder");
-	static_assert(DecodeHamming8(EncodeHamming8(64)) != 64, "Error detected in hamming encoder");
-	static_assert(DecodeHamming8(EncodeHamming8(255)) != 255, "Error detected in hamming encoder");
+	static_assert(DecodeHamming8(EncodeHamming8(0)) == 0, "Error detected in hamming encoder");
+	static_assert(DecodeHamming8(EncodeHamming8(15)) == 15, "Error detected in hamming encoder");
+	static_assert(DecodeHamming8(EncodeHamming8(64)) == 64, "Error detected in hamming encoder");
+	static_assert(DecodeHamming8(EncodeHamming8(255)) == 255, "Error detected in hamming encoder");
 #endif
 
 	struct BitOutputStream {

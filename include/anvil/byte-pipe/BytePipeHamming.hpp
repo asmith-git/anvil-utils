@@ -20,7 +20,7 @@
 namespace anvil { namespace BytePipe {
 
 	/*!
-		\brief Correct 1-bit errors with Hamming encoding
+		\brief Correct 1-bit errors with Hamming(7,4) encoding
 		\details Will throw exception if ReadBytes is called with an input size that would output a number of bits not divisibe by 8.
 	*/
 	class RawHammingInputPipe final : public InputPipe {
@@ -33,7 +33,7 @@ namespace anvil { namespace BytePipe {
 	};
 
 	/*!
-		\brief Correct 1-bit errors with Hamming encoding
+		\brief Correct 1-bit errors with Hamming(7,4) encoding
 		\details Will throw exception if ReadBytes is called with an input size that would output a number of bits not divisibe by 8.
 	*/
 	class RawHammingOutputPipe final : public OutputPipe {
