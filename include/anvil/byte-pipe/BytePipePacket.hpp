@@ -38,7 +38,7 @@ namespace anvil { namespace BytePipe {
 	// Small packets
 	struct PacketHeaderVersion2 {
 		uint32_t packet_version : 2;	//!< Defines the layout of the packet header, values : 0 - 3
-		uint32_t used_size : 15;		//!< The number of bytes in the payload that contain valid data
+		uint32_t used_size : 15;		//!< The number of bytes in the payload that contain valid data : 0 - 32766
 		uint32_t packet_size : 15;		//!< The size of the packet in bytes (including the header)
 	};
 

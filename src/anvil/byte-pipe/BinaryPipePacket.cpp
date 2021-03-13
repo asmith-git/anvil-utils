@@ -17,7 +17,7 @@
 namespace anvil { namespace BytePipe {
 
 	static uint32_t PacketVersionFromSize(const uint64_t size) {
-		if (size < 16383u) {
+		if (size < 32766u) {
 			return 2u;
 		} else if (size > UINT16_MAX) {
 			return 3u;
@@ -185,6 +185,7 @@ namespace anvil { namespace BytePipe {
 
 	void PacketOutputStream::Flush() {
 		_Flush();
+		_downstream_pipe.Flush();
 	}
 
 }}
