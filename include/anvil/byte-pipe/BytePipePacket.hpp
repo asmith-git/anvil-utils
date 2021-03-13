@@ -64,19 +64,19 @@ namespace anvil { namespace BytePipe {
 	};
 
 
-	class PacketInputStream : public InputPipe {
+	class PacketInputPipe : public InputPipe {
 	private:
 		std::deque<uint8_t> _buffer;
 		InputPipe& _downstream_pipe;
 
 		void ReadNextPacket();
 	public:
-		PacketInputStream(InputPipe& downstream_pipe);
-		virtual ~PacketInputStream();
+		PacketInputPipe(InputPipe& downstream_pipe);
+		virtual ~PacketInputPipe();
 		uint32_t ReadBytes(void* dst, const uint32_t bytes) final;
 	};
 
-	class PacketOutputStream : public OutputPipe {
+	class PacketOutputPipe : public OutputPipe {
 	private:
 		OutputPipe& _downstream_pipe;
 		uint8_t* _buffer;
@@ -86,8 +86,8 @@ namespace anvil { namespace BytePipe {
 
 		void _Flush();
 	public:
-		PacketOutputStream(OutputPipe& downstream_pipe, const size_t packet_size, const uint8_t default_word = 0u);
-		virtual ~PacketOutputStream();
+		PacketOutputPipe(OutputPipe& downstream_pipe, const size_t packet_size, const uint8_t default_word = 0u);
+		virtual ~PacketOutputPipe();
 		uint32_t WriteBytes(const void* src, const uint32_t bytes) final;
 		void Flush() final;
 	};
