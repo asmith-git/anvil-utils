@@ -138,38 +138,37 @@ namespace anvil { namespace BytePipe {
 		void WriteBits(uint32_t bits, uint32_t bit_count) {
 			//! \todo Optimise
 
-			// Optimise - Operate on 8 bits at a time
-			while (bit_count <= 8) {
+			while (bit_count != 0u) {
+				uint32_t bits_to_extract = 8u;
+				if (bits < bits_to_extract) bits = bits_to_extract;
+
 				// Extract the left most 8 bits
-				uint32_t shift = bit_count - 8u;
+				uint32_t shift = bit_count - bits_to_extract;
 				uint32_t extracted_bits = (bits >> shift) & 255u;
 
 				// Remove the extracted bits from the input
 				bits ^= (extracted_bits << shift);
-				bit_count -= 8u;
+				bit_count -= bits_to_extract;
 
-				uint32_t to_output;
+				if (bits_to_extract + buffered_bits >= 8u) {
+					// Add bits to the buffer until there are 8 bits
+					const uint32_t bits_to_add = 8u - buffered_bits;
+					buffer <<= bits_to_add;
+					buffer |= extracted_bits >> buffered_bits;
 
-				// Add bits to the buffer until there are 8 bits
-				const uint32_t bits_to_add = 8u - buffered_bits;
-				buffer <<= bits_to_add;
-				buffer |= extracted_bits >> buffered_bits;
+					// Output the buffer
+					*out = static_cast<uint8_t>(buffer);
+					++out;
+					
+					// Replace the buffer with the remaining bits (this should be the same number as it had before)
+					buffer = ((extracted_bits << bits_to_add) & 255u) >> bits_to_add;
 
-				// Output the buffer
-				*out = static_cast<uint8_t>(buffer);
-				++out;
+				} else {
+					// Add extracted bits to the buffer
+					buffer <<= bits_to_extract;
+					buffered_bits += bits_to_extract;
+				}
 
-				// Replace the buffer with the remaining bits (this should be the same number)
-				buffer = ((extracted_bits << bits_to_add) & 255u) >> bits_to_add;
-
-			}
-
-			if (bit_count == 0u) return;
-
-			uint32_t flag = 1u << (bit_count - 1u);
-			while (flag != 0u) {
-				_WriteBit(bits & flag ? 1u : 0u);
-				flag >>= 1u;
 			}
 		}
 	};
