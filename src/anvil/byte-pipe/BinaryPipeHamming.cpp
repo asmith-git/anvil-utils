@@ -313,104 +313,111 @@ namespace anvil { namespace BytePipe {
 #endif
 
 	struct BitOutputStream {
-		uint8_t* out;
-		uint32_t buffer;
-		uint32_t buffered_bits;
-
+	private:
+		uint8_t* _out;				//!< The location that the next complete byte will be written to
+		uint32_t _buffer;			//!< The bits that were leftover from the last write
+		uint32_t _buffered_bits;	//!< How many bits were leftover from the last write
+	public:
 		BitOutputStream(uint8_t* o) :
-			out(o),
-			buffer(0u),
-			buffered_bits(0u)
+			_out(o),
+			_buffer(0u),
+			_buffered_bits(0u)
 		{}
 
-		void _WriteBit(uint32_t bit) {
-			// Add the next bit to the buffer
-			buffer <<= 1u;
-			buffer |= bit;
-			++buffered_bits;
-
-			// If there is a complete byte then output it
-			if (buffered_bits == 8u) {
-				*out = static_cast<uint8_t>(buffer);
-				++out;
-				buffer = 0u;
-				buffered_bits = 0u;
-			}
-		}
-
 		void WriteBits(uint32_t bits, uint32_t bit_count) {
-			//! \todo Optimise
+			while(bit_count > 0u) {
+				if (_buffered_bits == 0u) {
+					// Write directly to the output
+					while (bit_count >= 8u) {
+						*_out = static_cast<uint8_t>(bits >> (bit_count - 8u));
+						++_out;
+						bit_count -= 8u;
+						bits &= (1u << bit_count) - 1u;
+					}
 
-			while (bit_count != 0u) {
-				uint32_t bits_to_extract = 8u;
-				if (bits < bits_to_extract) bits = bits_to_extract;
-
-				// Extract the left most 8 bits
-				uint32_t shift = bit_count - bits_to_extract;
-				uint32_t extracted_bits = (bits >> shift) & 255u;
-
-				// Remove the extracted bits from the input
-				bits ^= (extracted_bits << shift);
-				bit_count -= bits_to_extract;
-
-				if (bits_to_extract + buffered_bits >= 8u) {
-					// Add bits to the buffer until there are 8 bits
-					const uint32_t bits_to_add = 8u - buffered_bits;
-					buffer <<= bits_to_add;
-					buffer |= extracted_bits >> buffered_bits;
-
-					// Output the buffer
-					*out = static_cast<uint8_t>(buffer);
-					++out;
-					
-					// Replace the buffer with the remaining bits (this should be the same number as it had before)
-					buffer = ((extracted_bits << bits_to_add) & 255u) >> bits_to_add;
-
+					// Buffer the remaining bits
+					_buffer = bits;
+					_buffered_bits = bit_count;
+					//bit_count = 0u;
+					return;
 				} else {
-					// Add extracted bits to the buffer
-					buffer <<= bits_to_extract;
-					buffered_bits += bits_to_extract;
-				}
+					// We will write as many bits into the buffer as possible
+					uint32_t bits_to_write = 8u - _buffered_bits;
+					if (bit_count < bits_to_write) bits_to_write = bit_count;
 
+					// Extract the left most bits of the data and add them to the buffer
+					const uint32_t extracted = bits >> (bit_count - bits_to_write);
+					_buffer <<= bits_to_write;
+					_buffer |= extracted;
+					_buffered_bits += bits_to_write;
+
+					// Flush the buffer
+					if (_buffered_bits == 8u) {
+						*_out = static_cast<uint8_t>(_buffer);
+						++_out;
+						_buffer = 0u;
+						_buffered_bits = 0u;
+					}
+
+					// Remove bits from the data
+					bit_count -= bits_to_write;
+					bits &= (1u << bit_count) - 1u;
+				}
 			}
 		}
 	};
 
 	struct BitInputStream {
-		const uint8_t* in;
-		uint32_t buffer;
-		uint32_t buffered_bits;
+	private:
+		const uint8_t* _in;			//!< The location that the next byte will be read from
+		uint32_t _buffer;			//!< The bits that were leftover from the last read
+		uint32_t _buffered_bits;	//!< How many bits were leftover from the last read
 
-		BitInputStream(const uint8_t* i) :
-			in(i),
-			buffer(0u),
-			buffered_bits(0u)
-		{}
-
-		uint32_t _ReadBit() {
-			// If there are no buffered bits then read the next byte
-			if (buffered_bits == 0u) {
-				buffer = *in;
-				++in;
-				buffered_bits = 8u;
-			}
-
-			// Read the next bit from the stream
-			uint32_t tmp = buffer & 128u ? 1u : 0u;
-			buffer <<= 1u;
-			--buffered_bits;
-			return tmp;
+		void NextByte() {
+			_buffer = *_in;
+			++_in;
+			_buffered_bits = 8u;
 		}
 
-		uint32_t ReadBits(uint32_t bit_count) {
-			//! \todo Optimise
-			uint32_t tmp = 0u;
-			while (bit_count > 0u) {
-				--bit_count;
-				tmp <<= 1u;
-				tmp |= _ReadBit();
+		uint32_t _ReadBits(uint32_t bit_count) {
+			uint32_t bits;
+
+			if (_buffered_bits <= bit_count) {
+				// Take all of the bits in the buffer
+				bits = _buffer;
+				const uint32_t count = _buffered_bits;
+				_buffered_bits = 0u;
+
+				if (count < bit_count) {
+					// Read the next byte
+					NextByte();
+
+					// Read more bits
+					const uint32_t bits_remaining = bit_count - count;
+					uint32_t next_bits = _ReadBits(bits_remaining);
+					bits <<= bits_remaining;
+					bits |= next_bits;
+				}
+
+			} else {
+				// Extract the right most bits from the buffer
+				bits = _buffer >> (_buffered_bits - bit_count);
+				_buffered_bits -= bit_count;
+				_buffer &= (1u << _buffered_bits) - 1u;
 			}
-			return tmp;
+
+			return bits;
+		}
+	public:
+		BitInputStream(const uint8_t* i) :
+			_in(i),
+			_buffer(0u),
+			_buffered_bits(0u)
+		{}
+
+		uint32_t ReadBits(uint32_t bit_count) {
+			if (_buffered_bits == 0u) NextByte();
+			return _ReadBits(bit_count);
 		}
 	};
 
