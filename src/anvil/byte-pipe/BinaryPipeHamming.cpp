@@ -137,75 +137,49 @@ namespace anvil { namespace BytePipe {
 			P4,D4,D5,D6,
 			D7,D8,D9,D10
 		*/
-		uint32_t bits[4u][4u] = { {0u, 0u, 0u, 0u},{0u, 0u, 0u, 0u},{0u, 0u, 0u, 0u},{0u, 0u, 0u, 0u} };
+
+#define bitpos(x,y) (y * 4u + x)
+#define get_bit(x,y) ((encoded & (1u << bitpos(x,y))) >> bitpos(x,y))
+#define set_bit(x,y,b) encoded |= ((b) << bitpos(x,y))
+		uint32_t encoded = 0u;
 
 		// Input bits
-		bits[3u][0u] = input & 1u;	//D0
+		set_bit(3u, 0u, input & 1u);	//D0
 		input >>= 1u;
-		bits[1u][1u] = input & 1u;	//D1
+		set_bit(1u, 1u, input & 1u);	//D1
 		input >>= 1u;
-		bits[2u][1u] = input & 1u;	//D2
+		set_bit(2u, 1u, input & 1u);	//D2
 		input >>= 1u;
-		bits[3u][1u] = input & 1u;	//D3
+		set_bit(3u, 1u, input & 1u);	//D3
 		input >>= 1u;
-		bits[1u][2u] = input & 1u;	//D4
+		set_bit(1u, 2u, input & 1u);	//D4
 		input >>= 1u;
-		bits[2u][2u] = input & 1u;	//D5
+		set_bit(2u, 2u, input & 1u);	//D5
 		input >>= 1u;
-		bits[3u][2u] = input & 1u;	//D6
+		set_bit(3u, 2u, input & 1u);	//D6
 		input >>= 1u;
-		bits[0u][3u] = input & 1u;	//D7
+		set_bit(0u, 3u, input & 1u);	//D7
 		input >>= 1u;
-		bits[1u][3u] = input & 1u;	//D8
+		set_bit(1u, 3u, input & 1u);	//D8
 		input >>= 1u;
-		bits[2u][3u] = input & 1u;	//D9
+		set_bit(2u, 3u, input & 1u);	//D9
 		input >>= 1u;
-		bits[3u][3u] = input & 1u;	//D10
+		set_bit(3u, 3u, input & 1u);	//D9
 
 		// Parity bits
-		bits[1u][0u] = bits[1u][1u] ^ bits[1u][2u] ^ bits[1u][3u] ^ bits[3u][0u] ^ bits[3u][1u] ^ bits[3u][2u] ^ bits[3u][3u]; //P1 - Odd columns
-		bits[2u][0u] = bits[3u][0u] ^ bits[2u][1u] ^ bits[3u][1u] ^ bits[2u][2u] ^ bits[3u][2u] ^ bits[2u][3u] ^ bits[3u][3u]; //P2 - Right half
-		bits[0u][1u] = bits[1u][1u] ^ bits[2u][1u] ^ bits[3u][1u] ^ bits[0u][3u] ^ bits[1u][3u] ^ bits[2u][3u] ^ bits[3u][3u]; // P3 = Odd columns
-		bits[0u][2u] = bits[1u][2u] ^ bits[2u][2u] ^ bits[3u][2u] ^ bits[0u][3u] ^ bits[1u][3u] ^ bits[2u][3u] ^ bits[3u][3u]; // P4 = Lower half
-
-		uint32_t output = 0u;
-		output |= bits[3u][3u];
-		output <<= 1u;
-		output |= bits[2u][3u];
-		output <<= 1u;
-		output |= bits[1u][3u];
-		output <<= 1u;
-		output |= bits[0u][3u];
-		output <<= 1u;
-		output |= bits[3u][2u];
-		output <<= 1u;
-		output |= bits[2u][2u];
-		output <<= 1u;
-		output |= bits[1u][2u];
-		output <<= 1u;
-		output |= bits[0u][2u];
-		output <<= 1u;
-		output |= bits[3u][1u];
-		output <<= 1u;
-		output |= bits[2u][1u];
-		output <<= 1u;
-		output |= bits[1u][1u];
-		output <<= 1u;
-		output |= bits[0u][1u];
-		output <<= 1u;
-		output |= bits[3u][0u];
-		output <<= 1u;
-		output |= bits[2u][0u];
-		output <<= 1u;
-		output |= bits[1u][0u];
-		output <<= 1u;
+		set_bit(1u, 0u, get_bit(1u, 1u) ^ get_bit(1u, 2u) ^ get_bit(1u, 3u) ^ get_bit(3u, 0u) ^ get_bit(3u, 1u) ^ get_bit(3u, 2u) ^ get_bit(3u, 3u)); //P1 - Odd columns
+		set_bit(2u, 0u, get_bit(3u, 0u) ^ get_bit(2u, 1u) ^ get_bit(3u, 1u) ^ get_bit(2u, 2u) ^ get_bit(3u, 2u) ^ get_bit(2u, 3u) ^ get_bit(3u, 3u)); //P2 - Right half
+		set_bit(0u, 1u, get_bit(1u, 1u) ^ get_bit(2u, 1u) ^ get_bit(3u, 1u) ^ get_bit(0u, 3u) ^ get_bit(1u, 3u) ^ get_bit(2u, 3u) ^ get_bit(3u, 3u)); // P3 = Odd columns
+		set_bit(0u, 2u, get_bit(1u, 2u) ^ get_bit(2u, 2u) ^ get_bit(3u, 2u) ^ get_bit(0u, 3u) ^ get_bit(1u, 3u) ^ get_bit(2u, 3u) ^ get_bit(3u, 3u)); // P4 = Lower half
 
 		// Calculate final parity
-		bits[0u][0u] = HAMMING_POPCOUNT(output) & 1u; // If there are an odd number of 1s then the bit is 1, otherwise 0
+		set_bit(0u, 0u, HAMMING_POPCOUNT(encoded) & 1u); // If there are an odd number of 1s then the bit is 1, otherwise 0
 
-		output |= bits[0u][0u];
+		return encoded;
 
-		return output;
+#undef bitpos
+#undef get_bit
+#undef set_bit
 	}
 
 
