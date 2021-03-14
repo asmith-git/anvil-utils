@@ -211,53 +211,25 @@ namespace anvil { namespace BytePipe {
 
 
 	// Extended Hamming (15,11) - 11 Data bits, 4+1 parity bits. Total = 16 bits.
-	static uint32_t /*ANVIL_CONSTEXPR*/ DecodeHamming1511(uint32_t input) {
+	static uint32_t /*ANVIL_CONSTEXPR*/ DecodeHamming1511(uint32_t encoded) {
 		//! \todo Optimise
+
 		/*
 			P0,P1,P2,D0,
 			P3,D1,D2,D3,
 			P4,D4,D5,D6,
 			D7,D8,D9,D10
 		*/
-		uint32_t bits[4u][4u] = { {0u, 0u, 0u, 0u},{0u, 0u, 0u, 0u},{0u, 0u, 0u, 0u},{0u, 0u, 0u, 0u} };
 
-		bits[0u][0u] = input & 1u;
-		input >>= 1u;
-		bits[1u][0u] = input & 1u;
-		input >>= 1u;
-		bits[2u][0u] = input & 1u;
-		input >>= 1u;
-		bits[3u][0u] = input & 1u;
-		input >>= 1u;
-		bits[0u][1u] = input & 1u;
-		input >>= 1u;
-		bits[1u][1u] = input & 1u;
-		input >>= 1u;
-		bits[2u][1u] = input & 1u;
-		input >>= 1u;
-		bits[3u][1u] = input & 1u;
-		input >>= 1u;
-		bits[0u][2u] = input & 1u;
-		input >>= 1u;
-		bits[1u][2u] = input & 1u;
-		input >>= 1u;
-		bits[2u][2u] = input & 1u;
-		input >>= 1u;
-		bits[3u][2u] = input & 1u;
-		input >>= 1u;
-		bits[0u][3u] = input & 1u;
-		input >>= 1u;
-		bits[1u][3u] = input & 1u;
-		input >>= 1u;
-		bits[2u][3u] = input & 1u;
-		input >>= 1u;
-		bits[3u][3u] = input & 1u;
+#define bitpos(x,y) (y * 4u + x)
+#define get_bit(x,y) ((encoded & (1u << bitpos(x,y))) >> bitpos(x,y))
+#define flip_bit(x,y) encoded ^= (1u << bitpos(x,y))
 
 		// Error correction
-		uint32_t parityBlock1 = bits[1u][0u] ^ bits[1u][1u] ^ bits[1u][2u] ^ bits[1u][3u] ^ bits[3u][0u] ^ bits[3u][1u] ^ bits[3u][2u] ^ bits[3u][3u]; //P1 - Odd columns
-		uint32_t parityBlock2 = bits[2u][0u] ^ bits[3u][0u] ^ bits[2u][1u] ^ bits[3u][1u] ^ bits[2u][2u] ^ bits[3u][2u] ^ bits[2u][3u] ^ bits[3u][3u]; //P2 - Right half
-		uint32_t parityBlock3 = bits[0u][1u] ^ bits[1u][1u] ^ bits[2u][1u] ^ bits[3u][1u] ^ bits[0u][3u] ^ bits[1u][3u] ^ bits[2u][3u] ^ bits[3u][3u]; // P3 = Odd columns
-		uint32_t parityBlock4 = bits[0u][2u] ^ bits[1u][2u] ^ bits[2u][2u] ^ bits[3u][2u] ^ bits[0u][3u] ^ bits[1u][3u] ^ bits[2u][3u] ^ bits[3u][3u]; // P4 = Lower half
+		uint32_t parityBlock1 = get_bit(1u, 0u) ^ get_bit(1u, 1u) ^ get_bit(1u, 2u) ^ get_bit(1u, 3u) ^ get_bit(3u, 0u) ^ get_bit(3u, 1u) ^ get_bit(3u, 2u) ^ get_bit(3u, 3u); //P1 - Odd columns
+		uint32_t parityBlock2 = get_bit(2u, 0u) ^ get_bit(3u, 0u) ^ get_bit(2u, 1u) ^ get_bit(3u, 1u) ^ get_bit(2u, 2u) ^ get_bit(3u, 2u) ^ get_bit(2u, 3u) ^ get_bit(3u, 3u); //P2 - Right half
+		uint32_t parityBlock3 = get_bit(0u, 1u) ^ get_bit(1u, 1u) ^ get_bit(2u, 1u) ^ get_bit(3u, 1u) ^ get_bit(0u, 3u) ^ get_bit(1u, 3u) ^ get_bit(2u, 3u) ^ get_bit(3u, 3u); // P3 = Odd columns
+		uint32_t parityBlock4 = get_bit(0u, 2u) ^ get_bit(1u, 2u) ^ get_bit(2u, 2u) ^ get_bit(3u, 2u) ^ get_bit(0u, 3u) ^ get_bit(1u, 3u) ^ get_bit(2u, 3u) ^ get_bit(3u, 3u); // P4 = Lower half
 
 		uint32_t error = 0u;
 		uint32_t row = 0u;
@@ -278,16 +250,10 @@ namespace anvil { namespace BytePipe {
 
 		if (error) {
 			// Flip the bit with error
-			uint32_t& bit = bits[row][col];
-			bit = bit ? 0u : 1u;
+			flip_bit(row, col);
 
 			// Check the parity for the entire block (p0)
-			uint32_t r0 = bits[0u][0u] + bits[1u][0u] + bits[2u][0u] + bits[3u][0u];
-			uint32_t r1 = bits[0u][1u] + bits[1u][1u] + bits[2u][1u] + bits[3u][1u];
-			uint32_t r2 = bits[0u][2u] + bits[1u][2u] + bits[2u][2u] + bits[3u][2u];
-			uint32_t r3 = bits[0u][3u] + bits[1u][3u] + bits[2u][3u] + bits[3u][3u];
-			uint32_t block = r0 + r1 + r2 + r3;
-			if (block & 1u) throw std::runtime_error("DecodeHamming1511 : Detected second error, cannot correct");
+			if (HAMMING_POPCOUNT(encoded) & 1u) throw std::runtime_error("DecodeHamming1511 : Detected second error, cannot correct");
 
 		} else { // Check for two bit errors
 			// Bit 0 could be flipped, but in this case it wont effect the output data so we ignore it
@@ -296,29 +262,33 @@ namespace anvil { namespace BytePipe {
 		// Return data bits
 		uint32_t output = 0u;
 
-		output |= bits[3u][3u];	//D10
+		output |= get_bit(3u, 3u);	//D10
 		output <<= 1u;
-		output |= bits[2u][3u];	//D9
+		output |= get_bit(2u, 3u);	//D9
 		output <<= 1u;
-		output |= bits[1u][3u];	//D8
+		output |= get_bit(1u, 3u);	//D8
 		output <<= 1u;
-		output |= bits[0u][3u];	//D7
+		output |= get_bit(0u, 3u);	//D7
 		output <<= 1u;
-		output |= bits[3u][2u];	//D6
+		output |= get_bit(3u, 2u);	//D6
 		output <<= 1u;
-		output |= bits[2u][2u];	//D5
+		output |= get_bit(2u, 2u);	//D5
 		output <<= 1u;
-		output |= bits[1u][2u];	//D4
+		output |= get_bit(1u, 2u);	//D4
 		output <<= 1u;
-		output |= bits[3u][1u];	//D3
+		output |= get_bit(3u, 1u);	//D3
 		output <<= 1u;
-		output |= bits[2u][1u];	//D2
+		output |= get_bit(2u, 1u);	//D2
 		output <<= 1u;
-		output |= bits[1u][1u];	//D1
+		output |= get_bit(1u, 1u);	//D1
 		output <<= 1u;
-		output |= bits[3u][0u];	//D0
+		output |= get_bit(3u, 0u);	//D0
 
 		return output;
+
+#undef bitpos
+#undef get_bit
+#undef flip_bit
 	}
 
 #ifdef _DEBUG
