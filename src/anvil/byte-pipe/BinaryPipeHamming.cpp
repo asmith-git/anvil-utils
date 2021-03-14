@@ -212,7 +212,6 @@ namespace anvil { namespace BytePipe {
 
 	// Extended Hamming (15,11) - 11 Data bits, 4+1 parity bits. Total = 16 bits.
 	static uint32_t /*ANVIL_CONSTEXPR*/ DecodeHamming1511(uint32_t input) {
-		const uint32_t original_input = input;
 		//! \todo Optimise
 		/*
 			P0,P1,P2,D0,
@@ -276,14 +275,49 @@ namespace anvil { namespace BytePipe {
 		col += parityBlock4 ? 2u : 0u;
 		error |= parityBlock4;
 
+
 		if (error) {
 			// Flip the bit with error
 			uint32_t& bit = bits[row][col];
 			bit = bit ? 0u : 1u;
+
+			// Check the parity for the entire block (p0)
+			uint32_t block = 0u;
+			block |= bits[0u][0u];
+			block <<= 1u;
+			block |= bits[0u][1u];
+			block <<= 1u;
+			block |= bits[0u][2u];
+			block <<= 1u;
+			block |= bits[0u][3u];
+			block <<= 1u;
+			block |= bits[1u][0u];
+			block <<= 1u;
+			block |= bits[1u][1u];
+			block <<= 1u;
+			block |= bits[1u][2u];
+			block <<= 1u;
+			block |= bits[1u][3u];
+			block <<= 1u;
+			block |= bits[2u][0u];
+			block <<= 1u;
+			block |= bits[2u][1u];
+			block <<= 1u;
+			block |= bits[2u][2u];
+			block <<= 1u;
+			block |= bits[2u][3u];
+			block <<= 1u;
+			block |= bits[3u][0u];
+			block <<= 1u;
+			block |= bits[3u][1u];
+			block <<= 1u;
+			block |= bits[3u][2u];
+			block <<= 1u;
+			block |= bits[3u][3u];
+			if (HAMMING_POPCOUNT(block) & 1u) throw std::runtime_error("DecodeHamming1511 : Detected second error, cannot correct");
+
 		} else { // Check for two bit errors
-			// P0
-			uint32_t parityBlock0 = HAMMING_POPCOUNT(original_input);
-			if (parityBlock0 & 1u) throw std::runtime_error("DecodeHamming1511 : Uncorrectable error detected");
+			// Bit 0 could be flipped, but in this case it wont effect the output data so we ignore it
 		}
 
 		// Return data bits
@@ -314,8 +348,8 @@ namespace anvil { namespace BytePipe {
 		return output;
 	}
 
-// Run-time Hamming Tests
-	static bool HammingTest(uint32_t data, uint32_t error) {
+#ifdef _DEBUG
+	static bool HammingTest1511(uint32_t data, uint32_t error) {
 		uint32_t encoded = EncodeHamming1511(data);
 		encoded ^= error;
 		uint32_t decoded = DecodeHamming1511(encoded);
@@ -324,10 +358,29 @@ namespace anvil { namespace BytePipe {
 	}
 
 	static const bool g_hamming_tests =
-		HammingTest(0u, 0u) &&
-		HammingTest(1u, 0u) &&
-		HammingTest(15u, 0u) &&
-		HammingTest(44u, 0u);
+		// Test hamming (15,11) Encode / Decode
+		HammingTest1511(0u, 0u) &&
+		HammingTest1511(1u, 0u) &&
+		HammingTest1511(15u, 0u) &&
+		HammingTest1511(44u, 0u) &&
+
+		// Test hamming (15,11) error correction
+		HammingTest1511(0u, 1u << 0u) &&
+		HammingTest1511(0u, 1u << 1u) &&
+		HammingTest1511(0u, 1u << 2u) &&
+		HammingTest1511(0u, 1u << 3u) &&
+		HammingTest1511(0u, 1u << 4u) &&
+		HammingTest1511(0u, 1u << 5u) &&
+		HammingTest1511(0u, 1u << 6u) &&
+		HammingTest1511(0u, 1u << 7u) &&
+		HammingTest1511(0u, 1u << 8u) &&
+		HammingTest1511(0u, 1u << 9u) &&
+		HammingTest1511(0u, 1u << 10u) &&
+		HammingTest1511(0u, 1u << 11u) &&
+		HammingTest1511(0u, 1u << 12u) &&
+		HammingTest1511(0u, 1u << 13u) &&
+		HammingTest1511(0u, 1u << 14u);
+#endif
 
 	struct BitOutputStream {
 		uint8_t* out;
