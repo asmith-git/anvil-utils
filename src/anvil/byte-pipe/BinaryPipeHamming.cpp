@@ -280,4 +280,38 @@ namespace anvil { namespace BytePipe {
 		_downstream_pipe.Flush();
 	}
 
+	// HammingInputPipe
+
+	HammingInputPipe::HammingInputPipe(InputPipe& downstream_pipe) :
+		_packet_pipe(downstream_pipe),
+		_hamming_pipe(_packet_pipe)
+	{}
+
+	HammingInputPipe::~HammingInputPipe() {
+
+	}
+
+	uint32_t HammingInputPipe::ReadBytes(void* dst, const uint32_t bytes) {
+		return _hamming_pipe.ReadBytes(dst, bytes);
+	}
+
+	// HammingOutputPipe
+
+	HammingOutputPipe::HammingOutputPipe(OutputPipe& downstream_pipe) :
+		_hamming_pipe(downstream_pipe),
+		_packet_pipe(_hamming_pipe, 256, 0u)
+	{}
+
+	HammingOutputPipe::~HammingOutputPipe() {
+
+	}
+
+	uint32_t HammingOutputPipe::WriteBytes(const void* src, const uint32_t bytes) {
+		return _packet_pipe.WriteBytes(src, bytes);
+	}
+
+	void HammingOutputPipe::Flush() {
+		_packet_pipe.Flush();
+	}
+
 }}

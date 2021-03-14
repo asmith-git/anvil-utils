@@ -20,8 +20,9 @@
 namespace anvil { namespace BytePipe {
 
 	/*!
-		\brief Correct 1-bit errors with Hamming(7,4) encoding
-		\details Will throw exception if ReadBytes is called with an input size that would output a number of bits not divisibe by 8.
+		\brief Data is encoded with Hamming(7,4) to correct single bit errors.
+		\details The hamming encoded data size must be divisible by 8 bits otherwise an exception will be thrown.
+		\see RawHammingOutputPipe
 	*/
 	class RawHammingInputPipe final : public InputPipe {
 	private:
@@ -33,8 +34,9 @@ namespace anvil { namespace BytePipe {
 	};
 
 	/*!
-		\brief Correct 1-bit errors with Hamming(7,4) encoding
-		\details Will throw exception if ReadBytes is called with an input size that would output a number of bits not divisibe by 8.
+		\brief Data is encoded with Hamming(7,4) to correct single bit errors.
+		\details The hamming encoded data size must be divisible by 8 bits otherwise an exception will be thrown.
+		\see RawHammingInputPipe
 	*/
 	class RawHammingOutputPipe final : public OutputPipe {
 	private:
@@ -42,6 +44,39 @@ namespace anvil { namespace BytePipe {
 	public:
 		RawHammingOutputPipe(OutputPipe& downstream_pipe);
 		virtual ~RawHammingOutputPipe();
+		uint32_t WriteBytes(const void* src, const uint32_t bytes) final;
+		void Flush() final;
+	};
+
+	/*!
+		\brief Data is encoded with Hamming(7,4) to correct single bit errors.
+		\details Uses a PacketInputPipe to guarantee fixed-size memory blocks.
+		This adds some additional overhead, use RawHammingInputPipe to avoid.
+		\see HammingOutputPipe
+	*/
+	class HammingInputPipe final : public InputPipe {
+	private:
+		PacketInputPipe _packet_pipe;
+		RawHammingInputPipe _hamming_pipe;
+	public:
+		HammingInputPipe(InputPipe& downstream_pipe);
+		virtual ~HammingInputPipe();
+		uint32_t ReadBytes(void* dst, const uint32_t bytes) final;
+	};
+
+	/*!
+		\brief Data is encoded with Hamming(7,4) to correct single bit errors.
+		\details Uses a PacketInputPipe to guarantee fixed-size memory blocks.
+		This adds some additional overhead, use RawHammingOutputPipe to avoid.
+		\see HammingInputPipe
+	*/
+	class HammingOutputPipe final : public OutputPipe {
+	private:
+		RawHammingOutputPipe _hamming_pipe;
+		PacketOutputPipe _packet_pipe;
+	public:
+		HammingOutputPipe(OutputPipe& downstream_pipe);
+		virtual ~HammingOutputPipe();
 		uint32_t WriteBytes(const void* src, const uint32_t bytes) final;
 		void Flush() final;
 	};
