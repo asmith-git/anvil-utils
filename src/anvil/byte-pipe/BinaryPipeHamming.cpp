@@ -297,10 +297,16 @@ namespace anvil { namespace BytePipe {
 
 	// HammingOutputPipe
 
-	HammingOutputPipe::HammingOutputPipe(OutputPipe& downstream_pipe) :
+	HammingOutputPipe::HammingOutputPipe(OutputPipe& downstream_pipe, uint32_t packet_size) :
 		_hamming_pipe(downstream_pipe),
-		_packet_pipe(_hamming_pipe, 256, 0u)
-	{}
+		_packet_pipe(_hamming_pipe, packet_size, 0u)
+	{
+		const uint32_t decoded_bits = packet_size * 8u;
+		const uint32_t parity_bits = (decoded_bits / 4u) * 3u;
+		const uint32_t encoded_bits = decoded_bits + parity_bits;
+		const uint32_t encoded_bytes = encoded_bits / 8u;
+		if (encoded_bytes * 8u != encoded_bits) throw std::runtime_error("HammingOutputPipe::HammingOutputPipe : Encoded bit count is not divisible by 8");
+	}
 
 	HammingOutputPipe::~HammingOutputPipe() {
 

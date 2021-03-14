@@ -75,7 +75,7 @@ namespace anvil { namespace BytePipe {
 		RawHammingOutputPipe _hamming_pipe;
 		PacketOutputPipe _packet_pipe;
 	public:
-		HammingOutputPipe(OutputPipe& downstream_pipe);
+		HammingOutputPipe(OutputPipe& downstream_pipe, uint32_t block_size = 256);
 		virtual ~HammingOutputPipe();
 		uint32_t WriteBytes(const void* src, const uint32_t bytes) final;
 		void Flush() final;
