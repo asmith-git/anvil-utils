@@ -16,6 +16,8 @@
 
 namespace anvil { namespace BytePipe {
 
+	// Hamming(7,4)
+
 	// Encode Hamming74 bits for 4 input bits, output is 7 bits
 	static ANVIL_CONSTEXPR uint32_t EncodeHamming74_4(uint32_t input) {
 		//! \todo Optimise
@@ -97,17 +99,168 @@ namespace anvil { namespace BytePipe {
 
 #ifndef ANVIL_LEGACY_COMPILER_SUPPORT
 	// Test encoding without errors
-	static_assert(DecodeHamming74_8(EncodeHamming74_8(0)) == 0, "Error detected in hamming encoder");
-	static_assert(DecodeHamming74_8(EncodeHamming74_8(15)) == 15, "Error detected in hamming encoder");
-	static_assert(DecodeHamming74_8(EncodeHamming74_8(64)) == 64, "Error detected in hamming encoder");
-	static_assert(DecodeHamming74_8(EncodeHamming74_8(255)) == 255, "Error detected in hamming encoder");
+	static_assert(DecodeHamming74_8(EncodeHamming74_8(0)) == 0, "Error detected in Hamming(7,4) encoder");
+	static_assert(DecodeHamming74_8(EncodeHamming74_8(15)) == 15, "Error detected in Hamming(7,4) encoder");
+	static_assert(DecodeHamming74_8(EncodeHamming74_8(64)) == 64, "Error detected in Hamming(7,4) encoder");
+	static_assert(DecodeHamming74_8(EncodeHamming74_8(255)) == 255, "Error detected in Hamming(7,4) encoder");
 
 	// Test encoding with errors
-	static_assert(DecodeHamming74_4(EncodeHamming74_4(0) | 1) == 0, "Error detected in hamming encoder");
-	static_assert(DecodeHamming74_4(EncodeHamming74_4(0) | 2) == 0, "Error detected in hamming encoder");
-	static_assert(DecodeHamming74_4(EncodeHamming74_4(0) | 4) == 0, "Error detected in hamming encoder");
-	static_assert(DecodeHamming74_4(EncodeHamming74_4(0) | 8) == 0, "Error detected in hamming encoder");
+	static_assert(DecodeHamming74_4(EncodeHamming74_4(0) | 1) == 0, "Error detected in Hamming(7,4) error correction");
+	static_assert(DecodeHamming74_4(EncodeHamming74_4(0) | 2) == 0, "Error detected in Hamming(7,4) error correction");
+	static_assert(DecodeHamming74_4(EncodeHamming74_4(0) | 4) == 0, "Error detected in Hamming(7,4) error correction");
+	static_assert(DecodeHamming74_4(EncodeHamming74_4(0) | 8) == 0, "Error detected in Hamming(7,4) error correction");
 #endif
+
+	// Hamming (15,11)
+
+	// Hamming (15,11) - 11 Data bits, 4 parity bits. Total = 15 bits.
+	static uint32_t ANVIL_CONSTEXPR EncodeHamming1511(uint32_t input) {
+		//! \todo Optimise
+
+		// Input bits
+		uint32_t i[11] = { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u,0u, 0u, 0u };
+		i[0u] = input & 1u;
+		input >>= 1u;
+		i[1u] = input & 1u;
+		input >>= 1u;
+		i[2u] = input & 1u;
+		input >>= 1u;
+		i[3u] = input & 1u;
+		input >>= 1u;
+		i[4u] = input & 1u;
+		input >>= 1u;
+		i[5u] = input & 1u;
+		input >>= 1u;
+		i[6u] = input & 1u;
+		input >>= 1u;
+		i[7u] = input & 1u;
+		input >>= 1u;
+		i[8u] = input & 1u;
+		input >>= 1u;
+		i[9u] = input & 1u;
+		input >>= 1u;
+		i[10u] = input & 1u;
+
+		// Parity bits
+		uint32_t p[4u] = { 0u, 0u, 0u, 0u };
+		//! \todo Implement Hamming (15,11) parity calculation
+
+		uint32_t output = 0u;
+		output |= p[0u];	// Bit 1
+		output <<= 1u;
+		output |= p[1u];	// Bit 2
+		output <<= 1u;
+		output |= i[0u];	// Bit 3
+		output <<= 1u;
+		output |= p[2u];	// Bit 4
+		output <<= 1u;
+		output |= i[1u];	// Bit 5
+		output <<= 1u;
+		output |= i[2u];	// Bit 6
+		output <<= 1u;
+		output |= i[3u];	// Bit 7
+		output <<= 1u;
+		output |= p[3u];	// Bit 8
+		output <<= 1u;
+		output |= i[4u];	// Bit 9
+		output <<= 1u;
+		output |= i[5u];	// Bit 10
+		output <<= 1u;
+		output |= i[6u];	// Bit 11
+		output <<= 1u;
+		output |= i[7u];	// Bit 12
+		output <<= 1u;
+		output |= i[8u];	// Bit 13
+		output <<= 1u;
+		output |= i[9u];	// Bit 14
+		output <<= 1u;
+		output |= i[10u];	// Bit 15
+
+		return output;
+	}
+
+
+
+	// Hamming (15,11) - 11 Data bits, 4 parity bits. Total = 15 bits.
+	static uint32_t ANVIL_CONSTEXPR DecodeHamming1511(uint32_t input) {
+		//! \todo Optimise
+
+		// Input bits
+		uint32_t i[11] = { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u,0u, 0u, 0u };
+		uint32_t p[4u] = { 0u, 0u, 0u, 0u };
+
+		p[0u] = input & 1u;		// Bit 1
+		input >>= 1u;
+		p[1u] = input & 1u;		// Bit 2
+		input >>= 1u;
+		i[0u] = input & 1u;		// Bit 3
+		input >>= 1u;
+		p[2u] = input & 1u;		// Bit 4
+		input >>= 1u;
+		i[1u] = input & 1u;		// Bit 5
+		input >>= 1u;
+		i[2u] = input & 1u;		// Bit 6
+		input >>= 1u;
+		i[3u] = input & 1u;		// Bit 7
+		input >>= 1u;
+		p[3u] = input & 1u;		// Bit 8
+		input >>= 1u;
+		i[4u] = input & 1u;		// Bit 9
+		input >>= 1u;
+		i[5u] = input & 1u;		// Bit 10
+		input >>= 1u;
+		i[6u] = input & 1u;		// Bit 11
+		input >>= 1u;
+		i[7u] = input & 1u;		// Bit 12
+		input >>= 1u;
+		i[8u] = input & 1u;		// Bit 13
+		input >>= 1u;
+		i[9u] = input & 1u;		// Bit 14
+		input >>= 1u;
+		i[10u] = input & 1u;	// Bit 15
+
+		// Error correction
+		//! \todo Implement Hamming (15,11) error correction 
+
+		uint32_t output = 0u;
+		output |= i[0u];	// Bit 1
+		output <<= 1u;
+		output |= i[1u];	// Bit 2
+		output <<= 1u;
+		output |= i[2u];	// Bit 3
+		output <<= 1u;
+		output |= i[3u];	// Bit 4
+		output <<= 1u;
+		output |= i[4u];	// Bit 5
+		output <<= 1u;
+		output |= i[5u];	// Bit 6
+		output <<= 1u;
+		output |= i[6u];	// Bit 7
+		output <<= 1u;
+		output |= i[7u];	// Bit 8
+		output <<= 1u;
+		output |= i[8u];	// Bit 9
+		output <<= 1u;
+		output |= i[9u];	// Bit 10
+		output <<= 1u;
+		output |= i[10u];	// Bit 11
+
+		return output;
+	}
+
+//#ifndef ANVIL_LEGACY_COMPILER_SUPPORT
+//	// Test encoding without errors
+//	static_assert(DecodeHamming1511(EncodeHamming1511(0)) == 0, "Error detected in Hamming(15,11) encoder");
+//	static_assert(DecodeHamming1511(EncodeHamming1511(15)) == 15, "Error detected in Hamming(15,11) encoder");
+//	static_assert(DecodeHamming1511(EncodeHamming1511(64)) == 64, "Error detected in Hamming(15,11) encoder");
+//	static_assert(DecodeHamming1511(EncodeHamming1511(255)) == 255, "Error detected in Hamming(15,11) encoder");
+//
+//	// Test encoding with errors
+//	static_assert(DecodeHamming1511(EncodeHamming1511(0) | 1) == 0, "Error detected in Hamming(15,11) error correction");
+//	static_assert(DecodeHamming1511(EncodeHamming1511(0) | 2) == 0, "Error detected in Hamming(15,11) error correction");
+//	static_assert(DecodeHamming1511(EncodeHamming1511(0) | 4) == 0, "Error detected in Hamming(15,11) error correction");
+//	static_assert(DecodeHamming1511(EncodeHamming1511(0) | 8) == 0, "Error detected in Hamming(15,11) error correction");
+//#endif
 
 	struct BitOutputStream {
 		uint8_t* out;
@@ -318,6 +471,53 @@ namespace anvil { namespace BytePipe {
 
 	void Hamming74OutputPipe::Flush() {
 		_packet_pipe.Flush();
+	}
+
+
+	namespace dev {
+
+		// RawHamming1511OutputPipe
+
+		RawHamming1511OutputPipe::RawHamming1511OutputPipe(OutputPipe& downstream_pipe) :
+			_downstream_pipe(downstream_pipe)
+		{}
+
+		RawHamming1511OutputPipe::~RawHamming1511OutputPipe() {
+
+		}
+
+		uint32_t RawHamming1511OutputPipe::WriteBytes(const void* src, const uint32_t decoded_bytes) {
+			const uint32_t decoded_bits = decoded_bytes * 8u;
+			const uint32_t parity_bits = (decoded_bits / 11u) * 4u;
+			const uint32_t encoded_bits = decoded_bits + parity_bits;
+			const uint32_t encoded_bytes = encoded_bits / 8u;
+			if (encoded_bytes * 8u != encoded_bits) throw std::runtime_error("RawHamming1511OutputPipe::WriteBytes : Decoded bit count is not divisible by 11");
+
+			// Allocate temporary storage for the encoded data
+			uint8_t* buffer = static_cast<uint8_t*>(_alloca(encoded_bytes));
+			BitInputStream in(static_cast<const uint8_t*>(src));
+			BitOutputStream out(buffer);
+
+			for (uint32_t i = 0u; i < encoded_bits; i += 15u) {
+				// Read data bits from upstream
+				uint32_t tmp = in.ReadBits(11u);
+
+				// Calculate and add the parity bits
+				tmp = EncodeHamming1511(tmp);
+
+				// Write to the downstream
+				out.WriteBits(tmp, 15u);
+			}
+
+			// Write the encoded data downstream
+			if (_downstream_pipe.WriteBytes(buffer, encoded_bytes) != encoded_bytes) throw std::runtime_error("RawHamming1511OutputPipe::WriteBytes : Error writing to downstream Pipe");
+
+			return decoded_bytes;
+		}
+
+		void RawHamming1511OutputPipe::Flush() {
+			_downstream_pipe.Flush();
+		}
 	}
 
 }}
