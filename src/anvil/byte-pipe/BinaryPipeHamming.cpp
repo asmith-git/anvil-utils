@@ -167,10 +167,17 @@ namespace anvil { namespace BytePipe {
 		set_bit(3u, 3u, input & 1u);	//D9
 
 		// Parity bits
-		set_bit(1u, 0u, get_bit(1u, 1u) ^ get_bit(1u, 2u) ^ get_bit(1u, 3u) ^ get_bit(3u, 0u) ^ get_bit(3u, 1u) ^ get_bit(3u, 2u) ^ get_bit(3u, 3u)); //P1 - Odd columns
-		set_bit(2u, 0u, get_bit(3u, 0u) ^ get_bit(2u, 1u) ^ get_bit(3u, 1u) ^ get_bit(2u, 2u) ^ get_bit(3u, 2u) ^ get_bit(2u, 3u) ^ get_bit(3u, 3u)); //P2 - Right half
-		set_bit(0u, 1u, get_bit(1u, 1u) ^ get_bit(2u, 1u) ^ get_bit(3u, 1u) ^ get_bit(0u, 3u) ^ get_bit(1u, 3u) ^ get_bit(2u, 3u) ^ get_bit(3u, 3u)); // P3 = Odd columns
-		set_bit(0u, 2u, get_bit(1u, 2u) ^ get_bit(2u, 2u) ^ get_bit(3u, 2u) ^ get_bit(0u, 3u) ^ get_bit(1u, 3u) ^ get_bit(2u, 3u) ^ get_bit(3u, 3u)); // P4 = Lower half
+		enum : uint32_t {
+			mask1 = (1u << bitpos(1u, 1u)) | (1u << bitpos(1u, 2u)) | (1u << bitpos(1u, 3u)) | (1u << bitpos(3u, 0u)) | (1u << bitpos(3u, 1u)) | (1u << bitpos(3u, 2u)) | (1u << bitpos(3u, 3u)),
+			mask2 = (1u << bitpos(3u, 0u)) | (1u << bitpos(2u, 1u)) | (1u << bitpos(3u, 1u)) | (1u << bitpos(2u, 2u)) | (1u << bitpos(3u, 2u)) | (1u << bitpos(2u, 3u)) | (1u << bitpos(3u, 3u)),
+			mask3 = (1u << bitpos(1u, 1u)) | (1u << bitpos(2u, 1u)) | (1u << bitpos(3u, 1u)) | (1u << bitpos(0u, 3u)) | (1u << bitpos(1u, 3u)) | (1u << bitpos(2u, 3u)) | (1u << bitpos(3u, 3u)),
+			mask4 = (1u << bitpos(1u, 2u)) | (1u << bitpos(2u, 2u)) | (1u << bitpos(3u, 2u)) | (1u << bitpos(0u, 3u)) | (1u << bitpos(1u, 3u)) | (1u << bitpos(2u, 3u)) | (1u << bitpos(3u, 3u))
+		};
+
+		set_bit(1u, 0u, HAMMING_POPCOUNT(encoded & mask1) & 1u); //P1 - Odd columns
+		set_bit(2u, 0u, HAMMING_POPCOUNT(encoded & mask2) & 1u); //P2 - Right half
+		set_bit(0u, 1u, HAMMING_POPCOUNT(encoded & mask3) & 1u); // P3 = Odd columns
+		set_bit(0u, 2u, HAMMING_POPCOUNT(encoded & mask4) & 1u); // P4 = Lower half
 
 		// Calculate final parity
 		set_bit(0u, 0u, HAMMING_POPCOUNT(encoded) & 1u); // If there are an odd number of 1s then the bit is 1, otherwise 0
@@ -200,10 +207,16 @@ namespace anvil { namespace BytePipe {
 #define flip_bit(x,y) encoded ^= (1u << bitpos(x,y))
 
 		// Error correction
-		uint32_t parityBlock1 = get_bit(1u, 0u) ^ get_bit(1u, 1u) ^ get_bit(1u, 2u) ^ get_bit(1u, 3u) ^ get_bit(3u, 0u) ^ get_bit(3u, 1u) ^ get_bit(3u, 2u) ^ get_bit(3u, 3u); //P1 - Odd columns
-		uint32_t parityBlock2 = get_bit(2u, 0u) ^ get_bit(3u, 0u) ^ get_bit(2u, 1u) ^ get_bit(3u, 1u) ^ get_bit(2u, 2u) ^ get_bit(3u, 2u) ^ get_bit(2u, 3u) ^ get_bit(3u, 3u); //P2 - Right half
-		uint32_t parityBlock3 = get_bit(0u, 1u) ^ get_bit(1u, 1u) ^ get_bit(2u, 1u) ^ get_bit(3u, 1u) ^ get_bit(0u, 3u) ^ get_bit(1u, 3u) ^ get_bit(2u, 3u) ^ get_bit(3u, 3u); // P3 = Odd columns
-		uint32_t parityBlock4 = get_bit(0u, 2u) ^ get_bit(1u, 2u) ^ get_bit(2u, 2u) ^ get_bit(3u, 2u) ^ get_bit(0u, 3u) ^ get_bit(1u, 3u) ^ get_bit(2u, 3u) ^ get_bit(3u, 3u); // P4 = Lower half
+		enum : uint32_t {
+			mask1 = (1u << bitpos(1u, 0u)) | (1u << bitpos(1u, 1u)) | (1u << bitpos(1u, 2u)) | (1u << bitpos(1u, 3u)) | (1u << bitpos(3u, 0u)) | (1u << bitpos(3u, 1u)) | (1u << bitpos(3u, 2u)) | (1u << bitpos(3u, 3u)),
+			mask2 = (1u << bitpos(2u, 0u)) | (1u << bitpos(3u, 0u)) | (1u << bitpos(2u, 1u)) | (1u << bitpos(3u, 1u)) | (1u << bitpos(2u, 2u)) | (1u << bitpos(3u, 2u)) | (1u << bitpos(2u, 3u)) | (1u << bitpos(3u, 3u)),
+			mask3 = (1u << bitpos(0u, 1u)) | (1u << bitpos(1u, 1u)) | (1u << bitpos(2u, 1u)) | (1u << bitpos(3u, 1u)) | (1u << bitpos(0u, 3u)) | (1u << bitpos(1u, 3u)) | (1u << bitpos(2u, 3u)) | (1u << bitpos(3u, 3u)),
+			mask4 = (1u << bitpos(0u, 2u)) | (1u << bitpos(1u, 2u)) | (1u << bitpos(2u, 2u)) | (1u << bitpos(3u, 2u)) | (1u << bitpos(0u, 3u)) | (1u << bitpos(1u, 3u)) | (1u << bitpos(2u, 3u)) | (1u << bitpos(3u, 3u))
+		};
+		uint32_t parityBlock1 = HAMMING_POPCOUNT(encoded & mask1) & 1u; //P1 - Odd columns
+		uint32_t parityBlock2 = HAMMING_POPCOUNT(encoded & mask2) & 1u; //P2 - Right half
+		uint32_t parityBlock3 = HAMMING_POPCOUNT(encoded & mask3) & 1u; // P3 = Odd columns
+		uint32_t parityBlock4 = HAMMING_POPCOUNT(encoded & mask4) & 1u; // P4 = Lower half
 
 		uint32_t error = 0u;
 		uint32_t row = 0u;
