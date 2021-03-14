@@ -282,39 +282,12 @@ namespace anvil { namespace BytePipe {
 			bit = bit ? 0u : 1u;
 
 			// Check the parity for the entire block (p0)
-			uint32_t block = 0u;
-			block |= bits[0u][0u];
-			block <<= 1u;
-			block |= bits[0u][1u];
-			block <<= 1u;
-			block |= bits[0u][2u];
-			block <<= 1u;
-			block |= bits[0u][3u];
-			block <<= 1u;
-			block |= bits[1u][0u];
-			block <<= 1u;
-			block |= bits[1u][1u];
-			block <<= 1u;
-			block |= bits[1u][2u];
-			block <<= 1u;
-			block |= bits[1u][3u];
-			block <<= 1u;
-			block |= bits[2u][0u];
-			block <<= 1u;
-			block |= bits[2u][1u];
-			block <<= 1u;
-			block |= bits[2u][2u];
-			block <<= 1u;
-			block |= bits[2u][3u];
-			block <<= 1u;
-			block |= bits[3u][0u];
-			block <<= 1u;
-			block |= bits[3u][1u];
-			block <<= 1u;
-			block |= bits[3u][2u];
-			block <<= 1u;
-			block |= bits[3u][3u];
-			if (HAMMING_POPCOUNT(block) & 1u) throw std::runtime_error("DecodeHamming1511 : Detected second error, cannot correct");
+			uint32_t r0 = bits[0u][0u] + bits[1u][0u] + bits[2u][0u] + bits[3u][0u];
+			uint32_t r1 = bits[0u][1u] + bits[1u][1u] + bits[2u][1u] + bits[3u][1u];
+			uint32_t r2 = bits[0u][2u] + bits[1u][2u] + bits[2u][2u] + bits[3u][2u];
+			uint32_t r3 = bits[0u][3u] + bits[1u][3u] + bits[2u][3u] + bits[3u][3u];
+			uint32_t block = r0 + r1 + r2 + r3;
+			if (block & 1u) throw std::runtime_error("DecodeHamming1511 : Detected second error, cannot correct");
 
 		} else { // Check for two bit errors
 			// Bit 0 could be flipped, but in this case it wont effect the output data so we ignore it
