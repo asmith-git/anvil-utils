@@ -266,6 +266,78 @@ ON_ERROR:
 		}
 	}
 
+	void PrimativeValue::Optimise() {
+		// Don't change characters
+		if (type == TYPE_C8) return;
+
+		// Boolean values are already optimal
+		if (type == TYPE_BOOL) return;
+
+		double val = operator double();
+
+		// If the value is a boolean
+		if (val == 1.0) {
+			b = true;
+			type = TYPE_BOOL;
+		
+		// If the value is a boolean
+		} else if (val == 0.0) {
+			b = false;
+			type = TYPE_BOOL;
+
+		} else if (std::round(val) == val) {
+			// If value is unsigned
+			if (val >= 0.0) {
+				if (val <= static_cast<double>(UINT8_MAX)) {
+					u8 = static_cast<uint8_t>(val);
+					type = TYPE_U8;
+				} else if (val > static_cast<double>(UINT16_MAX)) {
+					u16 = static_cast<uint16_t>(val);
+					type = TYPE_U16;
+				} else if (val > static_cast<double>(UINT32_MAX)) {
+					u32 = static_cast<uint32_t>(val);
+					type = TYPE_U32;
+				} else if (val > static_cast<double>(UINT64_MAX)) {
+					u64 = static_cast<uint64_t>(val);
+					type = TYPE_U64;
+				} else {
+					goto FLOATING_POINT;
+				}
+
+			// The value is signed
+			} else {
+				if (val > static_cast<double>(INT8_MIN)) {
+					s8 = static_cast<int8_t>(val);
+					type = TYPE_S8;
+				} else if (val > static_cast<double>(INT16_MIN)) {
+					s16 = static_cast<int16_t>(val);
+					type = TYPE_S16;
+				} else if (val > static_cast<double>(INT32_MIN)) {
+					s32 = static_cast<int32_t>(val);
+					type = TYPE_S32;
+				} else if (val > static_cast<double>(INT64_MIN)) {
+					s64 = static_cast<int64_t>(val);
+					type = TYPE_S64;
+				} else {
+					goto FLOATING_POINT;
+				}
+			}
+
+		// The value is floating point
+		} else {
+FLOATING_POINT:
+			// If the value can be stored as 32-bit floating point without losing precision
+			float tmp = static_cast<float>(val);
+			if (static_cast<double>(tmp) == val) {
+				f32 = tmp;
+				type = TYPE_F32;
+			} else {
+				f64 = val;
+				type = TYPE_F64;
+			}
+		}
+	}
+
 #define IS_PRIMATIVE_TYPE(type) (type < TYPE_STRING || type == TYPE_BOOL)
 
 	// Value
@@ -615,5 +687,43 @@ ON_ERROR:
 			0u;
 	}
 
+	void Value::Optimise() {
+		switch (_primative.type) {
+		case TYPE_STRING:
+			{
+				std::string& str = *static_cast<std::string*>(_primative.ptr);
+				const size_t size = str.size();
+
+				// If the string is empty then it can be null value
+				if (size == 0u) {
+					SetNull();
+
+				// If the string is only one character then it can be primative character
+				} else if (size == 1u) {
+					SetC8(str[0u]);
+				}
+			}
+			break;
+		case TYPE_ARRAY:
+			{
+				// Optimise the child values
+				Array& myArray = *static_cast<Array*>(_primative.ptr);
+				for (Value& i : myArray) i.Optimise();
+
+				//! \todo If all of the values are primatives try to make them the same type
+			}
+			break;
+		case TYPE_OBJECT:
+			{
+			// Optimise the child values
+				Object& myObject = *static_cast<Object*>(_primative.ptr);
+				for (auto& i : myObject) i.second.Optimise();
+			}
+			break;
+		default:
+			_primative.Optimise();
+			break;
+		}
+	}
 
 }}

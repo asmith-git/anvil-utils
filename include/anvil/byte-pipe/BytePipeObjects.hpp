@@ -121,6 +121,11 @@ namespace anvil { namespace BytePipe {
 		operator half() const;
 		operator float() const;
 		operator double() const;
+
+		/*!
+			\brief Casts the value to the smallest type that can represent it without losing precision.
+		*/
+		void Optimise();
 	};
 
 	class Value {
@@ -315,6 +320,11 @@ namespace anvil { namespace BytePipe {
 			\detail Zero will be returned if the value is not an array or object.
 		*/
 		size_t GetSize() const;
+
+		/*!
+			\brief Casts the value to the smallest type that can represent it without losing precision.
+		*/
+		void Optimise();
 	};
 
 }}
