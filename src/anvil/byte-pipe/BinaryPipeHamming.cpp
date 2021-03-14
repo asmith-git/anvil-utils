@@ -12,7 +12,21 @@
 //See the License for the specific language governing permissions and
 //limitations under the License.
 
+#include <intrin.h>
 #include "anvil/byte-pipe/BytePipeHamming.hpp"
+
+// Constexpr popcount for compile time tests and CPUs that dont have a popcount instruction
+static ANVIL_CONSTEXPR uint32_t SlowPopcount(uint32_t val) {
+	uint32_t ones = 0u;
+	while (val != 0u) {
+		ones += val & 1u;
+		val >>= 1u;
+	}
+	return ones;
+}
+
+#define HAMMING_POPCOUNT(VAL) __popcnt(VAL)
+//#define HAMMING_POPCOUNT(VAL) SlowPopcount(VAL)
 
 namespace anvil { namespace BytePipe {
 
@@ -113,154 +127,207 @@ namespace anvil { namespace BytePipe {
 
 	// Hamming (15,11)
 
-	// Hamming (15,11) - 11 Data bits, 4 parity bits. Total = 15 bits.
-	static uint32_t ANVIL_CONSTEXPR EncodeHamming1511(uint32_t input) {
+	// Extended Hamming (15,11) - 11 Data bits, 4+1 parity bits. Total = 16 bits.
+	static uint32_t /*ANVIL_CONSTEXPR*/ EncodeHamming1511(uint32_t input) {
 		//! \todo Optimise
 
+		/*
+			P0,P1,P2,D0,
+			P3,D1,D2,D3,
+			P4,D4,D5,D6,
+			D7,D8,D9,D10
+		*/
+		uint32_t bits[4u][4u] = { {0u, 0u, 0u, 0u},{0u, 0u, 0u, 0u},{0u, 0u, 0u, 0u},{0u, 0u, 0u, 0u} };
+
 		// Input bits
-		uint32_t i[11] = { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u,0u, 0u, 0u };
-		i[0u] = input & 1u;
+		bits[3u][0u] = input & 1u;	//D0
 		input >>= 1u;
-		i[1u] = input & 1u;
+		bits[1u][1u] = input & 1u;	//D1
 		input >>= 1u;
-		i[2u] = input & 1u;
+		bits[2u][1u] = input & 1u;	//D2
 		input >>= 1u;
-		i[3u] = input & 1u;
+		bits[3u][1u] = input & 1u;	//D3
 		input >>= 1u;
-		i[4u] = input & 1u;
+		bits[1u][2u] = input & 1u;	//D4
 		input >>= 1u;
-		i[5u] = input & 1u;
+		bits[2u][2u] = input & 1u;	//D5
 		input >>= 1u;
-		i[6u] = input & 1u;
+		bits[3u][2u] = input & 1u;	//D6
 		input >>= 1u;
-		i[7u] = input & 1u;
+		bits[0u][3u] = input & 1u;	//D7
 		input >>= 1u;
-		i[8u] = input & 1u;
+		bits[1u][3u] = input & 1u;	//D8
 		input >>= 1u;
-		i[9u] = input & 1u;
+		bits[2u][3u] = input & 1u;	//D9
 		input >>= 1u;
-		i[10u] = input & 1u;
+		bits[3u][3u] = input & 1u;	//D10
 
 		// Parity bits
-		uint32_t p[4u] = { 0u, 0u, 0u, 0u };
-		//! \todo Implement Hamming (15,11) parity calculation
+		bits[1u][0u] = bits[1u][1u] ^ bits[1u][2u] ^ bits[1u][3u] ^ bits[3u][0u] ^ bits[3u][1u] ^ bits[3u][2u] ^ bits[3u][3u]; //P1 - Odd columns
+		bits[2u][0u] = bits[3u][0u] ^ bits[2u][1u] ^ bits[3u][1u] ^ bits[2u][2u] ^ bits[3u][2u] ^ bits[2u][3u] ^ bits[3u][3u]; //P2 - Right half
+		bits[0u][1u] = bits[1u][1u] ^ bits[2u][1u] ^ bits[3u][1u] ^ bits[0u][3u] ^ bits[1u][3u] ^ bits[2u][3u] ^ bits[3u][3u]; // P3 = Odd columns
+		bits[0u][2u] = bits[1u][2u] ^ bits[2u][2u] ^ bits[3u][2u] ^ bits[0u][3u] ^ bits[1u][3u] ^ bits[2u][3u] ^ bits[3u][3u]; // P4 = Lower half
 
 		uint32_t output = 0u;
-		output |= p[0u];	// Bit 1
+		output |= bits[3u][3u];
 		output <<= 1u;
-		output |= p[1u];	// Bit 2
+		output |= bits[2u][3u];
 		output <<= 1u;
-		output |= i[0u];	// Bit 3
+		output |= bits[1u][3u];
 		output <<= 1u;
-		output |= p[2u];	// Bit 4
+		output |= bits[0u][3u];
 		output <<= 1u;
-		output |= i[1u];	// Bit 5
+		output |= bits[3u][2u];
 		output <<= 1u;
-		output |= i[2u];	// Bit 6
+		output |= bits[2u][2u];
 		output <<= 1u;
-		output |= i[3u];	// Bit 7
+		output |= bits[1u][2u];
 		output <<= 1u;
-		output |= p[3u];	// Bit 8
+		output |= bits[0u][2u];
 		output <<= 1u;
-		output |= i[4u];	// Bit 9
+		output |= bits[3u][1u];
 		output <<= 1u;
-		output |= i[5u];	// Bit 10
+		output |= bits[2u][1u];
 		output <<= 1u;
-		output |= i[6u];	// Bit 11
+		output |= bits[1u][1u];
 		output <<= 1u;
-		output |= i[7u];	// Bit 12
+		output |= bits[0u][1u];
 		output <<= 1u;
-		output |= i[8u];	// Bit 13
+		output |= bits[3u][0u];
 		output <<= 1u;
-		output |= i[9u];	// Bit 14
+		output |= bits[2u][0u];
 		output <<= 1u;
-		output |= i[10u];	// Bit 15
+		output |= bits[1u][0u];
+		output <<= 1u;
+
+		// Calculate final parity
+		bits[0u][0u] = HAMMING_POPCOUNT(output) & 1u; // If there are an odd number of 1s then the bit is 1, otherwise 0
+
+		output |= bits[0u][0u];
 
 		return output;
 	}
 
 
 
-	// Hamming (15,11) - 11 Data bits, 4 parity bits. Total = 15 bits.
-	static uint32_t ANVIL_CONSTEXPR DecodeHamming1511(uint32_t input) {
+	// Extended Hamming (15,11) - 11 Data bits, 4+1 parity bits. Total = 16 bits.
+	static uint32_t /*ANVIL_CONSTEXPR*/ DecodeHamming1511(uint32_t input) {
+		const uint32_t original_input = input;
 		//! \todo Optimise
+		/*
+			P0,P1,P2,D0,
+			P3,D1,D2,D3,
+			P4,D4,D5,D6,
+			D7,D8,D9,D10
+		*/
+		uint32_t bits[4u][4u] = { {0u, 0u, 0u, 0u},{0u, 0u, 0u, 0u},{0u, 0u, 0u, 0u},{0u, 0u, 0u, 0u} };
 
-		// Input bits
-		uint32_t i[11] = { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u,0u, 0u, 0u };
-		uint32_t p[4u] = { 0u, 0u, 0u, 0u };
-
-		p[0u] = input & 1u;		// Bit 1
+		bits[0u][0u] = input & 1u;
 		input >>= 1u;
-		p[1u] = input & 1u;		// Bit 2
+		bits[1u][0u] = input & 1u;
 		input >>= 1u;
-		i[0u] = input & 1u;		// Bit 3
+		bits[2u][0u] = input & 1u;
 		input >>= 1u;
-		p[2u] = input & 1u;		// Bit 4
+		bits[3u][0u] = input & 1u;
 		input >>= 1u;
-		i[1u] = input & 1u;		// Bit 5
+		bits[0u][1u] = input & 1u;
 		input >>= 1u;
-		i[2u] = input & 1u;		// Bit 6
+		bits[1u][1u] = input & 1u;
 		input >>= 1u;
-		i[3u] = input & 1u;		// Bit 7
+		bits[2u][1u] = input & 1u;
 		input >>= 1u;
-		p[3u] = input & 1u;		// Bit 8
+		bits[3u][1u] = input & 1u;
 		input >>= 1u;
-		i[4u] = input & 1u;		// Bit 9
+		bits[0u][2u] = input & 1u;
 		input >>= 1u;
-		i[5u] = input & 1u;		// Bit 10
+		bits[1u][2u] = input & 1u;
 		input >>= 1u;
-		i[6u] = input & 1u;		// Bit 11
+		bits[2u][2u] = input & 1u;
 		input >>= 1u;
-		i[7u] = input & 1u;		// Bit 12
+		bits[3u][2u] = input & 1u;
 		input >>= 1u;
-		i[8u] = input & 1u;		// Bit 13
+		bits[0u][3u] = input & 1u;
 		input >>= 1u;
-		i[9u] = input & 1u;		// Bit 14
+		bits[1u][3u] = input & 1u;
 		input >>= 1u;
-		i[10u] = input & 1u;	// Bit 15
+		bits[2u][3u] = input & 1u;
+		input >>= 1u;
+		bits[3u][3u] = input & 1u;
 
 		// Error correction
-		//! \todo Implement Hamming (15,11) error correction 
+		uint32_t parityBlock1 = bits[1u][0u] ^ bits[1u][1u] ^ bits[1u][2u] ^ bits[1u][3u] ^ bits[3u][0u] ^ bits[3u][1u] ^ bits[3u][2u] ^ bits[3u][3u]; //P1 - Odd columns
+		uint32_t parityBlock2 = bits[2u][0u] ^ bits[3u][0u] ^ bits[2u][1u] ^ bits[3u][1u] ^ bits[2u][2u] ^ bits[3u][2u] ^ bits[2u][3u] ^ bits[3u][3u]; //P2 - Right half
+		uint32_t parityBlock3 = bits[0u][1u] ^ bits[1u][1u] ^ bits[2u][1u] ^ bits[3u][1u] ^ bits[0u][3u] ^ bits[1u][3u] ^ bits[2u][3u] ^ bits[3u][3u]; // P3 = Odd columns
+		uint32_t parityBlock4 = bits[0u][2u] ^ bits[1u][2u] ^ bits[2u][2u] ^ bits[3u][2u] ^ bits[0u][3u] ^ bits[1u][3u] ^ bits[2u][3u] ^ bits[3u][3u]; // P4 = Lower half
 
+		uint32_t error = 0u;
+		uint32_t row = 0u;
+		uint32_t col = 0u;
+
+		row |= parityBlock1;
+		error |= parityBlock1;
+
+		row += parityBlock2 ? 2u : 0u;
+		error |= parityBlock2;
+
+		col |= parityBlock3;
+		error |= parityBlock3;
+
+		col += parityBlock4 ? 2u : 0u;
+		error |= parityBlock4;
+
+		if (error) {
+			// Flip the bit with error
+			uint32_t& bit = bits[row][col];
+			bit = bit ? 0u : 1u;
+		} else { // Check for two bit errors
+			// P0
+			uint32_t parityBlock0 = HAMMING_POPCOUNT(original_input);
+			if (parityBlock0 & 1u) throw std::runtime_error("DecodeHamming1511 : Uncorrectable error detected");
+		}
+
+		// Return data bits
 		uint32_t output = 0u;
-		output |= i[0u];	// Bit 1
+
+		output |= bits[3u][3u];	//D10
 		output <<= 1u;
-		output |= i[1u];	// Bit 2
+		output |= bits[2u][3u];	//D9
 		output <<= 1u;
-		output |= i[2u];	// Bit 3
+		output |= bits[1u][3u];	//D8
 		output <<= 1u;
-		output |= i[3u];	// Bit 4
+		output |= bits[0u][3u];	//D7
 		output <<= 1u;
-		output |= i[4u];	// Bit 5
+		output |= bits[3u][2u];	//D6
 		output <<= 1u;
-		output |= i[5u];	// Bit 6
+		output |= bits[1u][2u];	//D4
 		output <<= 1u;
-		output |= i[6u];	// Bit 7
+		output |= bits[2u][2u];	//D5
 		output <<= 1u;
-		output |= i[7u];	// Bit 8
+		output |= bits[3u][1u];	//D3
 		output <<= 1u;
-		output |= i[8u];	// Bit 9
+		output |= bits[2u][1u];	//D2
 		output <<= 1u;
-		output |= i[9u];	// Bit 10
+		output |= bits[1u][1u];	//D1
 		output <<= 1u;
-		output |= i[10u];	// Bit 11
+		output |= bits[3u][0u];	//D0
 
 		return output;
 	}
 
-//#ifndef ANVIL_LEGACY_COMPILER_SUPPORT
-//	// Test encoding without errors
-//	static_assert(DecodeHamming1511(EncodeHamming1511(0)) == 0, "Error detected in Hamming(15,11) encoder");
-//	static_assert(DecodeHamming1511(EncodeHamming1511(15)) == 15, "Error detected in Hamming(15,11) encoder");
-//	static_assert(DecodeHamming1511(EncodeHamming1511(64)) == 64, "Error detected in Hamming(15,11) encoder");
-//	static_assert(DecodeHamming1511(EncodeHamming1511(255)) == 255, "Error detected in Hamming(15,11) encoder");
-//
-//	// Test encoding with errors
-//	static_assert(DecodeHamming1511(EncodeHamming1511(0) | 1) == 0, "Error detected in Hamming(15,11) error correction");
-//	static_assert(DecodeHamming1511(EncodeHamming1511(0) | 2) == 0, "Error detected in Hamming(15,11) error correction");
-//	static_assert(DecodeHamming1511(EncodeHamming1511(0) | 4) == 0, "Error detected in Hamming(15,11) error correction");
-//	static_assert(DecodeHamming1511(EncodeHamming1511(0) | 8) == 0, "Error detected in Hamming(15,11) error correction");
-//#endif
+// Run-time Hamming Tests
+	static bool HammingTest(uint32_t data, uint32_t error) {
+		uint32_t encoded = EncodeHamming1511(data);
+		encoded ^= error;
+		uint32_t decoded = DecodeHamming1511(encoded);
+		if(decoded != data) throw std::runtime_error("Test");
+		return true;
+	}
+
+	static const bool g_hamming_tests =
+		HammingTest(0u, 0u) &&
+		HammingTest(1u, 0u) &&
+		HammingTest(15u, 0u) &&
+		HammingTest(44u, 0u);
 
 	struct BitOutputStream {
 		uint8_t* out;
@@ -488,7 +555,7 @@ namespace anvil { namespace BytePipe {
 
 		uint32_t RawHamming1511OutputPipe::WriteBytes(const void* src, const uint32_t decoded_bytes) {
 			const uint32_t decoded_bits = decoded_bytes * 8u;
-			const uint32_t parity_bits = (decoded_bits / 11u) * 4u;
+			const uint32_t parity_bits = (decoded_bits / 11u) * 5u;
 			const uint32_t encoded_bits = decoded_bits + parity_bits;
 			const uint32_t encoded_bytes = encoded_bits / 8u;
 			if (encoded_bytes * 8u != encoded_bits) throw std::runtime_error("RawHamming1511OutputPipe::WriteBytes : Decoded bit count is not divisible by 11");
@@ -496,7 +563,7 @@ namespace anvil { namespace BytePipe {
 			// Allocate temporary storage for the encoded data
 			uint8_t* buffer = static_cast<uint8_t*>(_alloca(encoded_bytes));
 			BitInputStream in(static_cast<const uint8_t*>(src));
-			BitOutputStream out(buffer);
+			uint16_t* out = reinterpret_cast<uint16_t*>(buffer);
 
 			for (uint32_t i = 0u; i < encoded_bits; i += 15u) {
 				// Read data bits from upstream
@@ -506,7 +573,8 @@ namespace anvil { namespace BytePipe {
 				tmp = EncodeHamming1511(tmp);
 
 				// Write to the downstream
-				out.WriteBits(tmp, 15u);
+				*out = static_cast<uint16_t>(tmp);
+				++out;
 			}
 
 			// Write the encoded data downstream
