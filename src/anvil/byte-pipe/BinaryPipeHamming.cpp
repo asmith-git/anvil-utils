@@ -16,8 +16,8 @@
 
 namespace anvil { namespace BytePipe {
 
-	// Encode Hamming bits for 4 input bits, output is 7 bits
-	static ANVIL_CONSTEXPR uint32_t EncodeHamming4(uint32_t input) {
+	// Encode Hamming74 bits for 4 input bits, output is 7 bits
+	static ANVIL_CONSTEXPR uint32_t EncodeHamming74_4(uint32_t input) {
 		//! \todo Optimise
 		uint32_t bit0 = input & 1u;
 		uint32_t bit1 = (input & 2u) >> 1u;
@@ -31,22 +31,22 @@ namespace anvil { namespace BytePipe {
 		return bit0 | (bit1 << 1u) | (bit2 << 2u) | (bit3 << 3u) | (bit4 << 4u) | (bit5 << 5u) | (bit6 << 6u);
 	}
 
-	// Encode Hamming bits for 8 input bits, output is 14 bits
-	static ANVIL_CONSTEXPR uint32_t EncodeHamming8(uint32_t input) {
-		uint32_t lo = EncodeHamming4(input & 15u);
-		uint32_t hi = EncodeHamming4((input >> 4u) & 15u);
+	// Encode Hamming74 bits for 8 input bits, output is 14 bits
+	static ANVIL_CONSTEXPR uint32_t EncodeHamming74_8(uint32_t input) {
+		uint32_t lo = EncodeHamming74_4(input & 15u);
+		uint32_t hi = EncodeHamming74_4((input >> 4u) & 15u);
 		return lo | (hi << 7u);
 	}
 
-	// Encode Hamming bits for 16 input bits, output is 24 bits
-	static ANVIL_CONSTEXPR uint32_t EncodeHamming16(uint32_t input) {
-		uint32_t lo = EncodeHamming8(input & 255u);
-		uint32_t hi = EncodeHamming8((input >> 8u) & 255u);
+	// Encode Hamming74 bits for 16 input bits, output is 24 bits
+	static ANVIL_CONSTEXPR uint32_t EncodeHamming74_16(uint32_t input) {
+		uint32_t lo = EncodeHamming74_8(input & 255u);
+		uint32_t hi = EncodeHamming74_8((input >> 8u) & 255u);
 		return lo | (hi << 14u);
 	}
 
-	// Decode Hamming bits for 7 input bits, output is 4 bits
-	static ANVIL_CONSTEXPR uint32_t DecodeHamming4(uint32_t input) {
+	// Decode Hamming74 bits for 7 input bits, output is 4 bits
+	static ANVIL_CONSTEXPR uint32_t DecodeHamming74_4(uint32_t input) {
 		//! \todo Optimise
 		const uint32_t bit0 = input & 1u;
 		const uint32_t bit1 = (input & 2u) >> 1u;
@@ -81,32 +81,32 @@ namespace anvil { namespace BytePipe {
 		}
 	}
 
-	// Decode Hamming bits for 14 input bits, output is 8 bits
-	static ANVIL_CONSTEXPR uint32_t DecodeHamming8(uint32_t input) {
-		uint32_t lo = DecodeHamming4(input & 127u);
-		uint32_t hi = DecodeHamming4((input >> 7u) & 127u);
+	// Decode Hamming74 bits for 14 input bits, output is 8 bits
+	static ANVIL_CONSTEXPR uint32_t DecodeHamming74_8(uint32_t input) {
+		uint32_t lo = DecodeHamming74_4(input & 127u);
+		uint32_t hi = DecodeHamming74_4((input >> 7u) & 127u);
 		return lo | (hi << 4u);
 	}
 
-	// Decode Hamming bits for 24 input bits, output is 16 bits
-	static ANVIL_CONSTEXPR uint32_t DecodeHamming16(uint32_t input) {
-		uint32_t lo = DecodeHamming8(input & 16383u);
-		uint32_t hi = DecodeHamming8((input >> 14u) & 16383u);
+	// Decode Hamming74 bits for 24 input bits, output is 16 bits
+	static ANVIL_CONSTEXPR uint32_t DecodeHamming74_16(uint32_t input) {
+		uint32_t lo = DecodeHamming74_8(input & 16383u);
+		uint32_t hi = DecodeHamming74_8((input >> 14u) & 16383u);
 		return lo | (hi << 8u);
 	}
 
 #ifndef ANVIL_LEGACY_COMPILER_SUPPORT
 	// Test encoding without errors
-	static_assert(DecodeHamming8(EncodeHamming8(0)) == 0, "Error detected in hamming encoder");
-	static_assert(DecodeHamming8(EncodeHamming8(15)) == 15, "Error detected in hamming encoder");
-	static_assert(DecodeHamming8(EncodeHamming8(64)) == 64, "Error detected in hamming encoder");
-	static_assert(DecodeHamming8(EncodeHamming8(255)) == 255, "Error detected in hamming encoder");
+	static_assert(DecodeHamming74_8(EncodeHamming74_8(0)) == 0, "Error detected in hamming encoder");
+	static_assert(DecodeHamming74_8(EncodeHamming74_8(15)) == 15, "Error detected in hamming encoder");
+	static_assert(DecodeHamming74_8(EncodeHamming74_8(64)) == 64, "Error detected in hamming encoder");
+	static_assert(DecodeHamming74_8(EncodeHamming74_8(255)) == 255, "Error detected in hamming encoder");
 
 	// Test encoding with errors
-	static_assert(DecodeHamming4(EncodeHamming4(0) | 1) == 0, "Error detected in hamming encoder");
-	static_assert(DecodeHamming4(EncodeHamming4(0) | 2) == 0, "Error detected in hamming encoder");
-	static_assert(DecodeHamming4(EncodeHamming4(0) | 4) == 0, "Error detected in hamming encoder");
-	static_assert(DecodeHamming4(EncodeHamming4(0) | 8) == 0, "Error detected in hamming encoder");
+	static_assert(DecodeHamming74_4(EncodeHamming74_4(0) | 1) == 0, "Error detected in hamming encoder");
+	static_assert(DecodeHamming74_4(EncodeHamming74_4(0) | 2) == 0, "Error detected in hamming encoder");
+	static_assert(DecodeHamming74_4(EncodeHamming74_4(0) | 4) == 0, "Error detected in hamming encoder");
+	static_assert(DecodeHamming74_4(EncodeHamming74_4(0) | 8) == 0, "Error detected in hamming encoder");
 #endif
 
 	struct BitOutputStream {
@@ -211,54 +211,54 @@ namespace anvil { namespace BytePipe {
 		}
 	};
 
-	// RawHammingInputPipe
+	// RawHamming74InputPipe
 
-	RawHammingInputPipe::RawHammingInputPipe(InputPipe& downstream_pipe) :
+	RawHamming74InputPipe::RawHamming74InputPipe(InputPipe& downstream_pipe) :
 		_downstream_pipe(downstream_pipe)
 	{}
 
-	RawHammingInputPipe::~RawHammingInputPipe() {
+	RawHamming74InputPipe::~RawHamming74InputPipe() {
 
 	}
 
-	uint32_t RawHammingInputPipe::ReadBytes(void* dst, const uint32_t decoded_bytes) {
+	uint32_t RawHamming74InputPipe::ReadBytes(void* dst, const uint32_t decoded_bytes) {
 		const uint32_t decoded_bits = decoded_bytes * 8u;
 		const uint32_t parity_bits = (decoded_bits / 4u) * 3u;
 		const uint32_t encoded_bits = decoded_bits + parity_bits;
 		const uint32_t encoded_bytes = encoded_bits / 8u;
-		if (encoded_bytes * 8u != encoded_bits) throw std::runtime_error("RawHammingOutputPipe::ReadBytes : Encoded bit count is not divisible by 8");
+		if (encoded_bytes * 8u != encoded_bits) throw std::runtime_error("RawHamming74OutputPipe::ReadBytes : Encoded bit count is not divisible by 8");
 
 		// Allocate temporary storage for the encoded data
 		uint8_t* buffer = static_cast<uint8_t*>(_alloca(encoded_bytes));
 
 		// Read encoded data from the downstream pipe
-		if(_downstream_pipe.ReadBytes(buffer, encoded_bytes) != encoded_bytes) throw std::runtime_error("RawHammingOutputPipe::ReadBytes : Error reading from downstream pipe");
+		if(_downstream_pipe.ReadBytes(buffer, encoded_bytes) != encoded_bytes) throw std::runtime_error("RawHamming74OutputPipe::ReadBytes : Error reading from downstream pipe");
 
 		// Decode the data
 		BitInputStream stream(buffer);
 		for (uint32_t i = 0; i < decoded_bytes; ++i) {
-			static_cast<uint8_t*>(dst)[i] = static_cast<uint8_t>(DecodeHamming8(stream.ReadBits(14u)));
+			static_cast<uint8_t*>(dst)[i] = static_cast<uint8_t>(DecodeHamming74_8(stream.ReadBits(14u)));
 		}
 
 		return decoded_bytes;
 	}
 
-	// RawHammingOutputPipe
+	// RawHamming74OutputPipe
 
-	RawHammingOutputPipe::RawHammingOutputPipe(OutputPipe& downstream_pipe) :
+	RawHamming74OutputPipe::RawHamming74OutputPipe(OutputPipe& downstream_pipe) :
 		_downstream_pipe(downstream_pipe)
 	{}
 
-	RawHammingOutputPipe::~RawHammingOutputPipe() {
+	RawHamming74OutputPipe::~RawHamming74OutputPipe() {
 
 	}
 
-	uint32_t RawHammingOutputPipe::WriteBytes(const void* src, const uint32_t decoded_bytes) {
+	uint32_t RawHamming74OutputPipe::WriteBytes(const void* src, const uint32_t decoded_bytes) {
 		const uint32_t decoded_bits = decoded_bytes * 8u;
 		const uint32_t parity_bits = (decoded_bits / 4u) * 3u;
 		const uint32_t encoded_bits = decoded_bits + parity_bits;
 		const uint32_t encoded_bytes = encoded_bits / 8u;
-		if(encoded_bytes * 8u != encoded_bits) throw std::runtime_error("RawHammingOutputPipe::WriteBytes : Encoded bit count is not divisible by 8");
+		if(encoded_bytes * 8u != encoded_bits) throw std::runtime_error("RawHamming74OutputPipe::WriteBytes : Encoded bit count is not divisible by 8");
 
 		// Allocate temporary storage for the encoded data
 		uint8_t* buffer = static_cast<uint8_t*>(_alloca(encoded_bytes));
@@ -266,38 +266,38 @@ namespace anvil { namespace BytePipe {
 
 		// Encode the data
 		for (uint32_t i = 0; i < decoded_bytes; ++i) {
-			stream.WriteBits(EncodeHamming8(static_cast<const uint8_t*>(src)[i]), 14u);
+			stream.WriteBits(EncodeHamming74_8(static_cast<const uint8_t*>(src)[i]), 14u);
 		}
 
 		// Write the encoded data downstream
-		if(_downstream_pipe.WriteBytes(buffer, encoded_bytes) != encoded_bytes) throw std::runtime_error("RawHammingOutputPipe::WriteBytes : Error writing to downstream Pipe");
+		if(_downstream_pipe.WriteBytes(buffer, encoded_bytes) != encoded_bytes) throw std::runtime_error("RawHamming74OutputPipe::WriteBytes : Error writing to downstream Pipe");
 
 		return decoded_bytes;
 	}
 
-	void RawHammingOutputPipe::Flush() {
+	void RawHamming74OutputPipe::Flush() {
 		// Flush the downstream pipe
 		_downstream_pipe.Flush();
 	}
 
-	// HammingInputPipe
+	// Hamming74InputPipe
 
-	HammingInputPipe::HammingInputPipe(InputPipe& downstream_pipe) :
+	Hamming74InputPipe::Hamming74InputPipe(InputPipe& downstream_pipe) :
 		_packet_pipe(downstream_pipe),
 		_hamming_pipe(_packet_pipe)
 	{}
 
-	HammingInputPipe::~HammingInputPipe() {
+	Hamming74InputPipe::~Hamming74InputPipe() {
 
 	}
 
-	uint32_t HammingInputPipe::ReadBytes(void* dst, const uint32_t bytes) {
+	uint32_t Hamming74InputPipe::ReadBytes(void* dst, const uint32_t bytes) {
 		return _hamming_pipe.ReadBytes(dst, bytes);
 	}
 
-	// HammingOutputPipe
+	// Hamming74OutputPipe
 
-	HammingOutputPipe::HammingOutputPipe(OutputPipe& downstream_pipe, uint32_t packet_size) :
+	Hamming74OutputPipe::Hamming74OutputPipe(OutputPipe& downstream_pipe, uint32_t packet_size) :
 		_hamming_pipe(downstream_pipe),
 		_packet_pipe(_hamming_pipe, packet_size, 0u)
 	{
@@ -305,18 +305,18 @@ namespace anvil { namespace BytePipe {
 		const uint32_t parity_bits = (decoded_bits / 4u) * 3u;
 		const uint32_t encoded_bits = decoded_bits + parity_bits;
 		const uint32_t encoded_bytes = encoded_bits / 8u;
-		if (encoded_bytes * 8u != encoded_bits) throw std::runtime_error("HammingOutputPipe::HammingOutputPipe : Encoded bit count is not divisible by 8");
+		if (encoded_bytes * 8u != encoded_bits) throw std::runtime_error("Hamming74OutputPipe::Hamming74OutputPipe : Encoded bit count is not divisible by 8");
 	}
 
-	HammingOutputPipe::~HammingOutputPipe() {
+	Hamming74OutputPipe::~Hamming74OutputPipe() {
 
 	}
 
-	uint32_t HammingOutputPipe::WriteBytes(const void* src, const uint32_t bytes) {
+	uint32_t Hamming74OutputPipe::WriteBytes(const void* src, const uint32_t bytes) {
 		return _packet_pipe.WriteBytes(src, bytes);
 	}
 
-	void HammingOutputPipe::Flush() {
+	void Hamming74OutputPipe::Flush() {
 		_packet_pipe.Flush();
 	}
 

@@ -22,28 +22,28 @@ namespace anvil { namespace BytePipe {
 	/*!
 		\brief Data is encoded with Hamming(7,4) to correct single bit errors.
 		\details The hamming encoded data size must be divisible by 8 bits otherwise an exception will be thrown.
-		\see RawHammingOutputPipe
+		\see RawHamming74OutputPipe
 	*/
-	class RawHammingInputPipe final : public InputPipe {
+	class RawHamming74InputPipe final : public InputPipe {
 	private:
 		InputPipe& _downstream_pipe;
 	public:
-		RawHammingInputPipe(InputPipe& downstream_pipe);
-		virtual ~RawHammingInputPipe();
+		RawHamming74InputPipe(InputPipe& downstream_pipe);
+		virtual ~RawHamming74InputPipe();
 		uint32_t ReadBytes(void* dst, const uint32_t bytes) final;
 	};
 
 	/*!
 		\brief Data is encoded with Hamming(7,4) to correct single bit errors.
 		\details The hamming encoded data size must be divisible by 8 bits otherwise an exception will be thrown.
-		\see RawHammingInputPipe
+		\see RawHamming74InputPipe
 	*/
-	class RawHammingOutputPipe final : public OutputPipe {
+	class RawHamming74OutputPipe final : public OutputPipe {
 	private:
 		OutputPipe& _downstream_pipe;
 	public:
-		RawHammingOutputPipe(OutputPipe& downstream_pipe);
-		virtual ~RawHammingOutputPipe();
+		RawHamming74OutputPipe(OutputPipe& downstream_pipe);
+		virtual ~RawHamming74OutputPipe();
 		uint32_t WriteBytes(const void* src, const uint32_t bytes) final;
 		void Flush() final;
 	};
@@ -51,32 +51,32 @@ namespace anvil { namespace BytePipe {
 	/*!
 		\brief Data is encoded with Hamming(7,4) to correct single bit errors.
 		\details Uses a PacketInputPipe to guarantee fixed-size memory blocks.
-		This adds some additional overhead, use RawHammingInputPipe to avoid.
-		\see HammingOutputPipe
+		This adds some additional overhead, use RawHamming74InputPipe to avoid.
+		\see Hamming74OutputPipe
 	*/
-	class HammingInputPipe final : public InputPipe {
+	class Hamming74InputPipe final : public InputPipe {
 	private:
 		PacketInputPipe _packet_pipe;
-		RawHammingInputPipe _hamming_pipe;
+		RawHamming74InputPipe _hamming_pipe;
 	public:
-		HammingInputPipe(InputPipe& downstream_pipe);
-		virtual ~HammingInputPipe();
+		Hamming74InputPipe(InputPipe& downstream_pipe);
+		virtual ~Hamming74InputPipe();
 		uint32_t ReadBytes(void* dst, const uint32_t bytes) final;
 	};
 
 	/*!
 		\brief Data is encoded with Hamming(7,4) to correct single bit errors.
 		\details Uses a PacketInputPipe to guarantee fixed-size memory blocks.
-		This adds some additional overhead, use RawHammingOutputPipe to avoid.
-		\see HammingInputPipe
+		This adds some additional overhead, use RawHamming74OutputPipe to avoid.
+		\see Hamming74InputPipe
 	*/
-	class HammingOutputPipe final : public OutputPipe {
+	class Hamming74OutputPipe final : public OutputPipe {
 	private:
-		RawHammingOutputPipe _hamming_pipe;
+		RawHamming74OutputPipe _hamming_pipe;
 		PacketOutputPipe _packet_pipe;
 	public:
-		HammingOutputPipe(OutputPipe& downstream_pipe, uint32_t block_size = 256);
-		virtual ~HammingOutputPipe();
+		Hamming74OutputPipe(OutputPipe& downstream_pipe, uint32_t block_size = 256);
+		virtual ~Hamming74OutputPipe();
 		uint32_t WriteBytes(const void* src, const uint32_t bytes) final;
 		void Flush() final;
 	};
