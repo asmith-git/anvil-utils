@@ -85,22 +85,67 @@ namespace anvil { namespace BytePipe {
 		void Flush() final;
 	};
 
-	namespace dev {
-		/*!
-			\brief Data is encoded with Hamming(15,11) to correct single bit errors.
-			\details The number of bits sent to WriteBytes() must be divisble by 11 otherwise an exception will be thrown.
-			\see RawHamming74OutputPipe
-		*/
-		class RawHamming1511OutputPipe final : public OutputPipe {
-		private:
-			OutputPipe& _downstream_pipe;
-		public:
-			RawHamming1511OutputPipe(OutputPipe& downstream_pipe);
-			virtual ~RawHamming1511OutputPipe();
-			uint32_t WriteBytes(const void* src, const uint32_t bytes) final;
-			void Flush() final;
-		};
-	}
+	/*!
+		\brief Data is encoded with extended Hamming(15,11) to correct single bit errors and detect two bit errors.
+		\details The number of bits sent to WriteBytes() must be divisble by 11 otherwise an exception will be thrown.
+		\see RawHamming1511InputPipe
+	*/
+	class RawHamming1511OutputPipe final : public OutputPipe {
+	private:
+		OutputPipe& _downstream_pipe;
+	public:
+		RawHamming1511OutputPipe(OutputPipe& downstream_pipe);
+		virtual ~RawHamming1511OutputPipe();
+		uint32_t WriteBytes(const void* src, const uint32_t bytes) final;
+		void Flush() final;
+	};
+
+	/*!
+		\brief Data is encoded with extended Hamming(15,11) to correct single bit errors and detect two bit errors.
+		\details The number of bits sent to ReadBytes() must be divisble by 11 otherwise an exception will be thrown.
+		\see RawHamming1511OutputPipe
+	*/
+	class RawHamming1511InputPipe final : public InputPipe {
+	private:
+		InputPipe& _downstream_pipe;
+	public:
+		RawHamming1511InputPipe(InputPipe& downstream_pipe);
+		virtual ~RawHamming1511InputPipe();
+		uint32_t ReadBytes(void* dst, const uint32_t bytes) final;
+	};
+
+	/*!
+		\brief Data is encoded with extended Hamming(15,11) to correct single bit errors and detect two bit errors.
+		\details Uses a PacketInputPipe to guarantee fixed-size memory blocks.
+		This adds some additional overhead, use RawHamming1511InputPipe to avoid.
+		\see Hamming1511OutputPipe
+	*/
+	class Hamming1511InputPipe final : public InputPipe {
+	private:
+		PacketInputPipe _packet_pipe;
+		RawHamming1511InputPipe _hamming_pipe;
+	public:
+		Hamming1511InputPipe(InputPipe& downstream_pipe);
+		virtual ~Hamming1511InputPipe();
+		uint32_t ReadBytes(void* dst, const uint32_t bytes) final;
+	};
+
+	/*!
+		\brief Data is encoded with extended Hamming(15,11) to correct single bit errors and detect two bit errors.
+		\details Uses a PacketInputPipe to guarantee fixed-size memory blocks.
+		This adds some additional overhead, use RawHamming1511OutputPipe to avoid.
+		\see Hamming1511InputPipe
+	*/
+	class Hamming1511OutputPipe final : public OutputPipe {
+	private:
+		RawHamming1511OutputPipe _hamming_pipe;
+		PacketOutputPipe _packet_pipe;
+	public:
+		Hamming1511OutputPipe(OutputPipe& downstream_pipe, uint32_t block_size = 264);
+		virtual ~Hamming1511OutputPipe();
+		uint32_t WriteBytes(const void* src, const uint32_t bytes) final;
+		void Flush() final;
+	};
 
 }}
 

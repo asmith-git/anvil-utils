@@ -593,52 +593,129 @@ namespace anvil { namespace BytePipe {
 		_packet_pipe.Flush();
 	}
 
+	// RawHamming1511OutputPipe
 
-	namespace dev {
+	RawHamming1511OutputPipe::RawHamming1511OutputPipe(OutputPipe& downstream_pipe) :
+		_downstream_pipe(downstream_pipe)
+	{}
 
-		// RawHamming1511OutputPipe
+	RawHamming1511OutputPipe::~RawHamming1511OutputPipe() {
 
-		RawHamming1511OutputPipe::RawHamming1511OutputPipe(OutputPipe& downstream_pipe) :
-			_downstream_pipe(downstream_pipe)
-		{}
+	}
 
-		RawHamming1511OutputPipe::~RawHamming1511OutputPipe() {
+	uint32_t RawHamming1511OutputPipe::WriteBytes(const void* src, const uint32_t decoded_bytes) {
+		const uint32_t decoded_bits = decoded_bytes * 8u;
+		const uint32_t parity_bits = (decoded_bits / 11u) * 5u;
+		const uint32_t encoded_bits = decoded_bits + parity_bits;
+		const uint32_t encoded_bytes = encoded_bits / 8u;
+		if (encoded_bytes * 8u != encoded_bits) throw std::runtime_error("RawHamming1511OutputPipe::WriteBytes : Decoded bit count is not divisible by 11");
 
+		// Allocate temporary storage for the encoded data
+		uint8_t* buffer = static_cast<uint8_t*>(_alloca(encoded_bytes));
+		BitInputStream in(static_cast<const uint8_t*>(src));
+		uint16_t* out = reinterpret_cast<uint16_t*>(buffer);
+
+		for (uint32_t i = 0u; i < encoded_bits; i += 15u) {
+			// Read data bits from upstream
+			uint32_t tmp = in.ReadBits(11u);
+
+			// Calculate and add the parity bits
+			tmp = EncodeHamming1511(tmp);
+
+			// Write to the downstream
+			*out = static_cast<uint16_t>(tmp);
+			++out;
 		}
 
-		uint32_t RawHamming1511OutputPipe::WriteBytes(const void* src, const uint32_t decoded_bytes) {
-			const uint32_t decoded_bits = decoded_bytes * 8u;
-			const uint32_t parity_bits = (decoded_bits / 11u) * 5u;
-			const uint32_t encoded_bits = decoded_bits + parity_bits;
-			const uint32_t encoded_bytes = encoded_bits / 8u;
-			if (encoded_bytes * 8u != encoded_bits) throw std::runtime_error("RawHamming1511OutputPipe::WriteBytes : Decoded bit count is not divisible by 11");
+		// Write the encoded data downstream
+		if (_downstream_pipe.WriteBytes(buffer, encoded_bytes) != encoded_bytes) throw std::runtime_error("RawHamming1511OutputPipe::WriteBytes : Error writing to downstream Pipe");
 
-			// Allocate temporary storage for the encoded data
-			uint8_t* buffer = static_cast<uint8_t*>(_alloca(encoded_bytes));
-			BitInputStream in(static_cast<const uint8_t*>(src));
-			uint16_t* out = reinterpret_cast<uint16_t*>(buffer);
+		return decoded_bytes;
+	}
 
-			for (uint32_t i = 0u; i < encoded_bits; i += 15u) {
-				// Read data bits from upstream
-				uint32_t tmp = in.ReadBits(11u);
+	void RawHamming1511OutputPipe::Flush() {
+		_downstream_pipe.Flush();
+	}
 
-				// Calculate and add the parity bits
-				tmp = EncodeHamming1511(tmp);
+	// RawHamming1511InputPipe
 
-				// Write to the downstream
-				*out = static_cast<uint16_t>(tmp);
-				++out;
-			}
+	RawHamming1511InputPipe::RawHamming1511InputPipe(InputPipe& downstream_pipe) :
+		_downstream_pipe(downstream_pipe)
+	{}
 
-			// Write the encoded data downstream
-			if (_downstream_pipe.WriteBytes(buffer, encoded_bytes) != encoded_bytes) throw std::runtime_error("RawHamming1511OutputPipe::WriteBytes : Error writing to downstream Pipe");
+	RawHamming1511InputPipe::~RawHamming1511InputPipe() {
 
-			return decoded_bytes;
+	}
+
+	uint32_t RawHamming1511InputPipe::ReadBytes(void* dst, const uint32_t decoded_bytes) {
+		const uint32_t decoded_bits = decoded_bytes * 8u;
+		const uint32_t parity_bits = (decoded_bits / 11u) * 5u;
+		const uint32_t encoded_bits = decoded_bits + parity_bits;
+		const uint32_t encoded_bytes = encoded_bits / 8u;
+		if (encoded_bytes * 8u != encoded_bits) throw std::runtime_error("RawHamming1511InputPipe::ReadBytes : Decoded bit count is not divisible by 11");
+
+		// Allocate temporary storage for the encoded data
+		uint8_t* buffer = static_cast<uint8_t*>(_alloca(encoded_bytes));
+		BitOutputStream out(static_cast<uint8_t*>(dst));
+		uint16_t* in = reinterpret_cast<uint16_t*>(buffer);
+
+		// Read encoded data from downstream
+		if(_downstream_pipe.ReadBytes(buffer, encoded_bytes) != encoded_bytes) throw std::runtime_error("RawHamming1511InputPipe::ReadBytes : Failed to read from downstream pipe");
+
+		for (uint32_t i = 0u; i < encoded_bits; i += 15u) {
+			// Read data bits from downstream
+			uint32_t tmp = *in;
+			++in;
+
+			// Calculate and add the parity bits
+			tmp = DecodeHamming1511(tmp);
+
+			// Write to upstream
+			out.WriteBits(tmp, 11u);
 		}
 
-		void RawHamming1511OutputPipe::Flush() {
-			_downstream_pipe.Flush();
-		}
+		return decoded_bytes;
+	}
+
+	// Hamming1511InputPipe
+
+	Hamming1511InputPipe::Hamming1511InputPipe(InputPipe& downstream_pipe) :
+		_packet_pipe(downstream_pipe),
+		_hamming_pipe(_packet_pipe)
+	{}
+
+	Hamming1511InputPipe::~Hamming1511InputPipe() {
+
+	}
+
+	uint32_t Hamming1511InputPipe::ReadBytes(void* dst, const uint32_t bytes) {
+		return _hamming_pipe.ReadBytes(dst, bytes);
+	}
+
+	// Hamming1511OutputPipe
+
+	Hamming1511OutputPipe::Hamming1511OutputPipe(OutputPipe& downstream_pipe, uint32_t packet_size) :
+		_hamming_pipe(downstream_pipe),
+		_packet_pipe(_hamming_pipe, packet_size, 0u)
+	{
+		const uint32_t decoded_bytes = packet_size;
+		const uint32_t decoded_bits = decoded_bytes * 8u;
+		const uint32_t parity_bits = (decoded_bits / 11u) * 5u;
+		const uint32_t encoded_bits = decoded_bits + parity_bits;
+		const uint32_t encoded_bytes = encoded_bits / 8u;
+		if (encoded_bytes * 8u != encoded_bits) throw std::runtime_error("Hamming1511OutputPipe::Hamming1511OutputPipe : Encoded bit count is not divisible by 11");
+	}
+
+	Hamming1511OutputPipe::~Hamming1511OutputPipe() {
+
+	}
+
+	uint32_t Hamming1511OutputPipe::WriteBytes(const void* src, const uint32_t bytes) {
+		return _packet_pipe.WriteBytes(src, bytes);
+	}
+
+	void Hamming1511OutputPipe::Flush() {
+		_packet_pipe.Flush();
 	}
 
 }}
