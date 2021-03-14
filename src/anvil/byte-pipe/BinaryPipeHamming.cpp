@@ -299,9 +299,9 @@ namespace anvil { namespace BytePipe {
 		output <<= 1u;
 		output |= bits[3u][2u];	//D6
 		output <<= 1u;
-		output |= bits[1u][2u];	//D4
-		output <<= 1u;
 		output |= bits[2u][2u];	//D5
+		output <<= 1u;
+		output |= bits[1u][2u];	//D4
 		output <<= 1u;
 		output |= bits[3u][1u];	//D3
 		output <<= 1u;
