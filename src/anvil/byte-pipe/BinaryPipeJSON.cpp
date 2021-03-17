@@ -73,13 +73,13 @@ namespace anvil { namespace BytePipe {
 		_out += '"' + std::to_string(id) + "\":";
 	}
 
+	void JsonWriter::AddValue(const std::string& val) {
+		_out += val;
+		_out += ",";
+	}
 
-	void JsonWriter::AddValue(std::string&& val) {
-		if (_out.empty()) {
-			_out.swap(val);
-		} else {
-			_out += val;
-		}
+	void JsonWriter::AddValueC(const char* val) {
+		_out += val;
 		_out += ",";
 	}
 
@@ -96,11 +96,11 @@ namespace anvil { namespace BytePipe {
 		value += "\"}";
 		
 		// Add the value
-		AddValue(std::move(value));
+		AddValue(value);
 	}
 
 	void JsonWriter::OnNull() {
-		AddValue("null");
+		AddValueC("null");
 	}
 
 	void JsonWriter::OnPrimativeF64(const double value) {
@@ -112,7 +112,7 @@ namespace anvil { namespace BytePipe {
 	}
 
 	void JsonWriter::OnPrimativeBool(const bool value) {
-		AddValue(value ? "True" : "False");
+		AddValueC(value ? "true" : "false");
 	}
 
 	void JsonWriter::OnPrimativeC8(const char value) {
