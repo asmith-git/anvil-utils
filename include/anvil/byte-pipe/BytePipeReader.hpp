@@ -16,6 +16,7 @@
 #define ANVIL_BYTEPIPE_READER_HPP
 
 #include "anvil/byte-pipe/BytePipeCore.hpp"
+#include "anvil/byte-pipe/BytePipeEndian.hpp"
 #include "anvil/byte-pipe/BytePipeObjects.hpp"
 
 namespace anvil { namespace BytePipe {
@@ -625,8 +626,12 @@ namespace anvil { namespace BytePipe {
 		Reader& operator=(const Reader&) = delete;
 
 		InputPipe& _pipe;
+		bool _swap_byte_order;
+
+		Reader(InputPipe& pipe, bool swap_byte_order);
 	public:
 		Reader(InputPipe& pipe);
+		Reader(InputPipe& pipe, Endianness endianness);
 		~Reader();
 
 		void Read(Parser& dst);

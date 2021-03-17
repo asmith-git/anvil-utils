@@ -14,6 +14,7 @@
 
 #include <cstddef>
 #include "anvil/byte-pipe/BytePipeWriter.hpp"
+#include "anvil/byte-pipe/BytePipeEndian.hpp"
 
 #ifdef ANVIL_DISABLE_LUTILS
 	#ifndef ANVIL_CONTRACT
@@ -317,14 +318,24 @@ namespace anvil { namespace BytePipe {
 
 	// Writer
 
-	Writer::Writer(OutputPipe& pipe, Version version) :
+	Writer::Writer(OutputPipe& pipe, Version version, bool swap_byte_order) :
 		_pipe(pipe),
 		_default_state(STATE_CLOSED),
-		_version(version)
+		_version(version),
+		_swap_byte_order(swap_byte_order)
+	{}
+
+	Writer::Writer(OutputPipe& pipe, Version version) :
+		Writer(pipe, version, false)
 	{}
 
 	Writer::Writer(OutputPipe& pipe) :
 		Writer(pipe, VERSION_1)
+	{}
+
+
+	Writer::Writer(OutputPipe& pipe, Version version, Endianness endianness) :
+		Writer(pipe, version, GetEndianness() != endianness)
 	{}
 
 	Writer::~Writer() {
@@ -399,7 +410,7 @@ namespace anvil { namespace BytePipe {
 		Write(&header, 1u);
 	}
 
-	void Writer::_OnPrimative32(const uint32_t value, const uint8_t id) {
+	void Writer::_OnPrimative32(uint32_t value, const uint8_t id) {
 		const uint32_t bytes = g_secondary_type_sizes[id];
 		ANVIL_ASSUME(bytes <= 4u);
 
@@ -407,10 +418,19 @@ namespace anvil { namespace BytePipe {
 		header.primary_id = PID_PRIMATIVE;
 		header.secondary_id = id;
 		header.primative_v1.u32 = value;
+		if (_swap_byte_order && bytes > 1u) {
+			if (bytes == 2u) {
+				header.primative_v1.u16 = SwapByteOrder(header.primative_v1.u16);
+			} else if (bytes == 4u) {
+				header.primative_v1.u32 = SwapByteOrder(header.primative_v1.u32);
+			} else {
+				throw std::runtime_error("Writer::_OnPrimative32 : Cannot swap byte order");
+			}
+		}
 		Write(&header, bytes + 1u);
 	}
 
-	void Writer::_OnPrimative64(const uint64_t value, const uint8_t id) {
+	void Writer::_OnPrimative64(uint64_t value, const uint8_t id) {
 		const uint32_t bytes = g_secondary_type_sizes[id];
 		ANVIL_ASSUME(bytes <= 8u);
 
@@ -418,6 +438,17 @@ namespace anvil { namespace BytePipe {
 		header.primary_id = PID_PRIMATIVE;
 		header.secondary_id = id;
 		header.primative_v1.u64 = value;
+		if (_swap_byte_order && bytes > 1u) {
+			if (bytes == 2u) {
+				header.primative_v1.u16 = SwapByteOrder(header.primative_v1.u16);
+			} else if (bytes == 4u) {
+				header.primative_v1.u32 = SwapByteOrder(header.primative_v1.u32);
+			} else if (bytes == 8u) {
+				header.primative_v1.u64 = SwapByteOrder(header.primative_v1.u64);
+			} else {
+				throw std::runtime_error("Writer::_OnPrimative64 : Cannot swap byte order");
+			}
+		}
 		Write(&header, bytes + 1u);
 	}
 
@@ -503,7 +534,32 @@ namespace anvil { namespace BytePipe {
 		Write(&header, sizeof(ValueHeader::array_v1) + 1u);
 		const uint32_t element_bytes = g_secondary_type_sizes[id];
 		ANVIL_ASSUME(element_bytes <= 8u);
-		Write(ptr, size * element_bytes);
+		if (_swap_byte_order && element_bytes > 1u) {
+			// Allocate temporary storage
+			void* buffer = _alloca(size * element_bytes);
+
+			// Copy and swap byte order
+			if (element_bytes == 2u) {
+				typedef uint16_t T;
+				T* buffer2 = static_cast<T*>(buffer);
+				for (uint32_t i = 0u; i < size; ++i) buffer2[i] = SwapByteOrder(static_cast<const T*>(ptr)[i]);
+			} else if (element_bytes == 4u) {
+				typedef uint32_t T;
+				T* buffer2 = static_cast<T*>(buffer);
+				for (uint32_t i = 0u; i < size; ++i) buffer2[i] = SwapByteOrder(static_cast<const T*>(ptr)[i]);
+			} else if (element_bytes == 8u) {
+				typedef uint64_t T;
+				T* buffer2 = static_cast<T*>(buffer);
+				for (uint32_t i = 0u; i < size; ++i) buffer2[i] = SwapByteOrder(static_cast<const T*>(ptr)[i]);
+			} else {
+				throw std::runtime_error("Writer::_OnPrimativeArray : Cannot swap byte order");
+			}
+
+			// Write the swapped bytes
+			Write(buffer, size * element_bytes);
+		} else {
+			Write(ptr, size * element_bytes);
+		}
 	}
 
 	void Writer::OnPrimativeArrayBool(const bool* ptr, const uint32_t size) {
@@ -595,6 +651,7 @@ namespace anvil { namespace BytePipe {
 		Parser& _parser;
 		void* _mem;
 		uint32_t _mem_bytes;
+		bool _swap_byte_order;
 
 		void* AllocateMemory(const uint32_t bytes) {
 			if (_mem_bytes < bytes) {
@@ -624,6 +681,18 @@ namespace anvil { namespace BytePipe {
 			// Read primative value
 			const uint32_t bytes = g_secondary_type_sizes[id];
 			if(bytes > 0u) ReadFromPipe(_pipe, &header.primative_v1, g_secondary_type_sizes[id]);
+
+			if (_swap_byte_order && bytes > 1u) {
+				if (bytes == 2u) {
+					header.primative_v1.u16 = SwapByteOrder(header.primative_v1.u16);
+				} else if (bytes == 4u) {
+					header.primative_v1.u32 = SwapByteOrder(header.primative_v1.u32);
+				} else if (bytes == 8u) {
+					header.primative_v1.u64 = SwapByteOrder(header.primative_v1.u64);
+				} else {
+					throw std::runtime_error("ReadHelper::ReadPrimative : Cannot swap byte order");
+				}
+			}
 
 			// Output the value
 			PrimativeValue tmp(g_sid_2_object_type[id], header.primative_v1.u64);
@@ -664,6 +733,7 @@ namespace anvil { namespace BytePipe {
 					// Read the POD from the input pipe
 					void* mem = AllocateMemory(header.user_pod.bytes);
 					ReadFromPipe(_pipe, mem, header.user_pod.bytes);
+					//! \bug Doesn't know how to swap the byte order of a POD
 
 					// Output the POD
 					_parser.OnUserPOD(id, header.user_pod.bytes, mem);
@@ -692,20 +762,39 @@ namespace anvil { namespace BytePipe {
 				ANVIL_CONTRACT(id <= SID_B, "Unknown secondary type ID");
 
 				const uint32_t size = header.array_v1.size;
-				const uint32_t bytes = g_secondary_type_sizes[id] * size;
+				const uint32_t element_bytes = g_secondary_type_sizes[id];
+				const uint32_t bytes = element_bytes * size;
 				void* buffer = buffer = AllocateMemory(bytes);
 				ReadFromPipe(_pipe, buffer, bytes);
+				if (_swap_byte_order && element_bytes > 1u) {
+					if (bytes == 2u) {
+						typedef uint16_t T;
+						T* buffer2 = static_cast<T*>(buffer);
+						for (uint32_t i = 0u; i < size; ++i) buffer2[i] = SwapByteOrder(buffer2[i]);
+					} else if (bytes == 4u) {
+						typedef uint32_t T;
+						T* buffer2 = static_cast<T*>(buffer);
+						for (uint32_t i = 0u; i < size; ++i) buffer2[i] = SwapByteOrder(buffer2[i]);
+					} else if (bytes == 8u) {
+						typedef uint64_t T;
+						T* buffer2 = static_cast<T*>(buffer);
+						for (uint32_t i = 0u; i < size; ++i) buffer2[i] = SwapByteOrder(buffer2[i]);
+					} else {
+						throw std::runtime_error("ReadHelper::ReadArray : Cannot swap byte order");
+					}
+				}
 				(_parser.*g_primative_array_callbacks[id])(buffer, size);
 			}
 		}
 	public:
 		ValueHeader header;
 
-		ReadHelper(InputPipe& pipe, Parser& parser, Version version) :
+		ReadHelper(InputPipe& pipe, Parser& parser, Version version, const bool swap_byte_order) :
 			_pipe(pipe),
 			_parser(parser),
 			_mem(nullptr),
-			_mem_bytes(0u)
+			_mem_bytes(0u),
+			_swap_byte_order(swap_byte_order)
 		{}
 
 		~ReadHelper() {
@@ -722,8 +811,17 @@ namespace anvil { namespace BytePipe {
 		}
 	};
 
+	Reader::Reader(InputPipe& pipe, const bool swap_byte_order) :
+		_pipe(pipe),
+		_swap_byte_order(swap_byte_order)
+	{}
+
 	Reader::Reader(InputPipe& pipe) :
-		_pipe(pipe)
+		Reader(pipe, false)
+	{}
+
+	Reader::Reader(InputPipe& pipe, Endianness endianness) :
+		Reader(pipe, GetEndianness() != endianness)
 	{}
 
 	Reader::~Reader() {
@@ -738,7 +836,7 @@ namespace anvil { namespace BytePipe {
 		const Version version = static_cast<Version>(pipeHeader.version);
 
 		// Select correct reader for pipe version
-		ReadHelper helper(_pipe, dst, version);
+		ReadHelper helper(_pipe, dst, version, _swap_byte_order);
 		helper.Read();
 	}
 

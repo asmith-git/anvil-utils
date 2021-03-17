@@ -57,15 +57,19 @@ namespace anvil { namespace BytePipe {
 		std::vector<State> _state_stack;
 		State _default_state;
 		Version _version;
+		bool _swap_byte_order;
 
 		State GetCurrentState() const;
 		void Write(const void* src, const uint32_t bytes);
-		void _OnPrimative32(const uint32_t value, const uint8_t id);
-		void _OnPrimative64(const uint64_t value, const uint8_t id);
+		void _OnPrimative32(uint32_t value, const uint8_t id);
+		void _OnPrimative64(uint64_t value, const uint8_t id);
 		void _OnPrimativeArray(const void* ptr, const uint32_t size, const uint8_t id);
+
+		Writer(OutputPipe& pipe, Version version, bool swap_byte_order);
 	public:
 		Writer(OutputPipe& pipe);
 		Writer(OutputPipe& pipe, Version version);
+		Writer(OutputPipe& pipe, Version version, Endianness endianness);
 		virtual ~Writer();
 
 		// Inherited from Parser
