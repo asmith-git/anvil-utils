@@ -66,8 +66,22 @@ namespace anvil { namespace BytePipe {
 
 	// Header definitions
 #pragma pack(push, 1)
-	struct PipeHeader {
+	struct PipeHeaderV1 {
 		uint8_t version;
+	};
+
+	struct PipeHeaderV2 {
+		uint8_t version;
+		struct {
+			uint8_t little_endian : 1u;
+			uint8_t reserved_flag1 : 1u;
+			uint8_t reserved_flag2 : 1u;
+			uint8_t reserved_flag3 : 1u;
+			uint8_t reserved_flag4 : 1u;
+			uint8_t reserved_flag5 : 1u;
+			uint8_t reserved_flag6 : 1u;
+			uint8_t reserved_flag7 : 1u;
+		};
 	};
 
 	struct ValueHeader {
@@ -117,7 +131,8 @@ namespace anvil { namespace BytePipe {
 
 	// Compile-time error checks
 
-	static_assert(sizeof(PipeHeader) == 1u, "PipeHeader was not packed correctly by compiler");
+	static_assert(sizeof(PipeHeaderV1) == 1u, "PipeHeaderV1 was not packed correctly by compiler");
+	static_assert(sizeof(PipeHeaderV2) == 2u, "PipeHeaderV2 was not packed correctly by compiler");
 	static_assert(sizeof(ValueHeader) == 9u, "ValueHeader was not packed correctly by compiler");
 	static_assert(sizeof(ValueHeader::user_pod) == 6u, "ValueHeader was not packed correctly by compiler");
 	static_assert(offsetof(ValueHeader, primative_v1.u8) == 1u, "ValueHeader was not packed correctly by compiler");
@@ -323,14 +338,17 @@ namespace anvil { namespace BytePipe {
 		_default_state(STATE_CLOSED),
 		_version(version),
 		_swap_byte_order(swap_byte_order)
-	{}
+	{
+		// Check for invalid settings
+		if (_version == VERSION_1 && GetEndianness() == ENDIAN_BIG) throw std::runtime_error("Writer::Writer : Writing to big endian requires version 2 or higher");
+	}
 
 	Writer::Writer(OutputPipe& pipe, Version version) :
 		Writer(pipe, version, false)
 	{}
 
 	Writer::Writer(OutputPipe& pipe) :
-		Writer(pipe, VERSION_1)
+		Writer(pipe, VERSION_2)
 	{}
 
 
@@ -340,6 +358,11 @@ namespace anvil { namespace BytePipe {
 
 	Writer::~Writer() {
 		_pipe.Flush();
+	}
+
+	Endianness Writer::GetEndianness() const {
+		const Endianness e = GetEndianness();
+		return _swap_byte_order ? (e == ENDIAN_LITTLE ? ENDIAN_BIG : ENDIAN_LITTLE) : e;
 	}
 
 	void Writer::Write(const void* src, const uint32_t bytes) {
@@ -355,9 +378,29 @@ namespace anvil { namespace BytePipe {
 		ANVIL_CONTRACT(_default_state == STATE_CLOSED, "BytePipe was already open");
 		_default_state = STATE_NORMAL;
 
-		PipeHeader header;
-		header.version = GetSupportedVersion();
-		Write(&header, 1u);
+		union {
+			PipeHeaderV1 header_v1;
+			PipeHeaderV2 header_v2;
+		};
+		uint32_t size;
+
+		header_v1.version = _version;
+		if (_version > VERSION_1) {
+			const Endianness e = GetEndianness();
+
+			header_v2.little_endian = (_swap_byte_order ? e != ENDIAN_LITTLE : e == ENDIAN_LITTLE) ? 1u : 0u;
+			header_v2.reserved_flag1 = 0u;
+			header_v2.reserved_flag2 = 0u;
+			header_v2.reserved_flag3 = 0u;
+			header_v2.reserved_flag4 = 0u;
+			header_v2.reserved_flag5 = 0u;
+			header_v2.reserved_flag6 = 0u;
+			header_v2.reserved_flag7 = 0u;
+			size = sizeof(PipeHeaderV2);
+		}else {
+			size = sizeof(PipeHeaderV1);
+		}
+		Write(&header_v1.version, size);
 	}
 
 	void Writer::OnPipeClose() {
@@ -811,17 +854,8 @@ namespace anvil { namespace BytePipe {
 		}
 	};
 
-	Reader::Reader(InputPipe& pipe, const bool swap_byte_order) :
-		_pipe(pipe),
-		_swap_byte_order(swap_byte_order)
-	{}
-
 	Reader::Reader(InputPipe& pipe) :
-		Reader(pipe, false)
-	{}
-
-	Reader::Reader(InputPipe& pipe, Endianness endianness) :
-		Reader(pipe, GetEndianness() != endianness)
+		_pipe(pipe)
 	{}
 
 	Reader::~Reader() {
@@ -829,14 +863,36 @@ namespace anvil { namespace BytePipe {
 	}
 
 	void Reader::Read(Parser& dst) {
-		PipeHeader pipeHeader;
-		ReadFromPipe(_pipe, &pipeHeader, sizeof(PipeHeader));
+		// Read the version from the header
+		union {
+			PipeHeaderV1 header_v1;
+			PipeHeaderV2 header_v2;
+		};
+		ReadFromPipe(_pipe, &header_v1, sizeof(PipeHeaderV1));
 
-		ANVIL_CONTRACT(pipeHeader.version <= VERSION_1, "BytePipe version not supported");
-		const Version version = static_cast<Version>(pipeHeader.version);
+		// Check for unsupported version
+		if (header_v1.version > VERSION_2) throw std::runtime_error("Reader::Read : BytePipe version not supported");
+
+		// Read additional header data
+		bool swap_byte_order;
+		const Endianness e = GetEndianness();
+		if (header_v1.version == VERSION_1) {
+			// Version 1 only supports little endian
+			swap_byte_order = e != ENDIAN_LITTLE;
+		} else {
+			// Read the version 2 header info
+			ReadFromPipe(_pipe, reinterpret_cast<uint8_t*>(&header_v2) + sizeof(PipeHeaderV1), sizeof(PipeHeaderV2) - sizeof(PipeHeaderV1));
+			swap_byte_order = e != (header_v2.little_endian ? ENDIAN_LITTLE : ENDIAN_BIG);
+
+			// These header options are not defined yet
+			if(header_v2.reserved_flag1 || header_v2.reserved_flag2 || header_v2.reserved_flag3 || header_v2.reserved_flag4 || header_v2.reserved_flag5 ||
+				header_v2.reserved_flag5 || header_v2.reserved_flag6 || header_v2.reserved_flag7)
+				throw std::runtime_error("Reader::Read : BytePipe version not supported");
+		}
+
 
 		// Select correct reader for pipe version
-		ReadHelper helper(_pipe, dst, version, _swap_byte_order);
+		ReadHelper helper(_pipe, dst, static_cast<Version>(header_v1.version), swap_byte_order);
 		helper.Read();
 	}
 

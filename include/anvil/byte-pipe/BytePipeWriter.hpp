@@ -72,6 +72,8 @@ namespace anvil { namespace BytePipe {
 		Writer(OutputPipe& pipe, Version version, Endianness endianness);
 		virtual ~Writer();
 
+		Endianness GetEndianness() const;
+
 		// Inherited from Parser
 
 		void OnPipeOpen() final;
