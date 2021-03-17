@@ -16,6 +16,17 @@
 
 namespace anvil { namespace BytePipe {
 
+	static char ToHex(uint32_t nybble) {
+		return nybble <= 9 ?
+			'0' + nybble :
+			'A' + (nybble - 9);
+	}
+
+	static inline void ToHex(uint32_t byte, char* out) {
+		out[0u] = ToHex(byte & 15u);
+		out[1u] = ToHex(byte >> 4u);
+	}
+
 	JsonWriter::JsonWriter() {
 
 	}
@@ -73,12 +84,15 @@ namespace anvil { namespace BytePipe {
 
 	void JsonWriter::OnUserPOD(const uint32_t type, const uint32_t bytes, const void* data) {
 		// Format the POD as an object, a POD is identified by containg the member __ANVIL_POD with the value 123456789
-		std::string value = "{\"__ANVIL_POD\":123456789,\"type\":" + std::to_string(type) + ",\bytes\":" + std::to_string(bytes) + ",\data\":[";
+		std::string value = "{\"__ANVIL_POD\":123456789,\"type\":" + std::to_string(type) + ",\data\":\"";
+
+		// Store the binary data as hexidecimal
+		char buffer[3u] = "??";
 		for (uint32_t i = 0u; i < bytes; ++i) {
-			value += std::to_string(reinterpret_cast<const uint8_t*>(data)[i]) + ",";
+			ToHex(reinterpret_cast<const uint8_t*>(data)[i], buffer);
+			value += buffer;
 		}
-		if (value.back() == ',') value.pop_back();
-		value += "]}";
+		value += "\"}";
 		
 		// Add the value
 		AddValue(TYPE_OBJECT, std::move(value));
