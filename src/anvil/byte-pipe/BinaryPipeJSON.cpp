@@ -36,6 +36,7 @@ namespace anvil { namespace BytePipe {
 	}
 
 	const std::string& JsonWriter::GetJSON() const {
+		if (_out.back() == ',') _out.pop_back();
 		return _out;
 	}
 
@@ -73,7 +74,7 @@ namespace anvil { namespace BytePipe {
 	}
 
 
-	void JsonWriter::AddValue(Type type, std::string&& val) {
+	void JsonWriter::AddValue(std::string&& val) {
 		if (_out.empty()) {
 			_out.swap(val);
 		} else {
@@ -95,23 +96,23 @@ namespace anvil { namespace BytePipe {
 		value += "\"}";
 		
 		// Add the value
-		AddValue(TYPE_OBJECT, std::move(value));
+		AddValue(std::move(value));
 	}
 
 	void JsonWriter::OnNull() {
-		AddValue(TYPE_NULL, "null");
+		AddValue("null");
 	}
 
 	void JsonWriter::OnPrimativeF64(const double value) {
-		AddValue(TYPE_F64, std::to_string(value));
+		AddValue(std::to_string(value));
 	}
 
 	void JsonWriter::OnPrimativeString(const char* value, const uint32_t length) {
-		AddValue(TYPE_STRING, std::string(value, value + length));
+		AddValue(std::string(value, value + length));
 	}
 
 	void JsonWriter::OnPrimativeBool(const bool value) {
-		AddValue(TYPE_BOOL, value ? "True" : "False");
+		AddValue(value ? "True" : "False");
 	}
 
 	void JsonWriter::OnPrimativeC8(const char value) {
@@ -119,39 +120,39 @@ namespace anvil { namespace BytePipe {
 	}
 
 	void JsonWriter::OnPrimativeU64(const uint64_t value) {
-		AddValue(TYPE_U64, std::to_string(value));
+		AddValue(std::to_string(value));
 	}
 
 	void JsonWriter::OnPrimativeS64(const int64_t value) {
-		AddValue(TYPE_S64, std::to_string(value));
+		AddValue(std::to_string(value));
 	}
 
 	void JsonWriter::OnPrimativeF32(const float value) {
-		AddValue(TYPE_F64, std::to_string(value));
+		AddValue(std::to_string(value));
 	}
 
 	void JsonWriter::OnPrimativeU8(const uint8_t value) {
-		AddValue(TYPE_U8, std::to_string(value));
+		AddValue(std::to_string(value));
 	}
 
 	void JsonWriter::OnPrimativeU16(const uint16_t value) {
-		AddValue(TYPE_U16, std::to_string(value));
+		AddValue(std::to_string(value));
 	}
 
 	void JsonWriter::OnPrimativeU32(const uint32_t value) {
-		AddValue(TYPE_U32, std::to_string(value));
+		AddValue(std::to_string(value));
 	}
 
 	void JsonWriter::OnPrimativeS8(const int8_t value) {
-		AddValue(TYPE_S8, std::to_string(value));
+		AddValue(std::to_string(value));
 	}
 
 	void JsonWriter::OnPrimativeS16(const int16_t value) {
-		AddValue(TYPE_S16, std::to_string(value));
+		AddValue(std::to_string(value));
 	}
 
 	void JsonWriter::OnPrimativeS32(const int32_t value) {
-		AddValue(TYPE_S32, std::to_string(value));
+		AddValue(std::to_string(value));
 	}
 
 }}

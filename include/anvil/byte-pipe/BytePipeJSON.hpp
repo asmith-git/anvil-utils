@@ -30,7 +30,7 @@ namespace anvil { namespace BytePipe {
 	private:
 		mutable std::string _out;
 	private:
-		void AddValue(Type type, std::string&& val);
+		void AddValue(std::string&& val);
 	public:
 		JsonWriter();
 		virtual ~JsonWriter();
