@@ -22,5 +22,6 @@
 #include "anvil/byte-pipe/BytePipeSTL.hpp"
 #include "anvil/byte-pipe/BytePipeRLE.hpp"
 #include "anvil/byte-pipe/BytePipePacket.hpp"
+#include "anvil/byte-pipe/BytePipeBits.hpp"
 
 #endif

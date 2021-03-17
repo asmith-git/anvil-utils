@@ -16,6 +16,7 @@
 #define ANVIL_LUTILS_BYTEPIPE_HAMMING_HPP
 
 #include "anvil/byte-pipe/BytePipePacket.hpp"
+#include "anvil/byte-pipe/BytePipeBits.hpp"
 
 namespace anvil { namespace BytePipe {
 
@@ -146,6 +147,12 @@ namespace anvil { namespace BytePipe {
 		uint32_t WriteBytes(const void* src, const uint32_t bytes) final;
 		void Flush() final;
 	};
+
+	// Define default Hamming impelmentation
+	typedef Hamming1511InputPipe HammingInputPipe;
+	typedef Hamming1511OutputPipe HammingOutputPipe;
+	typedef RawHamming1511InputPipe RawHammingInputPipe;
+	typedef RawHamming1511OutputPipe RawHammingOutputPipe;
 
 }}
 
